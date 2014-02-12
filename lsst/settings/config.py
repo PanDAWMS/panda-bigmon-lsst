@@ -11,8 +11,7 @@ import lsst
 from local import defaultDatabase, MY_SECRET_KEY
 
 ### VIRTUALENV
-#VIRTUALENV_PATH = '/data/virtualenv/django1.6.1__python2.6.6'
-VIRTUALENV_PATH = '/data/virtualenv/bigpandamon-refactor'
+VIRTUALENV_PATH = '/data/virtualenv/django1.6.1__python2.6.6__lsst'
 
 ### WSGI
 WSGI_PATH = VIRTUALENV_PATH + '/pythonpath'
@@ -67,8 +66,7 @@ MEDIA_URL = URL_PATH_PREFIX + MEDIA_URL_BASE
 STATIC_URL = URL_PATH_PREFIX + STATIC_URL_BASE
 
 
-#LOG_ROOT = '/data/bigpandamon/bigpandamon/logs/'
-LOG_ROOT = '/data/bigpandamon_virtualhosts/refactor/logs'
+LOG_ROOT = '/data/bigpandamon_virtualhosts/lsst/logs'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
