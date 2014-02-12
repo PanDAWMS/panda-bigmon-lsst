@@ -1,0 +1,40 @@
+LoadModule wsgi_module modules/mod_wsgi.so
+
+### multiple mod_wsgi applications ### 
+
+#################################
+#################################
+#################################
+
+### /lsst
+    WSGISocketPrefix run/wsgi.bigpandamon.lsst
+    WSGIDaemonProcess bigpandamon-lsst processes=1 threads=5 python-path=/data/bigpandamon_settings:/data/virtualenv/django1.6.1__python2.6.6__lsst/pythonpath:/data/virtualenv/django1.6.1__python2.6.6__lsst//lib/python2.6/site-packages
+    WSGIScriptAlias /lsst /data/virtualenv/django1.6.1__python2.6.6__lsst/pythonpath/lsst/wsgi.py process-group=bigpandamon-lsst application-group=%{GLOBAL}
+    <Directory /data/virtualenv/django1.6.1__python2.6.6__lsst/pythonpath/lsst>
+        <Files wsgi.py>
+            Order deny,allow
+            Allow from all
+        </Files>
+    </Directory>
+    <Location /lsst>
+        WSGIProcessGroup bigpandamon-lsst
+        WSGIApplicationGroup %{GLOBAL}
+    </Location>
+    AliasMatch ^/lsst/([^/]*\.css) /data/virtualenv/django1.6.1__python2.6.6__lsst/pythonpath/lsst/static/css/$1
+    AliasMatch ^/lsst/([^/]*\.js)  /data/virtualenv/django1.6.1__python2.6.6__lsst/pythonpath/lsst/static/js/$1
+    Alias /lsst/static/ /data/virtualenv/django1.6.1__python2.6.6__lsst/pythonpath/lsst/static/
+    <Directory /data/virtualenv/django1.6.1__python2.6.6__lsst/pythonpath/lsst/static>
+        Order deny,allow
+        Allow from all
+    </Directory>
+    Alias /lsst/media/ /data/virtualenv/django1.6.1__python2.6.6__lsst/pythonpath/lsst/media/
+    <Directory /data/virtualenv/django1.6.1__python2.6.6__lsst/pythonpath/lsst/media>
+        Order deny,allow
+        Allow from all
+    </Directory>
+### end of /lsst
+
+#################################
+#################################
+#################################
+
