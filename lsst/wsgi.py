@@ -13,16 +13,17 @@ further doc: http://thecodeship.com/deployment/deploy-django-apache-virtualenv-a
 import os
 import sys
 import site
+from os.path import join, pardir, abspath, dirname, split
 
 ### dummy settings settings_bigpandamon file with VIRTUALENV_PATH, WSGI_PATH
 baseSettingsPath = '/data/bigpandamon_settings'
 sys.path.append(baseSettingsPath)
 
-virtualenvPath = '/data/virtualenv/django1.6.1__python2.6.6'
-path = virtualenvPath + '/bigpandamon'
+virtualenvPath = '/data/virtualenv/django1.6.1__python2.6.6_refactor'
+path = virtualenvPath + '/pythonpath'
 try:
-    from settings_bigpandamon import VIRTUALENV_PATH
-    from settings_bigpandamon import WSGI_PATH
+    from settings_bigpandamon_lsst import VIRTUALENV_PATH
+    from settings_bigpandamon_lsst import WSGI_PATH
     virtualenvPath = VIRTUALENV_PATH
     path = WSGI_PATH
 except:
@@ -34,10 +35,26 @@ site.addsitedir(virtualenvPath + '/lib/python2.6/site-packages')
 
 # Add the app's directory to the PYTHONPATH
 sys.path.append(path)
-sys.path.append(path + '/bigpandamon')
+sys.path.append(path + '/pythonpath')
 
 #os.environ.setdefault("DJANGO_SETTINGS_MODULE", "bigpandamon.settings")
-os.environ["DJANGO_SETTINGS_MODULE"] = "bigpandamon.settings"
+#os.environ["DJANGO_SETTINGS_MODULE"] = "lsst.settings"
+
+# django settings module
+DJANGO_SETTINGS_MODULE = '%s.%s' % (split(abspath(dirname(__file__)))[1], 'settings')
+# pythonpath dirs
+PYTHONPATH = [
+    join(dirname(__file__), pardir),
+]
+
+# inject few paths to pythonpath
+for p in PYTHONPATH:
+    if p not in sys.path:
+        sys.path.insert(0, p)
+
+
+os.environ['DJANGO_SETTINGS_MODULE'] = DJANGO_SETTINGS_MODULE
+
 
 # Activate your virtual env
 activate_env = os.path.expanduser(virtualenvPath + '/bin/activate_this.py')
