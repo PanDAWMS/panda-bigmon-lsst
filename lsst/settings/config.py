@@ -1,7 +1,3 @@
-"""
-lsst.settings.config 
-
-"""
 
 from os.path import dirname, join
 
@@ -11,6 +7,7 @@ import lsst
 from local import defaultDatabase, MY_SECRET_KEY
 
 ### VIRTUALENV
+#VIRTUALENV_PATH = '/data/virtualenv/django1.6.1__python2.6.6'
 VIRTUALENV_PATH = '/data/virtualenv/django1.6.1__python2.6.6__lsst'
 
 ### WSGI

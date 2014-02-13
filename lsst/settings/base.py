@@ -1,12 +1,8 @@
-"""
-lsst.settings.base 
-
-"""
 
 from os.path import dirname, join
 
 from core import common
-from core.settings.base import COMMON_INSTALLED_APPS
+from core.common.settings.base import COMMON_INSTALLED_APPS
 import lsst
 
 TEMPLATE_DIRS = (
