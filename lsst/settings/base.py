@@ -6,6 +6,7 @@ lsst.settings.base
 from os.path import dirname, join
 
 from core import common
+from core.settings.base import COMMON_INSTALLED_APPS
 import lsst
 
 TEMPLATE_DIRS = (
@@ -16,6 +17,18 @@ TEMPLATE_DIRS = (
     join(dirname(common.__file__), 'templates'),
 
 )
+
+INSTALLED_APPS_BIGPANDAMON_LSST = (
+    ### BigPanDAmon core
+    'core.common',
+    'core.table',
+#    'core.graphics', #NOT-IMPLEMENTED
+    'core.pandajob',
+    'core.resource',
+#    'core.htcondor', #NOT-NEEDED-IN-LSST
+#    'core.task', #NOT-IMPLEMENTED
+)
+INSTALLED_APPS = COMMON_INSTALLED_APPS + INSTALLED_APPS_BIGPANDAMON_LSST
 
 
 ROOT_URLCONF = 'lsst.urls'
