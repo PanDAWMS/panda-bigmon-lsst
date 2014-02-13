@@ -19,7 +19,7 @@ from os.path import join, pardir, abspath, dirname, split
 baseSettingsPath = '/data/bigpandamon_settings'
 sys.path.append(baseSettingsPath)
 
-virtualenvPath = '/data/virtualenv/django1.6.1__python2.6.6_refactor'
+virtualenvPath = '/data/virtualenv/django1.6.1__python2.6.6__lsst'
 path = virtualenvPath + '/pythonpath'
 try:
     from settings_bigpandamon_lsst import VIRTUALENV_PATH
