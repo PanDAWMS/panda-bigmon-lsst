@@ -16,14 +16,15 @@ import site
 from os.path import join, pardir, abspath, dirname, split
 
 ### dummy settings settings_bigpandamon file with VIRTUALENV_PATH, WSGI_PATH
-baseSettingsPath = '/data/bigpandamon_settings'
+baseSettingsPath = '/data/bigpandamon_settings' ###FIXME
 sys.path.append(baseSettingsPath)
 
-virtualenvPath = '/data/virtualenv/django1.6.1__python2.6.6__lsst'
+#virtualenvPath = '/data/virtualenv/django1.6.1__python2.6.6__lsst'
+virtualenvPath = '/data/wenaus/virtualenv/twdev__django1.6.1__python2.6.6__lsst'
 path = virtualenvPath + '/pythonpath'
 try:
-    from settings_bigpandamon_lsst import VIRTUALENV_PATH
-    from settings_bigpandamon_lsst import WSGI_PATH
+    from settings_bigpandamon_wenaus_lsst import VIRTUALENV_PATH
+    from settings_bigpandamon_wenaus_lsst import WSGI_PATH
     virtualenvPath = VIRTUALENV_PATH
     path = WSGI_PATH
 except:
