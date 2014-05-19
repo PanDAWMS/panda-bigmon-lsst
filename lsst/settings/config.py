@@ -66,7 +66,8 @@ STATIC_URL = URL_PATH_PREFIX + STATIC_URL_BASE
 
 
 #LOG_ROOT = '/data/bigpandamon_virtualhosts/lsst/logs'
-LOG_ROOT = '/data/wenaus/logs'
+#LOG_ROOT = '/data/wenaus/logs'
+LOG_ROOT = '/data/wenaus/bigpandamon_virtualhosts/twrpm/logs'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
