@@ -10,7 +10,8 @@ from local import dbaccess, MY_SECRET_KEY
 ### VIRTUALENV
 #VIRTUALENV_PATH = '/data/virtualenv/django1.6.1__python2.6.6'
 #VIRTUALENV_PATH = '/data/virtualenv/django1.6.1__python2.6.6__lsst'
-VIRTUALENV_PATH = '/data/wenaus/virtualenv/twdev__django1.6.1__python2.6.6__lsst'
+#VIRTUALENV_PATH = '/data/wenaus/virtualenv/twdev__django1.6.1__python2.6.6__lsst'
+VIRTUALENV_PATH = '/data/wenaus/virtualenv/twrpm'
 
 ### WSGI
 WSGI_PATH = VIRTUALENV_PATH + '/pythonpath'
@@ -58,7 +59,8 @@ DATABASES = dbaccess
 
 ### URL_PATH_PREFIX for multi-developer apache/wsgi instance
 ### on EC2: URL_PATH_PREFIX = '/bigpandamon' or URL_PATH_PREFIX = '/developersprefix'
-URL_PATH_PREFIX = '/lsst'
+#URL_PATH_PREFIX = '/lsst'
+URL_PATH_PREFIX = '/twrpmlsst'
 ### on localhost:8000: URL_PATH_PREFIX = '/.'
 #URL_PATH_PREFIX = ''
 MEDIA_URL = URL_PATH_PREFIX + MEDIA_URL_BASE
@@ -177,3 +179,4 @@ ENV = {
     ### Navigation chain item separator
     'SEPARATOR_NAVIGATION_ITEM': "&nbsp;&#187;&nbsp;" , \
 }
+
