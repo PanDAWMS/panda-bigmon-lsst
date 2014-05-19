@@ -38,3 +38,42 @@ LoadModule wsgi_module modules/mod_wsgi.so
 #################################
 #################################
 
+
+
+#################################
+ #################################
+ #################################
+ ### /lsst from twdev-bigpandamon-lsst package, /lsst may be changed to /twrpmlsst later
+ ### /lsst
+     WSGISocketPrefix run/wsgi.bigpandamon.twrpmlsst
+     WSGIDaemonProcess bigpandamon-twrpmlsst processes=1 threads=5 python-path=/data/bigpandamon_settings:/data/wenaus/virtualenv/twrpm/pythonpath:/data/wenaus/virtualenv/twrpm/lib/python2.6/site-packages
+     WSGIScriptAlias /lsst /data/wenaus/virtualenv/twrpm/pythonpath/lsst/wsgi.py process-group=bigpandamon-twrpmlsst application-group=%{GLOBAL}
+     <Directory /data/wenaus/virtualenv/twrpm/pythonpath/lsst>
+         <Files wsgi.py>
+             Order deny,allow
+             Allow from all
+         </Files>
+     </Directory>
+     <Location /lsst>
+         WSGIProcessGroup bigpandamon-twrpmlsst
+         WSGIApplicationGroup %{GLOBAL}
+     </Location>
+     AliasMatch ^/lsst/([^/]*\.css) /data/wenaus/virtualenv/twrpm/pythonpath/lsst/static/css/$1
+     AliasMatch ^/lsst/([^/]*\.js)  /data/wenaus/virtualenv/twrpm/pythonpath/lsst/static/js/$1
+     Alias /lsst/static/ /data/wenaus/virtualenv/twrpm/pythonpath/lsst/static/
+     <Directory /data/wenaus/virtualenv/twrpm/pythonpath/lsst/static>
+         Order deny,allow
+         Allow from all
+     </Directory>
+     Alias /lsst/media/ /data/wenaus/virtualenv/twrpm/pythonpath/lsst/media/
+     <Directory /data/wenaus/virtualenv/twrpm/pythonpath/lsst/media>
+         Order deny,allow
+         Allow from all
+     </Directory>
+ ### end of /lsst
+
+ #################################
+ #################################
+ #################################
+
+
