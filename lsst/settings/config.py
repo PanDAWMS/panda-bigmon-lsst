@@ -60,7 +60,9 @@ DATABASES = dbaccess
 ### URL_PATH_PREFIX for multi-developer apache/wsgi instance
 ### on EC2: URL_PATH_PREFIX = '/bigpandamon' or URL_PATH_PREFIX = '/developersprefix'
 #URL_PATH_PREFIX = '/lsst'
-URL_PATH_PREFIX = '/twrpmlsst'
+#URL_PATH_PREFIX = '/twrpmlsst'
+#URL_PATH_PREFIX = '/lsst'
+URL_PATH_PREFIX = ''
 ### on localhost:8000: URL_PATH_PREFIX = '/.'
 #URL_PATH_PREFIX = ''
 MEDIA_URL = URL_PATH_PREFIX + MEDIA_URL_BASE
