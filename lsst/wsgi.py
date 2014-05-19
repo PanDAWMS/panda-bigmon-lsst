@@ -16,15 +16,18 @@ import site
 from os.path import join, pardir, abspath, dirname, split
 
 ### dummy settings settings_bigpandamon file with VIRTUALENV_PATH, WSGI_PATH
-baseSettingsPath = '/data/bigpandamon_settings' ###FIXME
+baseSettingsPath = '/data/bigpandamon_settings'
 sys.path.append(baseSettingsPath)
 
-#virtualenvPath = '/data/virtualenv/django1.6.1__python2.6.6__lsst'
-virtualenvPath = '/data/wenaus/virtualenv/twdev__django1.6.1__python2.6.6__lsst'
+#virtualenvPath = '/data/virtualenv/django1.6.1__python2.6.6__jedimon'
+#virtualenvPath = '/data/virtualenv/django1.6.1__python2.6.6__atlas'
+virtualenvPath = '/data/wenaus/virtualenv/twrpm'
 path = virtualenvPath + '/pythonpath'
 try:
-    from settings_bigpandamon_wenaus_lsst import VIRTUALENV_PATH
-    from settings_bigpandamon_wenaus_lsst import WSGI_PATH
+#    from settings_bigpandamon_jedimon import VIRTUALENV_PATH
+#    from settings_bigpandamon_jedimon import WSGI_PATH
+    from settings_bigpandamon_twrpm import VIRTUALENV_PATH
+    from settings_bigpandamon_twrpm import WSGI_PATH
     virtualenvPath = VIRTUALENV_PATH
     path = WSGI_PATH
 except:
@@ -39,7 +42,7 @@ sys.path.append(path)
 sys.path.append(path + '/pythonpath')
 
 #os.environ.setdefault("DJANGO_SETTINGS_MODULE", "bigpandamon.settings")
-#os.environ["DJANGO_SETTINGS_MODULE"] = "lsst.settings"
+#os.environ["DJANGO_SETTINGS_MODULE"] = "atlas.settings"
 
 # django settings module
 DJANGO_SETTINGS_MODULE = '%s.%s' % (split(abspath(dirname(__file__)))[1], 'settings')
