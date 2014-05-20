@@ -40,7 +40,7 @@ LoadModule wsgi_module modules/mod_wsgi.so
 
 
 
-#################################
+ #################################
  #################################
  #################################
  ### /lsst from twdev-bigpandamon-lsst package, /lsst may be changed to /twrpmlsst later
@@ -71,7 +71,7 @@ LoadModule wsgi_module modules/mod_wsgi.so
          Allow from all
      </Directory>
  ### end of /lsst
-
+ Alias /lsst/favicon.ico /data/wenaus/virtualenv/twrpm/pythonpath/core/common/static/images/favicon.ico
  #################################
  #################################
  #################################
