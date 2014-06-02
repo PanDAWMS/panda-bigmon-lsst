@@ -4,11 +4,14 @@ from os.path import dirname, join
 import core
 import lsst
 
-from local import defaultDatabase, MY_SECRET_KEY
+#from local import defaultDatabase, MY_SECRET_KEY
+from local import dbaccess, MY_SECRET_KEY
 
 ### VIRTUALENV
 #VIRTUALENV_PATH = '/data/virtualenv/django1.6.1__python2.6.6'
 VIRTUALENV_PATH = '/data/virtualenv/django1.6.1__python2.6.6__lsst'
+#VIRTUALENV_PATH = '/data/wenaus/virtualenv/twdev__django1.6.1__python2.6.6__lsst'
+#VIRTUALENV_PATH = '/data/wenaus/virtualenv/twrpm'
 
 ### WSGI
 WSGI_PATH = VIRTUALENV_PATH + '/pythonpath'
@@ -41,22 +44,14 @@ SECRET_KEY = MY_SECRET_KEY
 
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
-DATABASES = {
-#    'default': {
-#        'ENGINE': 'django.db.backends.', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-#        'NAME': '',                      # Or path to database file if using sqlite3.
-#        'USER': '',                      # Not used with sqlite3.
-#        'PASSWORD': '',                  # Not used with sqlite3.
-#        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-#        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
-#    }
-    'default': defaultDatabase
-}
-
+DATABASES = dbaccess
 
 ### URL_PATH_PREFIX for multi-developer apache/wsgi instance
 ### on EC2: URL_PATH_PREFIX = '/bigpandamon' or URL_PATH_PREFIX = '/developersprefix'
+#URL_PATH_PREFIX = '/lsst'
+#URL_PATH_PREFIX = '/twrpmlsst'
 URL_PATH_PREFIX = '/lsst'
+#URL_PATH_PREFIX = ''
 ### on localhost:8000: URL_PATH_PREFIX = '/.'
 #URL_PATH_PREFIX = ''
 MEDIA_URL = URL_PATH_PREFIX + MEDIA_URL_BASE
@@ -64,6 +59,8 @@ STATIC_URL = URL_PATH_PREFIX + STATIC_URL_BASE
 
 
 LOG_ROOT = '/data/bigpandamon_virtualhosts/lsst/logs'
+#LOG_ROOT = '/data/wenaus/logs'
+#LOG_ROOT = '/data/wenaus/bigpandamon_virtualhosts/twrpm/logs'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -161,5 +158,16 @@ LOGGING = {
         'backupCount': 5,
         'formatter': 'verbose',
     },
+}
+
+ENV = {
+    ### Application name
+    'APP_NAME': "PanDA Monitor", \
+    ### Page title default
+    'PAGE_TITLE': "PanDA Monitor", \
+    ### Menu item separator
+    'SEPARATOR_MENU_ITEM': "&nbsp;&nbsp;&nbsp;", \
+    ### Navigation chain item separator
+    'SEPARATOR_NAVIGATION_ITEM': "&nbsp;&#187;&nbsp;" , \
 }
 

@@ -20,8 +20,11 @@ baseSettingsPath = '/data/bigpandamon_settings'
 sys.path.append(baseSettingsPath)
 
 virtualenvPath = '/data/virtualenv/django1.6.1__python2.6.6__lsst'
+#virtualenvPath = '/data/wenaus/virtualenv/twrpm'
 path = virtualenvPath + '/pythonpath'
 try:
+#    from settings_bigpandamon_twrpm import VIRTUALENV_PATH
+#    from settings_bigpandamon_twrpm import WSGI_PATH
     from settings_bigpandamon_lsst import VIRTUALENV_PATH
     from settings_bigpandamon_lsst import WSGI_PATH
     virtualenvPath = VIRTUALENV_PATH
