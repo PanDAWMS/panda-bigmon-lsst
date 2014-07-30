@@ -72,6 +72,7 @@ STATIC_URL = URL_PATH_PREFIX + STATIC_URL_BASE
 #LOG_ROOT = '/data/bigpandamon_virtualhosts/lsst/logs'
 #LOG_ROOT = '/data/wenaus/logs'
 LOG_ROOT = '/data/wenaus/bigpandamon_virtualhosts/twrpm/logs'
+LOG_SIZE = 1000000000
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -90,7 +91,7 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': LOG_ROOT + "/logfile.bigpandamon",
-            'maxBytes': 1000000000,
+            'maxBytes': LOG_SIZE,
             'backupCount': 2,
             'formatter': 'verbose',
         },
@@ -98,7 +99,7 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': LOG_ROOT + "/logfile.django",
-            'maxBytes': 1000000000,
+            'maxBytes': LOG_SIZE,
             'backupCount': 2,
             'formatter': 'verbose',
         },
@@ -106,7 +107,7 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': LOG_ROOT + "/logfile.viewdatatables",
-            'maxBytes': 1000000000,
+            'maxBytes': LOG_SIZE,
             'backupCount': 2,
             'formatter': 'verbose',
         },
@@ -114,7 +115,15 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': LOG_ROOT + "/logfile.rest",
-            'maxBytes': 1000000000,
+            'maxBytes': LOG_SIZE,
+            'backupCount': 2,
+            'formatter': 'verbose',
+        },
+        'logfile-api_reprocessing': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': LOG_ROOT + "/logfile.api_reprocessing",
+            'maxBytes': LOG_SIZE,
             'backupCount': 2,
             'formatter': 'verbose',
         },
@@ -151,6 +160,10 @@ LOGGING = {
             'handlers': ['logfile-bigpandamon'],
             'level': 'DEBUG',
         },
+        'api_reprocessing':{
+            'handlers': ['logfile-api_reprocessing'],
+            'level': 'DEBUG',
+        }
     },
     'formatters': {
         'verbose': {
