@@ -16,6 +16,8 @@ VIRTUALENV_PATH = '/data/wenaus/virtualenv/twrpm'
 ### WSGI
 WSGI_PATH = VIRTUALENV_PATH + '/pythonpath'
 
+### DB_ROUTERS for atlas's prodtask
+DATABASE_ROUTERS = ['atlas.dbrouter.ProdMonDBRouter']
 
 STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
