@@ -344,6 +344,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
         query['specialhandling__contains'] = 'eventservice'
     elif jobtype == 'test':
         query['prodsourcelabel__icontains'] = 'test'
+    print 'Query:', query
     return query
 
 def cleanJobList(jobs, mode='drop'):
@@ -2234,9 +2235,6 @@ def dashTasks(request, hours, view='production'):
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
-#class QuicksearchForm(forms.Form):
-#    fieldName = forms.CharField(max_length=100)
-
 def taskList(request):
     valid, response = initRequest(request)
     if not valid: return response
@@ -2281,6 +2279,8 @@ def taskList(request):
 def taskInfo(request, jeditaskid=0):
     valid, response = initRequest(request)
     if not valid: return response
+    if 'taskname' in requestParams and requestParams['taskname'].find('*') >= 0:
+        return taskList(request)
     setupView(request, hours=365*24, limit=999999999, querytype='task')
     query = {}
     tasks = []
