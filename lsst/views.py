@@ -698,12 +698,12 @@ def taskSummaryDict(request, tasks, fieldlist = None):
 def wgTaskSummary(request, fieldname='workinggroup', view='production'):
     """ Return a dictionary summarizing the field values for the chosen most interesting fields """
     query = {}
-    hours = 24*7
+    hours = 24*3
     startdate = timezone.now() - timedelta(hours=hours)
     startdate = startdate.strftime(defaultDatetimeFormat)
     enddate = timezone.now().strftime(defaultDatetimeFormat)
     query['modificationtime__range'] = [startdate, enddate]
-    query['workinggroup__isnull'] = False
+    if fieldname == 'workinggroup': query['workinggroup__isnull'] = False
     if view == 'production':
         query['tasktype'] = 'prod'
     elif view == 'analysis':
@@ -747,6 +747,8 @@ def wgTaskSummary(request, fieldname='workinggroup', view='production'):
         itemd['list'] = iteml
         suml.append(itemd)
     suml = sorted(suml, key=lambda x:x['field'])
+    for s in suml:
+        print s['field'], s['count']
     return suml
 
 def extensibleURL(request, xurl = ''):
@@ -1052,7 +1054,6 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     nfiles = len(files) 
     logfile = {} 
     for file in files:
-        print file['lfn'], file['type']
         if file['type'] == 'log': 
             logfile['lfn'] = file['lfn'] 
             logfile['guid'] = file['guid'] 
@@ -1983,7 +1984,6 @@ def dashTaskSummary(request, hours, view='all'):
     query = setupView(request,hours=hours,limit=999999,opmode=view, querytype='task') 
 
     tasksummarydata = taskSummaryData(query)
-    print 'Got task summary data', len(tasksummarydata)
     tasks = {}
     totstates = {}
     totjobs = 0
@@ -1997,7 +1997,6 @@ def dashTaskSummary(request, hours, view='all'):
         elif 'taskid' in rec and rec['taskid'] and rec['taskid'] > 0 :
             taskids.append( { 'taskid' : rec['taskid'] } )
     tasknamedict = taskNameDict(taskids)
-    print 'Got tasknamedict'
 
     for rec in tasksummarydata:
         if 'jeditaskid' in rec and rec['jeditaskid'] and rec['jeditaskid'] > 0:
@@ -2053,7 +2052,6 @@ def dashTaskSummary(request, hours, view='all'):
             fullsummary = sorted(fullsummary, key=lambda x:x['states'][requestParams['sortby']],reverse=True)
         elif requestParams['sortby'] == 'pctfail':
             fullsummary = sorted(fullsummary, key=lambda x:x['pctfail'],reverse=True)
-    print 'Summary built'
 
     return fullsummary
 
