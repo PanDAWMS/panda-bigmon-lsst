@@ -249,6 +249,18 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
             </li>
 
             <li class="has-dropdown">
+            <a href="#">Tasks</a>
+            <ul class="dropdown">
+                <li><a href="{% url 'taskList' %}?display_limit=300">All</a></li>
+                {% if viewParams.MON_VO == 'ATLAS' %}
+                    <li><a href="{% url 'taskList' %}?tasktype=anal&display_limit=300">Analysis</a></li>
+                    <li><a href="{% url 'taskList' %}?tasktype=prod&display_limit=300">Production</a></li>
+                    <li><a href="{% url 'taskList' %}?eventservice=1&display_limit=300">Event service</a></li>
+                {% endif %}
+            </ul>
+            </li>
+
+            <li class="has-dropdown">
             <a href="#">Jobs</a>
             <ul class="dropdown">
                 <li><a href="{% url 'jobList' %}?display_limit=100">All</a></li>
@@ -259,18 +271,6 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
                     <li><a href="{% url 'jobList' %}?jobtype=eventservice&display_limit=100">Event service</a></li>
                 {% endif %}
                 <li><a href="{% url 'jobList' %}?jobtype=test&display_limit=100">Test</a></li>
-            </ul>
-            </li>
-
-            <li class="has-dropdown">
-            <a href="#">Tasks</a>
-            <ul class="dropdown">
-                <li><a href="{% url 'taskList' %}?display_limit=300">All</a></li>
-                {% if viewParams.MON_VO == 'ATLAS' %}
-                    <li><a href="{% url 'taskList' %}?tasktype=anal&display_limit=300">Analysis</a></li>
-                    <li><a href="{% url 'taskList' %}?tasktype=prod&display_limit=300">Production</a></li>
-                    <li><a href="{% url 'taskList' %}?eventservice=1&display_limit=300">Event service</a></li>
-                {% endif %}
             </ul>
             </li>
 

@@ -98,11 +98,11 @@ Tasks for project </td><td><font size=-1><input id="project" name="project" size
 
 <tr><td><form action="{% url 'taskList' %}" method='post'>
 {% csrf_token %}
-Tasks for tag </td><td><font size=-1><input id="tag" name="tag" size="25" maxlength="400" class="inputW" /><input type='hidden' name="display_limit" readonly="readonly" value=200 /><input type='hidden' name="tasktype" readonly="readonly" value="prod" />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
+Tasks for tag </td><td><font size=-1><input id="tag" name="tag" size="25" maxlength="400" class="inputW" /><input type='hidden' name="display_limit" readonly="readonly" value=200 /><input type='hidden' name="days" readonly="readonly" value="30" />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
 
 <tr><td><form action="{% url 'taskList' %}" method='post'>
 {% csrf_token %}
-Tasks for stream </td><td><font size=-1><input id="stream" name="stream" size="25" maxlength="400" class="inputW" /><input type='hidden' name="display_limit" readonly="readonly" value=200 /><input type='hidden' name="tasktype" readonly="readonly" value="prod" />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
+Tasks for stream </td><td><font size=-1><input id="stream" name="stream" size="25" maxlength="400" class="inputW" /><input type='hidden' name="display_limit" readonly="readonly" value=200 /><input type='hidden' name="days" readonly="readonly" value="30" />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
 
 
 <tr><td><form action="{% url 'siteInfo' %}" method='get'>
@@ -151,6 +151,7 @@ for over <font size=-1><input id="statenotupdated" name="statenotupdated" class=
 <div style="width:500px;height:100%;overflow:auto;word-wrap: break-word">
 <ul style="font-size:small">
 <!-- most recent at the top -->
+<li class="news">20140911: Show wait time, duration for jobs not yet running, completed
 <li class="news">20140818: Job attempt# off for user page, JEDI jobs. Not meaningful in JEDI.
 <li class="news">20140818: Task attribute summary added to user page
 <li class="news">20140817: Output container list added to task detail page

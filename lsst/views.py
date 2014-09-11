@@ -366,12 +366,28 @@ def cleanJobList(jobs, mode='drop'):
         if isEventService(job): job['jobinfo'] = 'Event service job'
         job['duration'] = ""
         #if job['jobstatus'] in ['finished','failed','holding']:
-        if 'endtime' in job and 'starttime' in job and job['endtime'] and job['starttime']:
-            job['duration'] = "%s" % (job['endtime'] - job['starttime'])
+        if 'endtime' in job and 'starttime' in job and job['starttime']:
+            starttime = job['starttime']
+            if job['endtime']:
+                endtime = job['endtime']
+            else:
+                endtime = timezone.now()
+            duration = endtime - starttime
+            ndays = duration.days
+            strduration = str(timedelta(seconds=duration.seconds))
+            job['duration'] = "%s:%s" % ( ndays, strduration )
         job['waittime'] = ""
         #if job['jobstatus'] in ['running','finished','failed','holding','cancelled','transferring']:
-        if 'creationtime' in job and 'starttime' in job and job['starttime'] and job['creationtime']:
-            job['waittime'] = "%s" % (job['starttime'] - job['creationtime'])
+        if 'creationtime' in job and 'starttime' in job and job['creationtime']:
+            creationtime = job['creationtime']
+            if job['starttime']:
+                starttime = job['starttime']
+            else:
+                starttime = timezone.now()
+            wait = starttime - creationtime
+            ndays = wait.days
+            strwait = str(timedelta(seconds=wait.seconds))
+            job['waittime'] = "%s:%s" % (ndays, strwait)
         if 'currentpriority' in job:
             plo = int(job['currentpriority'])-int(job['currentpriority'])%100
             phi = plo+99
