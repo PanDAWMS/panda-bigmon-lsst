@@ -695,10 +695,10 @@ def taskSummaryDict(request, tasks, fieldlist = None):
     suml = sorted(suml, key=lambda x:x['field'])
     return suml
 
-def wgTaskSummary(request, fieldname='workinggroup', view='production'):
+def wgTaskSummary(request, fieldname='workinggroup', view='production', taskdays=3):
     """ Return a dictionary summarizing the field values for the chosen most interesting fields """
     query = {}
-    hours = 24*3
+    hours = 24*taskdays
     startdate = timezone.now() - timedelta(hours=hours)
     startdate = startdate.strftime(defaultDatetimeFormat)
     enddate = timezone.now().strftime(defaultDatetimeFormat)
@@ -2058,6 +2058,7 @@ def dashTaskSummary(request, hours, view='all'):
 def dashboard(request, view='production'):
     valid, response = initRequest(request)
     if not valid: return response
+    taskdays = 3
     hoursSinceUpdate = 36
     if view == 'production':
         noldtransjobs, transclouds, transrclouds = stateNotUpdated(request, state='transferring', hoursSinceUpdate=hoursSinceUpdate, count=True)
@@ -2072,7 +2073,7 @@ def dashboard(request, view='production'):
     else:
         VOMODE = ''
     if VOMODE != 'atlas':
-        hours = 24*7
+        hours = 24*taskdays
     else:
         hours = 12
     query = setupView(request,hours=hours,limit=999999,opmode=view)
@@ -2133,7 +2134,7 @@ def dashboard(request, view='production'):
 
     fullsummary = dashSummary(request, hours, view, cloudview)
 
-    cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view)
+    cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view, taskdays=taskdays)
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
@@ -2154,7 +2155,7 @@ def dashboard(request, view='production'):
             'errthreshold' : errthreshold,
             'cloudTaskSummary' : cloudTaskSummary,
             'taskstates' : taskstatedict,
-            'taskdays' : 7,
+            'taskdays' : taskdays,
             'noldtransjobs' : noldtransjobs,
             'transclouds' : transclouds,
             'transrclouds' : transrclouds,
@@ -2183,7 +2184,8 @@ def dashTasks(request, hours, view='production'):
 
     query = setupView(request,hours=hours,limit=999999,opmode=view, querytype='task')
 
-    cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view)
+    taskdays = 3
+    cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view, taskdays=taskdays)
 
     taskJobSummary = dashTaskSummary(request, hours, view)
 
@@ -2207,7 +2209,7 @@ def dashTasks(request, hours, view='production'):
             'errthreshold' : errthreshold,
             'cloudTaskSummary' : cloudTaskSummary,
             'taskstates' : taskstatedict,
-            'taskdays' : 7,
+            'taskdays' : taskdays,
             'taskJobSummary' : taskJobSummary[:display_limit],
             'display_limit' : display_limit,
         }
@@ -3068,6 +3070,7 @@ def pandaLogger(request):
 def workingGroups(request):
     valid, response = initRequest(request)
     if not valid: return response
+    taskdays = 3
     if dbaccess['default']['ENGINE'].find('oracle') >= 0:
         VOMODE = 'atlas'
     else:
@@ -3075,13 +3078,13 @@ def workingGroups(request):
     if VOMODE != 'atlas':
         days = 30
     else:
-        days = 7
+        days = taskdays
     hours = days*24
     query = setupView(request,hours=hours,limit=999999)
     query['workinggroup__isnull'] = False
 
     ## WG task summary
-    tasksummary = wgTaskSummary(request)
+    tasksummary = wgTaskSummary(request, view='working group', taskdays=taskdays)
 
     ## WG job summary
     wgsummarydata = wgSummary(query)
