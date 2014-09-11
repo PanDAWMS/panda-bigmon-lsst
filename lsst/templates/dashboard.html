@@ -252,7 +252,9 @@ of all jobs
 <p>
 <table>
 <tr class='tablesection'>
-<th> {{ view }} task </th>
+<th> Job summary for {{ taskJobSummary|length }} recently active {{ view }} tasks. 
+{% if display_limit >= taskJobSummary|length %} &nbsp; display_limit={{ display_limit }} {% endif %}
+</th>
 <th> Status </th>
 <th> nJobs </th>
 <td class="tablesection"> <a href="{{nosorturl}}sortby=defined">defined</a> </td>

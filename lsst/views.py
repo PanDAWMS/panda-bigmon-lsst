@@ -1983,6 +1983,7 @@ def dashTaskSummary(request, hours, view='all'):
     query = setupView(request,hours=hours,limit=999999,opmode=view, querytype='task') 
 
     tasksummarydata = taskSummaryData(query)
+    print 'Got task summary data', len(tasksummarydata)
     tasks = {}
     totstates = {}
     totjobs = 0
@@ -1996,6 +1997,7 @@ def dashTaskSummary(request, hours, view='all'):
         elif 'taskid' in rec and rec['taskid'] and rec['taskid'] > 0 :
             taskids.append( { 'taskid' : rec['taskid'] } )
     tasknamedict = taskNameDict(taskids)
+    print 'Got tasknamedict'
 
     for rec in tasksummarydata:
         if 'jeditaskid' in rec and rec['jeditaskid'] and rec['jeditaskid'] > 0:
@@ -2028,6 +2030,12 @@ def dashTaskSummary(request, hours, view='all'):
         tasks[taskid]['count'] += count
         tasks[taskid]['states'][jobstatus]['count'] += count
 
+    if view == 'analysis':
+        ## Show only tasks starting with 'user.'
+        kys = tasks.keys()
+        for t in kys:
+            if not str(tasks[t]['name']).startswith('user.'): del tasks[t]
+
     ## Convert dict to summary list
     taskkeys = tasks.keys()
     taskkeys.sort()
@@ -2045,6 +2053,7 @@ def dashTaskSummary(request, hours, view='all'):
             fullsummary = sorted(fullsummary, key=lambda x:x['states'][requestParams['sortby']],reverse=True)
         elif requestParams['sortby'] == 'pctfail':
             fullsummary = sorted(fullsummary, key=lambda x:x['pctfail'],reverse=True)
+    print 'Summary built'
 
     return fullsummary
 
@@ -2180,6 +2189,10 @@ def dashTasks(request, hours, view='production'):
 
     taskJobSummary = dashTaskSummary(request, hours, view)
 
+    if 'display_limit' in requestParams:
+        display_limit = requestParams['display_limit']
+    else:
+        display_limit = 300
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
@@ -2197,7 +2210,8 @@ def dashTasks(request, hours, view='production'):
             'cloudTaskSummary' : cloudTaskSummary,
             'taskstates' : taskstatedict,
             'taskdays' : 7,
-            'taskJobSummary' : taskJobSummary,
+            'taskJobSummary' : taskJobSummary[:display_limit],
+            'display_limit' : display_limit,
         }
         return render_to_response('dashboard.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
