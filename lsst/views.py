@@ -2168,12 +2168,13 @@ def dashTasks(request, hours, view='production'):
     valid, response = initRequest(request)
     if not valid: return response
 
-    query = setupView(request,hours=hours,limit=999999,opmode=view, querytype='task')
-
     if view == 'production':
         errthreshold = 5
     else:
         errthreshold = 15
+        hours = 3
+
+    query = setupView(request,hours=hours,limit=999999,opmode=view, querytype='task')
 
     cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view)
 
