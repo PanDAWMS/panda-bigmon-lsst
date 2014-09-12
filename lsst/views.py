@@ -2238,7 +2238,7 @@ def dashTasks(request, hours, view='production'):
 def taskList(request):
     valid, response = initRequest(request)
     if not valid: return response
-    query = setupView(request, hours=30*24, limit=9999999, querytype='task')
+    query = setupView(request, hours=7*24, limit=9999999, querytype='task')
     if 'statenotupdated' in requestParams:
         tasks = taskNotUpdated(request, query)
     else:
