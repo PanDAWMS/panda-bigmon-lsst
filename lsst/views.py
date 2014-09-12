@@ -2793,7 +2793,7 @@ def errorSummary(request):
         if sitename in sitestates:
             for s in savestates:
                 if s in sitestates[sitename]: site[s] = sitestates[sitename][s]
-        site['pctfail'] = sitestates[sitename]['pctfail']
+        if 'pctfail' in sitestates[sitename]: site['pctfail'] = sitestates[sitename]['pctfail']
 
     ## Build the task state summary and add task state info to task error summary
     taskstatesummary = dashTaskSummary(request, hours, view=jobtype)
