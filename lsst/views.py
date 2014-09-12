@@ -44,6 +44,7 @@ errorCodes = {}
 errorStages = {}
 
 homeCloud = {}
+objectStores = {}
 cloudList = [ 'CA', 'CERN', 'DE', 'ES', 'FR', 'IT', 'ND', 'NL', 'RU', 'TW', 'UK', 'US' ]
 
 statelist = [ 'defined', 'waiting', 'pending', 'assigned', 'throttled', \
@@ -90,12 +91,18 @@ VOLIST = [ 'atlas', 'bigpanda', 'htcondor', 'lsst', ]
 VONAME = { 'atlas' : 'ATLAS', 'bigpanda' : 'BigPanDA', 'htcondor' : 'HTCondor', 'lsst' : 'LSST', '' : '' }
 VOMODE = ' '
 
-def setupHomeCloud():
-    global homeCloud
+def setupSiteInfo():
+    global homeCloud, objectStores
     if len(homeCloud) > 0: return
-    sites = Schedconfig.objects.filter().exclude(cloud='CMS').values()
+    sites = Schedconfig.objects.filter().exclude(cloud='CMS').values('siteid','cloud','objectstore','catchall')
     for site in sites:
         homeCloud[site['siteid']] = site['cloud']
+        if site['catchall'].find('log_to_objectstore') >= 0:
+            try:
+                fpath = getFilePathForObjectStore(site['objectstore'],filetype="logs")
+                if fpath != "": objectstores[site['siteid']] = fpath
+            except:
+                pass
 
 def initRequest(request):
     global VOMODE, ENV, viewParams
@@ -137,7 +144,7 @@ def initRequest(request):
                         }
                     return False, render_to_response('errorPage.html', data, RequestContext(request))
             requestParams[p.lower()] = pval
-    setupHomeCloud()
+    setupSiteInfo()
     if len(errorFields) == 0:
         codes = ErrorCodes.ErrorCodes()
         errorFields, errorCodes, errorStages = codes.getErrorCodes()
@@ -1030,6 +1037,10 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         logextract = logs[0].log1
     else:
         logextract = None
+
+    ## Check for object store based log
+    if job['computingsite'] in objectStores:
+        ospath = objectStores[job['computingsite']]
 
     ## Check for debug info
     if 'specialhandling' in job and job['specialhandling'].find('debug') >= 0:
@@ -2391,6 +2402,24 @@ def taskInfo(request, jeditaskid=0):
             dsinfo['pctfailed'] = int(100.*nfailed/nfiles)
     if taskrec: taskrec['dsinfo'] = dsinfo
 
+    ## get dataset types
+    dstypesd = {}
+    for ds in dsets:
+        dstype = ds['type']
+        if dstype not in dstypesd: dstypesd[dstype] = 0
+        dstypesd[dstype] += 1
+    dstkeys = dstypesd.keys()
+    dstkeys.sort()
+    dstypes = []
+    for dst in dstkeys:
+        dstd = { 'type' : dst, 'count' : dstypesd[dst] }
+        dstypes.append(dstd)
+
+    ## get input containers
+    inctrs = []
+    if 'dsForIN' in taskparams:
+        inctrs = [ taskparams['dsForIN'], ]
+
     ## get output containers
     cquery = {}
     cquery['jeditaskid'] = jeditaskid
@@ -2426,6 +2455,8 @@ def taskInfo(request, jeditaskid=0):
             'jeditaskid' : jeditaskid,
             'logtxt' : logtxt,
             'datasets' : dsets,
+            'dstypes' : dstypes,
+            'inctrs' : inctrs,
             'outctrs' : outctrs,
         }
         data.update(getContextVariables(request))
@@ -3548,3 +3579,40 @@ class DateEncoder(json.JSONEncoder):
         else:
             return str(obj)
         return json.JSONEncoder.default(self, obj)
+
+def getFilePathForObjectStore(objectstore, filetype="logs"):
+    """ Return a proper file path in the object store """
+
+    # For single object stores                                                                                                                                                                                                                          
+    # root://atlas-objectstore.cern.ch/|eventservice^/atlas/eventservice|logs^/atlas/logs                                                                                                                                                               
+    # For multiple object stores                                                                                                                                                                                                                        
+    # eventservice^root://atlas-objectstore.cern.ch//atlas/eventservice|logs^root://atlas-objectstore.bnl.gov//atlas/logs                                                                                                                               
+
+    print objectstore
+    basepath = ""
+
+    # Which form of the schedconfig.objectstore field do we currently have?                                                                                                                                                                             
+    if objectstore != "":
+        _objectstore = objectstore.split("|")
+        if "^" in _objectstore[0]:
+            for obj in _objectstore:
+                if obj[:len(filetype)] == filetype:
+                    basepath = obj.split("^")[1]
+                    break
+        else:
+            _objectstore = objectstore.split("|")
+            url = _objectstore[0]
+            for obj in _objectstore:
+                if obj[:len(filetype)] == filetype:
+                    basepath = obj.split("^")[1]
+                    break
+            if basepath != "":
+                basepath = url + basepath
+
+        if basepath == "":
+            print "Object store path could not be extracted using file type \'%s\' from objectstore=\'%s\'" % (filetype, objectstore)
+
+    else:
+        print "Object store not defined in queuedata"
+
+    return basepath
