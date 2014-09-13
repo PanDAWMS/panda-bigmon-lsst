@@ -1039,7 +1039,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         logextract = None
 
     ## Check for object store based log
-    if job['computingsite'] in objectStores:
+    if 'computingsite' in job and job['computingsite'] in objectStores:
         ospath = objectStores[job['computingsite']]
 
     ## Check for debug info
