@@ -462,6 +462,8 @@ def cleanTaskList(tasks):
             dsinfo[taskid].append(ds)
     for task in tasks:
         if len(task['errordialog']) > 100: task['errordialog'] = task['errordialog'][:90]+'...'
+        if 'reqid' in task and task['reqid'] < 100000 and task['reqid'] > 100 and task['reqid'] != 300:
+            task['deftreqid'] = task['reqid']
         #if task['status'] == 'running' and task['jeditaskid'] in dsinfo:
         dstotals = {}
         dstotals['nfiles'] = 0
@@ -2310,6 +2312,7 @@ def taskInfo(request, jeditaskid=0):
         if len(tasks) > 0:
             jeditaskid = tasks[0]['jeditaskid']
         query = {'jeditaskid' : jeditaskid}
+    tasks = cleanTaskList(tasks)
     try:
         taskrec = tasks[0]
         colnames = taskrec.keys()

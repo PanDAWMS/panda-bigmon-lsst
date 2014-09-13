@@ -11,8 +11,9 @@
 <table>
 <tr bgcolor='lightcyan'><th colspan=20> Task {{ jeditaskid }}: {{ taskname }} </th></tr>
 <tr bgcolor='lightcyan'>
-	<th>ID</th>
-	{% if task.reqid != task.jeditaskid %}<th>Jobset</th>{% endif %}
+	<th>Task ID</th>
+    {% if task.deftreqid %} <th> Request </th> {% endif %}
+	{% if task.reqid != task.jeditaskid and not task.deftreqid %}<th>Jobset</th>{% endif %}
 	<th>Type</th>
 	<th>WorkingGroup</th><th>User</th>
 	{% if task.campaign %} <th> Campaign </th> {% endif %}
@@ -29,7 +30,8 @@
 </tr>
 	<tr>
 		<td><a href="{% url 'taskInfo' task.jeditaskid %}">{{ task.jeditaskid }}</a></td>
-		{% if task.reqid != task.jeditaskid %}<td>{{ task.reqid }}</td>{% endif %}
+        {% if task.deftreqid %} <td> <a href="http://bigpanda.cern.ch/prodsys/prodtask/inputlist_with_request/{{task.deftreqid}}/">{{task.deftreqid}}</a> </td> {% endif %}
+		{% if task.reqid != task.jeditaskid and not task.deftreqid %}<td>{{ task.reqid }}</td>{% endif %}
 		<td>{{ task.tasktype }}</td>
 		<td>{% if task.workinggroup %} {{ task.workinggroup }} {% endif %} </td>
 		<td><a href="{% url 'taskList' %}?username={{ task.username }}">{{ task.username }}</a></td>
