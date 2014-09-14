@@ -94,15 +94,15 @@ VOMODE = ' '
 def setupSiteInfo():
     global homeCloud, objectStores
     if len(homeCloud) > 0: return
-    #sites = Schedconfig.objects.filter().exclude(cloud='CMS').values('siteid','cloud','objectstore','catchall')
-    #for site in sites:
-    #    homeCloud[site['siteid']] = site['cloud']
-    #    if site['catchall'].find('log_to_objectstore') >= 0:
-    #        try:
-    #            fpath = getFilePathForObjectStore(site['objectstore'],filetype="logs")
-    #            if fpath != "": objectstores[site['siteid']] = fpath
-    #        except:
-    #            pass
+    sites = Schedconfig.objects.filter().exclude(cloud='CMS').values('siteid','cloud','objectstore','catchall')
+    for site in sites:
+        homeCloud[site['siteid']] = site['cloud']
+        if site['catchall'].find('log_to_objectstore') >= 0:
+            try:
+                fpath = getFilePathForObjectStore(site['objectstore'],filetype="logs")
+                if fpath != "": objectstores[site['siteid']] = fpath
+            except:
+                pass
 
 def initRequest(request):
     global VOMODE, ENV, viewParams
