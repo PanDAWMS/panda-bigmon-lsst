@@ -56,7 +56,7 @@ urlpatterns = patterns('',
 
     ### api
     url(r'^api/$', core_lsstmon_support_views.maxpandaid, name='supportRoot'),
-    url(r'^api/reprocessing/$', include('core.api.reprocessing.urls')),
+#    url(r'^api/reprocessing/$', include('core.api.reprocessing.urls')),
 
 
     ### robots.txt
