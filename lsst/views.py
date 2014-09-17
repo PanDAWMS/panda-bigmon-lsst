@@ -2219,7 +2219,10 @@ def dashTasks(request, hours, view='production'):
     taskJobSummary = dashTaskSummary(request, hours, view)
 
     if 'display_limit' in requestParams:
-        display_limit = requestParams['display_limit']
+        try:
+            display_limit = int(requestParams['display_limit'])
+        except:
+            display_limit = 300
     else:
         display_limit = 300
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
