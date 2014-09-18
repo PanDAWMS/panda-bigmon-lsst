@@ -2422,7 +2422,7 @@ def taskInfo(request, jeditaskid=0):
 
     ## get input containers
     inctrs = []
-    if 'dsForIN' in taskparams:
+    if taskparams and 'dsForIN' in taskparams:
         inctrs = [ taskparams['dsForIN'], ]
 
     ## get output containers
