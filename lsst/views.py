@@ -1053,7 +1053,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         if 'showdebug' in requestParams:
             debugstdoutrec = Jobsdebug.objects.filter(pandaid=pandaid).values()
             if len(debugstdoutrec) > 0:
-                debugstdout = debugstdoutrec['stdout']
+                if 'stdout' in debugstdoutrec: debugstdout = debugstdoutrec['stdout']
 
     ## Get job files. First look in JEDI datasetcontents
     files = []
