@@ -97,12 +97,20 @@ def setupSiteInfo():
     sites = Schedconfig.objects.filter().exclude(cloud='CMS').values('siteid','cloud','objectstore','catchall')
     for site in sites:
         homeCloud[site['siteid']] = site['cloud']
-        if site['catchall'].find('log_to_objectstore') >= 0:
+        if site['catchall'].find('log_to_objectstore') >= 0 or site['objectstore'] != '':
+            print 'object store site', site['siteid'], site['catchall'], site['objectstore']
             try:
                 fpath = getFilePathForObjectStore(site['objectstore'],filetype="logs")
-                if fpath != "": objectstores[site['siteid']] = fpath
+                print fpath
+                #### dirty hack
+                fpath = fpath.replace('root://atlas-objectstore.cern.ch/atlas/logs','https://atlas-objectstore.cern.ch:1094/atlas/logs')
+                if fpath != "" and fpath.startswith('http'): objectStores[site['siteid']] = fpath
             except:
                 pass
+    if len(objectStores) > 0:
+        print 'objectStores', objectStores
+    else:
+        print 'No objectStores found'
 
 def initRequest(request):
     global VOMODE, ENV, viewParams
@@ -1039,22 +1047,6 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     else:
         logextract = None
 
-    ## Check for object store based log
-    if 'computingsite' in job and job['computingsite'] in objectStores:
-        ospath = objectStores[job['computingsite']]
-
-    ## Check for debug info
-    if 'specialhandling' in job and job['specialhandling'].find('debug') >= 0:
-        debugmode = True
-    else:
-        debugmode = False
-    debugstdout = None
-    if debugmode:
-        if 'showdebug' in requestParams:
-            debugstdoutrec = Jobsdebug.objects.filter(pandaid=pandaid).values()
-            if len(debugstdoutrec) > 0:
-                if 'stdout' in debugstdoutrec: debugstdout = debugstdoutrec['stdout']
-
     ## Get job files. First look in JEDI datasetcontents
     files = []
     files.extend(JediDatasetContents.objects.filter(pandaid=pandaid).order_by('type').values())
@@ -1104,6 +1096,29 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         stdlog = stdout.replace('.out','.log')
     else:
         stdout = stderr = stdlog = None
+
+    ## Check for object store based log
+    oslogpath = None
+    if 'computingsite' in job and job['computingsite'] in objectStores:
+        ospath = objectStores[job['computingsite']]
+        if 'lfn' in logfile:
+            if ospath.endswith('/'):
+                oslogpath = ospath + logfile['lfn']
+            else:
+                oslogpath = ospath + '/' + logfile['lfn']
+            print "Object store for logs:", oslogpath
+
+    ## Check for debug info
+    if 'specialhandling' in job and job['specialhandling'].find('debug') >= 0:
+        debugmode = True
+    else:
+        debugmode = False
+    debugstdout = None
+    if debugmode:
+        if 'showdebug' in requestParams:
+            debugstdoutrec = Jobsdebug.objects.filter(pandaid=pandaid).values()
+            if len(debugstdoutrec) > 0:
+                if 'stdout' in debugstdoutrec: debugstdout = debugstdoutrec['stdout']
 
     if 'transformation' in job and job['transformation'] is not None and job['transformation'].startswith('http'):
         job['transformation'] = "<a href='%s'>%s</a>" % ( job['transformation'], job['transformation'].split('/')[-1] )
@@ -1220,6 +1235,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             'dsfiles' : dsfiles,
             'nfiles' : nfiles,
             'logfile' : logfile,
+            'oslogpath' : oslogpath,
             'stdout' : stdout,
             'stderr' : stderr,
             'stdlog' : stdlog,
@@ -3612,7 +3628,10 @@ def getFilePathForObjectStore(objectstore, filetype="logs"):
                     basepath = obj.split("^")[1]
                     break
             if basepath != "":
-                basepath = url + basepath
+                if url.endswith('/') and basepath.startswith('/'):
+                    basepath = url + basepath[1:]
+                else:
+                    basepath = url + basepath
 
         if basepath == "":
             print "Object store path could not be extracted using file type \'%s\' from objectstore=\'%s\'" % (filetype, objectstore)
