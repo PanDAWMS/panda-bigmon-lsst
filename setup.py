@@ -205,6 +205,7 @@ setup(
                      "lsst/static",
                      "lsst/media",
                      "lsst/config-templates",
+		     "lsst/templates/filebrowser",
 #                     "atlas/prodtask/templates",
 #                     "atlas/todoview/templates",
  #                    "atlas/getdatasets/templates",
