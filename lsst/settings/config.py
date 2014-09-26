@@ -33,10 +33,10 @@ TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-#    join(dirname(pbm.__file__), 'templates'),
-    join(dirname(filebrowser.__file__), 'templates'),
     join(dirname(core.common.__file__), 'templates'),
     join(dirname(lsst.__file__), 'templates'),
+    join(dirname(filebrowser.__file__), 'templates'),
+#    join(dirname(pbm.__file__), 'templates'),
 )
 
 STATIC_ROOT = join(dirname(lsst.__file__), 'static')
