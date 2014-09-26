@@ -11,3 +11,25 @@ defaultDatabase = {
 # Make this unique, and don't share it with anybody.
 MY_SECRET_KEY = 'FIXME'
 
+FILEBROWSER_DIRECTORY = "filebrowser"
+RUCIO_ACCOUNT = "jschovan"
+X509_USER_PROXY = "FIXME"
+CAPATH = "/etc/grid-security/certificates"
+RUCIO_REDIRECT_HOST = "https://rucio-lb-prod.cern.ch"
+RUCIO_AUTH_HOST = "https://voatlasrucio-auth-prod.cern.ch"
+RUCIO_SERVER_HOST = "https://voatlasrucio-server-prod.cern.ch"
+
+import sys
+if 'test' in sys.argv :  # Covers regular testing and django-coverage
+    dbaccess['default'] = \
+    {
+         'ENGINE': 'django.db.backends.mysql',  # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+         'NAME': 'FIXME',  # Or path to database file if using sqlite3.
+         'USER': 'FIXME',  # Not used with sqlite3.
+         'PASSWORD': 'FIXME',  # Not used with sqlite3.
+         'HOST': 'FIXME',  # Set to empty string for localhost. Not used with sqlite3.
+         'PORT': 'FIXME',  # Set to empty string for default. Not used with sqlite3.
+         'TEST_DEPENDENCIES': [],
+    }
+
+    

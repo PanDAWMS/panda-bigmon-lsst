@@ -47,6 +47,11 @@ urlpatterns = patterns('',
     url(r'^datasetList/$', lsstmon_views.datasetList, name='datasetList'),
     url(r'^workQueues/$', lsstmon_views.workQueues, name='workQueues'),
 
+
+    ### filebrowser
+    url(r'^filebrowser/', include('filebrowser.urls'), name='filebrowser'),
+
+
     ### support views for LSST
     url(r'^support/$', core_lsstmon_support_views.maxpandaid, name='supportRoot'),
     url(r'^support/maxpandaid/$', core_lsstmon_support_views.maxpandaid, name='supportMaxpandaid'),

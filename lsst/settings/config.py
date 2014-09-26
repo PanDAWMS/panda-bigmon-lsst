@@ -3,6 +3,8 @@ from os.path import dirname, join
 
 import core
 import lsst
+import filebrowser
+#import pbm
 
 #from local import defaultDatabase, MY_SECRET_KEY
 from local import dbaccess, MY_SECRET_KEY
@@ -31,6 +33,8 @@ TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
+#    join(dirname(pbm.__file__), 'templates'),
+    join(dirname(filebrowser.__file__), 'templates'),
     join(dirname(core.common.__file__), 'templates'),
     join(dirname(lsst.__file__), 'templates'),
 )
@@ -129,6 +133,22 @@ LOGGING = {
             'backupCount': 2,
             'formatter': 'verbose',
         },
+        'logfile-filebrowser': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': LOG_ROOT + "/logfile.filebrowser",
+            'maxBytes': LOG_SIZE,
+            'backupCount': 2,
+            'formatter': 'verbose',
+        },
+        'logfile-pbm': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': LOG_ROOT + "/logfile.pbm",
+            'maxBytes': LOG_SIZE,
+            'backupCount': 2,
+            'formatter': 'verbose',
+        },
         'mail_admins': {
             'level': 'ERROR',
             'filters': ['require_debug_false'],
@@ -164,6 +184,14 @@ LOGGING = {
         },
         'api_reprocessing':{
             'handlers': ['logfile-api_reprocessing'],
+            'level': 'DEBUG',
+        },
+        'bigpandamon-filebrowser':{
+            'handlers': ['logfile-filebrowser'],
+            'level': 'DEBUG',
+        },
+        'bigpandamon-pbm':{
+            'handlers': ['logfile-pbm'],
             'level': 'DEBUG',
         }
     },
