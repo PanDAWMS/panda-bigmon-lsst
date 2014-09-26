@@ -2,22 +2,10 @@
 {% block page_title %} {{ viewParams.MON_VO }} PanDA filebrowser{% endblock %}
 {% block title %} <a href="{% url 'index' %}">{{ viewParams.MON_VO }} PanDA monitor</a>{% endblock %}
 {% block subtitle %}PanDA filebrowser{{ viewParams.selection|safe }}
-{% if user %} &nbsp; user={{ user }} {% endif %}
 {% if site %} &nbsp; site={{ site }} {% endif %}
-{% if vo %} &nbsp; VO={{ vo }} {% endif %}
+{% if scope %} &nbsp; scope{{ scope }}
+{% if lfn %} &nbsp; lfn={{ lfn }}{% endif %}
 {% endblock %}
-{% comment %}  
-{% block subtitle %}FileBrowser
-{% if scope %} for <span style="font-weight: bold;">scope</span>={{scope}}
-{% if lfn %} <span style="font-weight: bold;">lfn</span>={{lfn}}{% endif %}{% endif %}
-{% endblock %}
-{% endcomment %}
-{% block header-nav-chain-1 %}<a href="#">FileBrowser</a>{% endblock %}{% block header-nav-chain-1-separator %}{{ SEPARATOR_NAVIGATION_ITEM|safe }}{% endblock %}
-{% block header-nav-chain-2 %}{% endblock %}{% block header-nav-chain-2-separator %}{% endblock %}
-{% block header-nav-chain-3 %}{% endblock %}{% block header-nav-chain-3-separator %}{% endblock %}
-{% block header-nav-chain-4 %}{% endblock %}{% block header-nav-chain-4-separator %}{% endblock %}
-{% block header-nav-chain-5 %}{% endblock %}{% block header-nav-chain-5-separator %}{% endblock %}
-{% block header-nav-chain-6 %}{% endblock %}
 {% block body %}
 <div><span style="color: navy; font-weight: bold;">File lookup parameters</span></div>
 <div><br/>
