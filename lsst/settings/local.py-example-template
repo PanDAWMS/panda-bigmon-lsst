@@ -12,7 +12,7 @@ defaultDatabase = {
 MY_SECRET_KEY = 'FIXME'
 
 FILEBROWSER_DIRECTORY = "filebrowser"
-RUCIO_ACCOUNT = "jschovan"
+RUCIO_ACCOUNT = "atlpan"
 X509_USER_PROXY = "FIXME"
 CAPATH = "/etc/grid-security/certificates"
 RUCIO_REDIRECT_HOST = "https://rucio-lb-prod.cern.ch"
