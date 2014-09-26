@@ -54,6 +54,8 @@ def get_version_provides():
     if release_type == 'stable':
         isStable = True
     __version__ = version_base
+    if os.environ.has_key('BUILD_NUMBER'):
+        __version__ = '{0}.{1}'.format(version_base, os.environ['BUILD_NUMBER'])
     if not isStable:
         __version__ += get_git_version()
     __provides__ = provides
