@@ -31,7 +31,8 @@
 <tr>
 <td>{{f.modification}}</td>
 <td>{{f.size}}</td>
-{% if lfn %}<tr><th>LFN</th><td><a href="http://{{ HOSTNAME }}{{MEDIA_URL}}{{dirprefix}}/{{lfn}}" >{{lfn}}</a></td></tr>{% endif %}
+<td><a href="http://{{ HOSTNAME }}{{MEDIA_URL}}{{dirprefix}}/{{tardir}}{{f.dirname}}/{{f.name}}" >
+{% if f.dirname %}{{f.dirname}}/{% endif %}{{f.name}}</a></td>
 </tr>
 {% endfor %}
 </tbody>
