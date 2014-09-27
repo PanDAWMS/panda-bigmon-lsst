@@ -5,7 +5,7 @@ from core import common
 from core.common.settings.base import COMMON_INSTALLED_APPS
 import lsst
 import filebrowser
-#import pbm
+import pbm
 
 
 VERSIONS = {
@@ -21,7 +21,7 @@ TEMPLATE_DIRS = (
     join(dirname(lsst.__file__), 'templates'),
     join(dirname(common.__file__), 'templates'),
     join(dirname(filebrowser.__file__), 'templates'),
-#    join(dirname(pbm.__file__), 'templates'),
+    join(dirname(pbm.__file__), 'templates'),
 
 )
 
@@ -35,8 +35,8 @@ INSTALLED_APPS_BIGPANDAMON_LSST = (
 #    'core.htcondor', #NOT-NEEDED-IN-LSST
 #    'core.task', #NOT-IMPLEMENTED
     'filebrowser',
-#    'pbm',
-#    'pbm.templatetags',
+    'pbm',
+    'pbm.templatetags',
 )
 INSTALLED_APPS = COMMON_INSTALLED_APPS + INSTALLED_APPS_BIGPANDAMON_LSST
 
