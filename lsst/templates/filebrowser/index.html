@@ -30,7 +30,7 @@
 {% for f in files %}
 <tr>
 <td>{{f.modification}}</td>
-<td>{{f.size}}</td>
+<td align='right'>{{f.size}}</td>
 <td><a href="http://{{ HOSTNAME }}{{MEDIA_URL}}{{dirprefix}}/{{tardir}}{{f.dirname}}/{{f.name}}" >
 {% if f.dirname %}{{f.dirname}}/{% endif %}{{f.name}}</a></td>
 </tr>
