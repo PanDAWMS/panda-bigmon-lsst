@@ -1,10 +1,14 @@
 {% extends "_base_lsst.html" %}{% load url from future %}{% load pbm_extras %}
-{% block page_title %}{{ viewParams.MON_VO }} PanDA filebrowser{% endblock %}
+{% block page_title %}{{ viewParams.MON_VO }} PanDA Brokerage Monitor{% endblock %}
 {% block title %} <a href="{% url 'index' %}">{{ viewParams.MON_VO }} PanDA monitor</a>{% endblock %}
 {% block subtitle %}PanDA Brokerage Monitor {{ viewParams.selection|safe }}
 {% if startdate %} &nbsp; startdate={{ startdate }} {% endif %}
 {% if enddate %} &nbsp; enddate={{ enddate }}{% endif %}
-{% if ndays %} &nbsp; ndays={{ ndays }}{% endif %}
+{% endblock %}
+{% block extra_js %}
+	<script type="text/javascript" src="{{ STATIC_URL }}/js/jquery-1.9.1.min.js"></script>
+	<script type="text/javascript" src="{{ STATIC_URL }}/js/highcharts/highcharts.js"></script>
+	<script type="text/javascript" src="{{ STATIC_URL }}/js/highcharts/modules/exporting.js"></script>
 {% endblock %}
 {% block body %}
 <a name="sec.toc"></a>
@@ -250,12 +254,4 @@ Submitted by Country (from UserDN)
 
 {% endblock %}
 
-{% block extra_css %}{% endblock %}
-{% block extra_js %}
-	<script type="text/javascript" src="{{ STATIC_URL }}/js/jquery-1.9.1.min.js"></script>
-	<script type="text/javascript" src="{{ STATIC_URL }}/js/highcharts/highcharts.js"></script>
-	<script type="text/javascript" src="{{ STATIC_URL }}/js/highcharts/modules/exporting.js"></script>
-{% endblock %}
-{% block extra_js_bottombody %}
-{% endblock %}
 
