@@ -11,7 +11,7 @@
 <div><br/>
 <table>
 {% if scope %}<tr><th>Scope</th><td>{{scope}}</td></tr>{% endif %}
-{% if lfn %}<tr><th>LFN</th><td>{{lfn}}</td></tr>{% endif %}
+{% if lfn %}<tr><th>LFN</th><td><a href="http://{{ HOSTNAME }}{{MEDIA_URL}}{{dirprefix}}/{{lfn}}" >{{lfn}}</a></td></tr>{% endif %}
 {% if site %}<tr><th>Site</th><td>{{site}}</td></tr>{% endif %}
 {% if guid %}<tr><th>GUID</th><td>{{guid}}</td></tr>{% endif %}
 </table> 
@@ -23,7 +23,7 @@
 <table>
 <thead>
 <th>Modification time</th>
-<th>Size</th>
+<th>Size [B]</th>
 <th>File</th>
 </thead>
 <tbody>
@@ -31,7 +31,7 @@
 <tr>
 <td>{{f.modification}}</td>
 <td>{{f.size}}</td>
-<td><a href="{{MEDIA_URL}}{{dirprefix}}/{{f.name}}" >{{f.name}}</a></td>
+{% if lfn %}<tr><th>LFN</th><td><a href="http://{{ HOSTNAME }}{{MEDIA_URL}}{{dirprefix}}/{{lfn}}" >{{lfn}}</a></td></tr>{% endif %}
 </tr>
 {% endfor %}
 </tbody>
