@@ -10,6 +10,12 @@
 	<script type="text/javascript" src="{{ STATIC_URL }}/js/highcharts/highcharts.js"></script>
 	<script type="text/javascript" src="{{ STATIC_URL }}/js/highcharts/modules/exporting.js"></script>
 {% endblock %}
+{% block extra_js_hepsw %}
+	<script src="http://hepsoftware.org/static/js/vendor/modernizr.js"></script>
+	<script src="http://hepsoftware.org/static/js/foundation/foundation.js"></script>
+	<script src="http://hepsoftware.org/static/js/foundation/foundation.topbar.js"></script>
+{% endblock %}
+
 {% block body %}
 <a name="sec.toc"></a>
 <div><span style="color: navy; font-weight: bold;">Query parameters</span></div>

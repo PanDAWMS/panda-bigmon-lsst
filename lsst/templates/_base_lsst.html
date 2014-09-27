@@ -473,10 +473,12 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
   <script src="{% static 'js/foundation/foundation.topbar.js' %}"></script>
 {% endcomment %}
 
+{% block extra_js_hepsw %}
   <script src="http://hepsoftware.org/static/js/vendor/modernizr.js"></script>
   <script src="http://hepsoftware.org/static/js/vendor/jquery.js"></script>
   <script src="http://hepsoftware.org/static/js/foundation/foundation.js"></script>
   <script src="http://hepsoftware.org/static/js/foundation/foundation.topbar.js"></script>
+{% endblock %}
 
   <script>
     $(document).foundation();
