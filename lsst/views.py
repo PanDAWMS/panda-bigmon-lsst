@@ -97,7 +97,7 @@ def setupSiteInfo():
     sites = Schedconfig.objects.filter().exclude(cloud='CMS').values('siteid','cloud','objectstore','catchall')
     for site in sites:
         homeCloud[site['siteid']] = site['cloud']
-        if site['catchall'].find('log_to_objectstore') >= 0 or site['objectstore'] != '':
+        if site['catchall'] is not None and (site['catchall'].find('log_to_objectstore') >= 0 or site['objectstore'] != ''):
             print 'object store site', site['siteid'], site['catchall'], site['objectstore']
             try:
                 fpath = getFilePathForObjectStore(site['objectstore'],filetype="logs")
