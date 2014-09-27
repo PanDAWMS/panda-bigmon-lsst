@@ -201,11 +201,12 @@ setup(
                 # HTML templates and static files
                 ]
                  + gen_data_files(
-		     "lsst/templates",
-                     "lsst/static",
-                     "lsst/media",
-                     "lsst/config-templates",
-		     "lsst/templates/filebrowser",
+                    "lsst/templates",
+                    "lsst/static",
+                    "lsst/media",
+                    "lsst/config-templates",
+                    "lsst/templates/filebrowser",
+                    "lsst/templates/pbm",
 #                     "atlas/prodtask/templates",
 #                     "atlas/todoview/templates",
  #                    "atlas/getdatasets/templates",
