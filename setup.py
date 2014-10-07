@@ -4,22 +4,26 @@
 #
 #
 from version import __version__, __provides__, dump_version_string
-#prefix = '/data/atlpan/bigpandamon'
-prefix = '/data/wenaus/bigpandamon'
-lib_prefix = 'lib/python2.6/site-packages/'
-expected_extensions = ['.html', '.js', '.css', '.png', '.gif', '.ico', \
-                       '.txt', '-example', '.json']  #FIXME
-src_ext = [ '.py' ]
-ignore_dir = [ '/.svn', '/.settings' ]
 
 import os
 import re
 import sys
 import socket
 import commands
+import ConfigParser
 from distutils.core import setup
 from distutils.command.install import install as install_org
 from distutils.command.install_data import install_data as install_data_org
+
+# get prefix, lib_prefix, expected_extensions, src_ext, ignore_dir
+config = ConfigParser.ConfigParser()
+config.read(os.path.dirname(os.path.realpath(__file__)) + '/setup.cfg')
+prefix = config.get("config", "prefix")
+lib_prefix = config.get("config", "lib_prefix")
+expected_extensions = re.sub(' ', '', config.get("config", "expected_extensions")).split(',')
+src_ext = re.sub(' ', '', config.get("config", "src_ext")).split(',')
+ignore_dir = re.sub(' ', '', config.get("config", "ignore_dir")).split(',')
+
 
 # prepare version dump json
 dumpfile = dump_version_string(__version__, __provides__)
