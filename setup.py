@@ -3,12 +3,12 @@
 # Setup prog for bigpandamon-lsst
 #
 #
-from version import __version__, __provides__
+from version import __version__, __provides__, dump_version_string
 #prefix = '/data/atlpan/bigpandamon'
 prefix = '/data/wenaus/bigpandamon'
 lib_prefix = 'lib/python2.6/site-packages/'
 expected_extensions = ['.html', '.js', '.css', '.png', '.gif', '.ico', \
-                       '.txt', '-example']  #FIXME
+                       '.txt', '-example', '.json']  #FIXME
 src_ext = [ '.py' ]
 ignore_dir = [ '/.svn', '/.settings' ]
 
@@ -20,6 +20,9 @@ import commands
 from distutils.core import setup
 from distutils.command.install import install as install_org
 from distutils.command.install_data import install_data as install_data_org
+
+# prepare version dump json
+dumpfile = dump_version_string(__version__, __provides__)
 
 # get panda specific params
 optPanda = {}

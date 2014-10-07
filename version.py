@@ -1,10 +1,11 @@
 """ 
-    atlas.version 
+    lsst.version 
 """
 import commands
 import ConfigParser
+import json
 import os
-
+from datetime import datetime
 
 def get_version_base__release_type__provides():
     """
@@ -61,6 +62,26 @@ def get_version_provides():
     __provides__ = provides
     return (__version__, __provides__,)
 
+
+def dump_version_string(version_string, provides):
+    dumpfile_dir = os.path.dirname(os.path.realpath(__file__)) + '/lsst/media/'
+    dumpfile = os.path.join(dumpfile_dir, 'version.json')
+    ### check that the directory for dumpfile exists
+    if not os.path.exists(dumpfile_dir):
+        status, output = commands.getstatusoutput(" mkdir -p %s " % (dumpfile_dir))
+        if status != 0:
+            dumpfile = 'version.json'
+    ### prepare version data
+    data = {}
+    data['version'] = str(version_string)
+    data['provides'] = str(provides)
+    data['created'] = datetime.isoformat(datetime.utcnow())
+    ### dump data to dumpfile
+    f = open(dumpfile, 'w')
+    f.write(json.dumps(data, sort_keys=True, indent=4))
+    f.close()
+    ### return dumpfile name
+    return dumpfile
 
 
 __version__, __provides__ = get_version_provides()
