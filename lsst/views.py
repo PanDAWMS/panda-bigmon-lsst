@@ -43,6 +43,7 @@ errorFields = []
 errorCodes = {}
 errorStages = {}
 
+
 homeCloud = {}
 objectStores = {}
 cloudList = [ 'CA', 'CERN', 'DE', 'ES', 'FR', 'IT', 'ND', 'NL', 'RU', 'TW', 'UK', 'US' ]
