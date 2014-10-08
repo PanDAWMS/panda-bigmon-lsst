@@ -3,23 +3,52 @@
 # Setup prog for bigpandamon-lsst
 #
 #
-from version import __version__, __provides__
-#prefix = '/data/atlpan/bigpandamon'
-prefix = '/data/wenaus/bigpandamon'
-lib_prefix = 'lib/python2.6/site-packages/'
-expected_extensions = ['.html', '.js', '.css', '.png', '.gif', '.ico', \
-                       '.txt', '-example']  #FIXME
-src_ext = [ '.py' ]
-ignore_dir = [ '/.svn', '/.settings' ]
+from version import __version__, __provides__, dump_version_string
 
 import os
 import re
 import sys
 import socket
 import commands
+import ConfigParser
 from distutils.core import setup
 from distutils.command.install import install as install_org
 from distutils.command.install_data import install_data as install_data_org
+
+# read config file setup.cfg
+config = ConfigParser.ConfigParser()
+config.read(os.path.dirname(os.path.realpath(__file__)) + '/setup.cfg')
+
+# get prefix, lib_prefix, expected_extensions, src_ext, ignore_dir
+prefix = config.get("config", "prefix")
+lib_prefix = config.get("config", "lib_prefix")
+expected_extensions = re.sub(' ', '', config.get("config", "expected_extensions")).split(',')
+src_ext = re.sub(' ', '', config.get("config", "src_ext")).split(',')
+ignore_dir = re.sub(' ', '', config.get("config", "ignore_dir")).split(',')
+
+# get description, long_description, license, author, author_email, url
+description = config.get("config", "description")
+long_description = config.get("config", "long_description")
+license = config.get("config", "license")
+author = config.get("config", "author")
+author_email = config.get("config", "author_email")
+url = config.get("config", "url")
+
+# get packages
+packages = re.sub(' ', '', config.get("config", "packages")).split(',')
+
+# get data_files
+data_files_configs = re.sub(' ', '', config.get("config", "data_files_configs")).split(',')
+data_files = []
+try:
+    data_files = [ ('%s%s' % (lib_prefix, x.split(':')[0]), [x.split(':')[1]]) \
+                  for x in data_files_configs ]
+except:
+    data_files = []
+data_files_templates = re.sub(' ', '', config.get("config", "data_files_templates")).split(',')
+
+# prepare version dump json
+dumpfile = dump_version_string(__version__, __provides__)
 
 # get panda specific params
 optPanda = {}
@@ -86,7 +115,7 @@ class install_data_panda (install_data_org):
         if optPanda.has_key('usergroup') and optPanda['usergroup'] != '':
             self.usergroup = optPanda['usergroup']
         else:
-            self.usergroup = commands.getoutput('id -gn')             
+            self.usergroup = commands.getoutput('id -gn')
         
     
     def is_expected_extension(self, filename):
@@ -172,44 +201,20 @@ def gen_data_files(*dirs):
             results.append((lib_prefix + root, map(lambda f:root + "/" + f, files)))
     return results
 
+data_files += gen_data_files(*data_files_templates)
 
 # setup for distutils
 setup(
     name=__provides__,
     version=__version__,
-    description='BigPanDA Monitoring Package - LSST',
-    long_description='''This package contains BigPanDA Monitoring Components - ATLAS''',
-    license='GPL',
-    author='Panda Team',
-    author_email='hn-atlas-panda-pathena@cern.ch',
-    url='https://twiki.cern.ch/twiki/bin/view/PanDA/BigPanDAmonitoring',
-    packages=[ #FIXME 
-        'lsst',
-        'lsst.settings',
-#        'atlas.common',
-#        'atlas.postproduction',
-#        'atlas.postproduction.deft',
-#        'atlas.prodtask',
-#        'atlas.todoview',
-#	'atlas.getdatasets',
-    ],
-    data_files=[ #FIXME
-                # config files 
-                ('%slsst/settings' % (lib_prefix), [
-                            'lsst/settings/local.py-example-template', ]
-                 ),
-                # HTML templates and static files
-                ]
-                 + gen_data_files(
-		     "lsst/templates",
-                     "lsst/static",
-                     "lsst/media",
-                     "lsst/config-templates",
-#                     "atlas/prodtask/templates",
-#                     "atlas/todoview/templates",
- #                    "atlas/getdatasets/templates",
-                )
-    ,         
+    description=description,
+    long_description=long_description,
+    license=license,
+    author=author,
+    author_email=author_email,
+    url=url,
+    packages=packages,
+    data_files=data_files,
     cmdclass={'install': install_panda,
               'install_data': install_data_panda}
 )

@@ -47,6 +47,12 @@ urlpatterns = patterns('',
     url(r'^datasetList/$', lsstmon_views.datasetList, name='datasetList'),
     url(r'^workQueues/$', lsstmon_views.workQueues, name='workQueues'),
 
+
+    ### filebrowser
+    url(r'^filebrowser/', include('filebrowser.urls'), name='filebrowser'),
+    ### PanDA Brokerage Monitor
+    url(r'^pbm/', include('pbm.urls'), name='pbm'),
+
     ### support views for LSST
     url(r'^support/$', core_lsstmon_support_views.maxpandaid, name='supportRoot'),
     url(r'^support/maxpandaid/$', core_lsstmon_support_views.maxpandaid, name='supportMaxpandaid'),
@@ -56,7 +62,7 @@ urlpatterns = patterns('',
 
     ### api
     url(r'^api/$', core_lsstmon_support_views.maxpandaid, name='supportRoot'),
-    url(r'^api/reprocessing/$', include('core.api.reprocessing.urls')),
+#    url(r'^api/reprocessing/$', include('core.api.reprocessing.urls')),
 
 
     ### robots.txt
