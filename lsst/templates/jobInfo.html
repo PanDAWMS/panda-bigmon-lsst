@@ -252,6 +252,7 @@ But if you want, you can check.
 {% else %}
 {{ file.lfn}}
 {% endif %} ({{ file.type }})
+{% if file.type == 'input' %} &nbsp;  <a href="{% url 'jobInfo' %}?creator={{file.lfn}}">Find creator job</a> {% endif %}
 </font>
 </td>
 <td> <font size=-1>{{ file.scope }}</font> </td>

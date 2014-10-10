@@ -98,7 +98,7 @@ def setupSiteInfo():
     sites = Schedconfig.objects.filter().exclude(cloud='CMS').values('siteid','cloud','objectstore','catchall')
     for site in sites:
         homeCloud[site['siteid']] = site['cloud']
-        if site['catchall'] is not None and (site['catchall'].find('log_to_objectstore') >= 0 or site['objectstore'] != ''):
+        if site['catchall'].find('log_to_objectstore') >= 0 or site['objectstore'] != '':
             print 'object store site', site['siteid'], site['catchall'], site['objectstore']
             try:
                 fpath = getFilePathForObjectStore(site['objectstore'],filetype="logs")
@@ -993,7 +993,26 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     valid, response = initRequest(request)
     if not valid: return response
     query = setupView(request, hours=365*24)
-    jobid = '?'
+    jobid = ''
+    if 'creator' in requestParams:
+        ## Find the job that created the specified file.
+        fquery = {}
+        fquery['lfn'] = requestParams['creator']
+        fquery['type'] = 'output'
+        fileq = Filestable4.objects.filter(**fquery)
+        print 'Creator job query', fileq.query
+        fileq = fileq.values('pandaid','type')
+        if fileq and len(fileq) > 0:
+            pandaid = fileq[0]['pandaid']
+            print 'Creator job found:', pandaid
+        #else:  Unusably slow
+        #    print "Checking archival table"
+        #    fileq = FilestableArch.objects.filter(**fquery).values('pandaid','type')
+        #    if fileq and len(fileq) > 0:
+        #        pandaid = fileq[0]['pandaid']
+        #        print 'Creator job found:', pandaid
+        #    else:
+        #        print 'No creator job found'
     if pandaid:
         jobid = pandaid
         try:
@@ -1006,23 +1025,38 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     if 'pandaid' in requestParams:
         pandaid = requestParams['pandaid']
         jobid = pandaid
+        query['pandaid'] = int(pandaid)
     elif 'batchid' in requestParams:
         batchid = requestParams['batchid']
         jobid = "'"+batchid+"'"
         query['batchid'] = batchid
     elif 'jobname' in requestParams:
         jobid = requestParams['jobname']
+        query['jobname'] = jobid
 
-    startdate = timezone.now() - timedelta(hours=LAST_N_HOURS_MAX)
     jobs = []
-    jobs.extend(Jobsdefined4.objects.filter(**query).values())
-    jobs.extend(Jobsactive4.objects.filter(**query).values())
-    jobs.extend(Jobswaiting4.objects.filter(**query).values())
-    jobs.extend(Jobsarchived4.objects.filter(**query).values())
+    if pandaid or batchid:
+        startdate = timezone.now() - timedelta(hours=LAST_N_HOURS_MAX)
+        jobs.extend(Jobsdefined4.objects.filter(**query).values())
+        jobs.extend(Jobsactive4.objects.filter(**query).values())
+        jobs.extend(Jobswaiting4.objects.filter(**query).values())
+        jobs.extend(Jobsarchived4.objects.filter(**query).values())
+        if len(jobs) == 0:
+            jobs.extend(Jobsarchived.objects.filter(**query).values())
+        jobs = cleanJobList(jobs, mode='nodrop')
+        
     if len(jobs) == 0:
-        jobs.extend(Jobsarchived.objects.filter(**query).values())
+        data = {
+            'prefix': getPrefix(request),
+            'viewParams' : viewParams,
+            'requestParams' : requestParams,
+            'pandaid': pandaid,
+            'job': None,
+            'jobid' : jobid,
+        }
+        print 'No job found, giving up'
+        return render_to_response('jobInfo.html', data, RequestContext(request))
 
-    jobs = cleanJobList(jobs, mode='nodrop')
     job = {}
     colnames = []
     columns = []
