@@ -43,9 +43,10 @@ errorFields = []
 errorCodes = {}
 errorStages = {}
 
-
+callCount = 0
 homeCloud = {}
 objectStores = {}
+pandaSites = {}
 cloudList = [ 'CA', 'CERN', 'DE', 'ES', 'FR', 'IT', 'ND', 'NL', 'RU', 'TW', 'UK', 'US' ]
 
 statelist = [ 'defined', 'waiting', 'pending', 'assigned', 'throttled', \
@@ -93,25 +94,26 @@ VONAME = { 'atlas' : 'ATLAS', 'bigpanda' : 'BigPanDA', 'htcondor' : 'HTCondor', 
 VOMODE = ' '
 
 def setupSiteInfo():
-    global homeCloud, objectStores
-    if len(homeCloud) > 0: return
-    sites = Schedconfig.objects.filter().exclude(cloud='CMS').values('siteid','cloud','objectstore','catchall')
+    global homeCloud, objectStores, pandaSites, callCount
+    callCount += 1
+    if len(homeCloud) > 0 and callCount%100 != 1 and 'refresh' not in requestParams: return
+    print 'Updating site info'
+    sflist = ('siteid','status','cloud','tier','comment_field','objectstore','catchall')
+    sites = Schedconfig.objects.filter().exclude(cloud='CMS').values(*sflist)
     for site in sites:
+        pandaSites[site['siteid']] = {}
+        for f in ( 'siteid', 'status', 'tier', 'comment_field', 'cloud' ):
+            pandaSites[site['siteid']][f] = site[f]
         homeCloud[site['siteid']] = site['cloud']
         if site['catchall'].find('log_to_objectstore') >= 0 or site['objectstore'] != '':
-            print 'object store site', site['siteid'], site['catchall'], site['objectstore']
+            #print 'object store site', site['siteid'], site['catchall'], site['objectstore']
             try:
                 fpath = getFilePathForObjectStore(site['objectstore'],filetype="logs")
-                print fpath
                 #### dirty hack
                 fpath = fpath.replace('root://atlas-objectstore.cern.ch/atlas/logs','https://atlas-objectstore.cern.ch:1094/atlas/logs')
                 if fpath != "" and fpath.startswith('http'): objectStores[site['siteid']] = fpath
             except:
                 pass
-    if len(objectStores) > 0:
-        print 'objectStores', objectStores
-    else:
-        print 'No objectStores found'
 
 def initRequest(request):
     global VOMODE, ENV, viewParams
@@ -781,8 +783,6 @@ def wgTaskSummary(request, fieldname='workinggroup', view='production', taskdays
         itemd['list'] = iteml
         suml.append(itemd)
     suml = sorted(suml, key=lambda x:x['field'])
-    for s in suml:
-        print s['field'], s['count']
     return suml
 
 def extensibleURL(request, xurl = ''):
@@ -1000,19 +1000,13 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         fquery['lfn'] = requestParams['creator']
         fquery['type'] = 'output'
         fileq = Filestable4.objects.filter(**fquery)
-        print 'Creator job query', fileq.query
         fileq = fileq.values('pandaid','type')
         if fileq and len(fileq) > 0:
             pandaid = fileq[0]['pandaid']
-            print 'Creator job found:', pandaid
         #else:  Unusably slow
-        #    print "Checking archival table"
         #    fileq = FilestableArch.objects.filter(**fquery).values('pandaid','type')
         #    if fileq and len(fileq) > 0:
         #        pandaid = fileq[0]['pandaid']
-        #        print 'Creator job found:', pandaid
-        #    else:
-        #        print 'No creator job found'
     if pandaid:
         jobid = pandaid
         try:
@@ -1054,7 +1048,6 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             'job': None,
             'jobid' : jobid,
         }
-        print 'No job found, giving up'
         return render_to_response('jobInfo.html', data, RequestContext(request))
 
     job = {}
@@ -1141,7 +1134,6 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
                 oslogpath = ospath + logfile['lfn']
             else:
                 oslogpath = ospath + '/' + logfile['lfn']
-            print "Object store for logs:", oslogpath
 
     ## Check for debug info
     if 'specialhandling' in job and job['specialhandling'].find('debug') >= 0:
@@ -1427,7 +1419,7 @@ def userInfo(request, user=''):
         if 'produsername' in requestParams: user = requestParams['produsername']
 
     ## Tasks owned by the user
-    startdate = timezone.now() - timedelta(hours=90*24)
+    startdate = timezone.now() - timedelta(hours=7*24)
     startdate = startdate.strftime(defaultDatetimeFormat)
     enddate = timezone.now().strftime(defaultDatetimeFormat)
     query = { 'modificationtime__range' : [startdate, enddate] }
@@ -3644,7 +3636,6 @@ def getFilePathForObjectStore(objectstore, filetype="logs"):
     # For multiple object stores                                                                                                                                                                                                                        
     # eventservice^root://atlas-objectstore.cern.ch//atlas/eventservice|logs^root://atlas-objectstore.bnl.gov//atlas/logs                                                                                                                               
 
-    print objectstore
     basepath = ""
 
     # Which form of the schedconfig.objectstore field do we currently have?                                                                                                                                                                             
