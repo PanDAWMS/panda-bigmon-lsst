@@ -255,7 +255,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
         enddate = timezone.now() - timedelta(hours=int(requestParams['earlierthan']))
         enddate = enddate.strftime(defaultDatetimeFormat)
     if 'earlierthandays' in requestParams:
-        enddate = timezone.now() - timedelta(hours=int(requestParams['earlierthan'])*24)
+        enddate = timezone.now() - timedelta(hours=int(requestParams['earlierthandays'])*24)
         enddate = enddate.strftime(defaultDatetimeFormat)
     if enddate == None:
         enddate = timezone.now().strftime(defaultDatetimeFormat)

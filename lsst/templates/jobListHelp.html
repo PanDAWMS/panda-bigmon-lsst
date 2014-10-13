@@ -18,6 +18,10 @@ If you know the jobsetid=N or taskid=N, jeditaskid=N of the jobs you're interest
 </p>
 
 <p>
+URL tricks: you can include hours=N or days=N on the URL to specify the time depth. And you can use earlierthan=Nhours or earlierthandays=Ndays to look only at old jobs.
+</p>
+
+<p>
 Job data can be retrieved in json format with curl so that it can be used programmatically. <b>Use this carefully</b>, do not for example put scripts in crons that do heavy retrieval of job data this way. If you have systematic needs for PanDA job data, tell us what they are. Do not use web page scraping. An example curl command is as follows; it takes the same url parameters as the browser version.
 <br><font size=-1><code>
 curl -H 'Accept: application/json' -H 'Content-Type: application/json' "http://bigpanda.cern.ch/jobs/?transfertype=fax&hours=1"
