@@ -1,5 +1,6 @@
 import logging, re, json, commands
 from datetime import datetime, timedelta
+import time
 import json
 
 from django.http import HttpResponse
@@ -237,20 +238,16 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
         viewParams['selection'] += "  &nbsp; <b>%s=</b>%s " % ( param, requestParams[param] )
 
     startdate = None
-    if 'time_from' in requestParams:
-        time_from = requestParams.get('time_from', 0)
-        if time_from:
-            time_from = float(time_from)/1000.
-            startdate = datetime.utcfromtimestamp(time_from).replace(tzinfo=utc).strftime(defaultDatetimeFormat)
+    if 'date_from' in requestParams:
+        time_from_struct = time.strptime(requestParams['date_from'],'%Y-%m-%d')
+        startdate = datetime.utcfromtimestamp(time.mktime(time_from_struct)).strftime(defaultDatetimeFormat)
     if not startdate:
         startdate = timezone.now() - timedelta(hours=LAST_N_HOURS_MAX)
         startdate = startdate.strftime(defaultDatetimeFormat)
     enddate = None
-    if 'time_to' in requestParams:
-        time_to = requestParams.get('time_to', 0)
-        if time_to:
-            time_to = float(time_to)/1000.
-            enddate = datetime.utcfromtimestamp(time_to).replace(tzinfo=utc).strftime(defaultDatetimeFormat)
+    if 'date_to' in requestParams:
+        time_from_struct = time.strptime(requestParams['date_to'],'%Y-%m-%d')
+        enddate = datetime.utcfromtimestamp(time.mktime(time_from_struct)).strftime(defaultDatetimeFormat)
     if 'earlierthan' in requestParams:
         enddate = timezone.now() - timedelta(hours=int(requestParams['earlierthan']))
         enddate = enddate.strftime(defaultDatetimeFormat)
