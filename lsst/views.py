@@ -2005,6 +2005,7 @@ def dashSummary(request, hours, view='all', cloudview='region'):
                 clouds[cloud]['sites'][site]['name'] = site
                 if site in siteinfo: clouds[cloud]['sites'][site]['status'] = siteinfo[site]
                 clouds[cloud]['sites'][site]['count'] = 0
+                clouds[cloud]['sites'][site]['pctfail'] = 0
                 if site in pilots:
                     clouds[cloud]['sites'][site]['pilots'] = pilots[site]['count']
                     clouds[cloud]['pilots'] += pilots[site]['count']
@@ -2899,7 +2900,7 @@ def errorSummary(request):
         if sitename in sitestates:
             for s in savestates:
                 if s in sitestates[sitename]: site[s] = sitestates[sitename][s]
-        if 'pctfail' in sitestates[sitename]: site['pctfail'] = sitestates[sitename]['pctfail']
+            if 'pctfail' in sitestates[sitename]: site['pctfail'] = sitestates[sitename]['pctfail']
 
     ## Build the task state summary and add task state info to task error summary
     taskstatesummary = dashTaskSummary(request, hours, view=jobtype)
