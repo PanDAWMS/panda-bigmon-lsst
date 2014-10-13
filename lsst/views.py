@@ -351,9 +351,9 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     else:
         jobtype = opmode
     if jobtype in ( 'analysis', 'anal' ):
-        query['prodsourcelabel__in'] = ['panda', 'user']
+        query['prodsourcelabel__in'] = ['panda', 'user', 'prod_test', 'rc_test']
     elif jobtype in ( 'production', 'prod' ):
-        query['prodsourcelabel'] = 'managed'
+        query['prodsourcelabel__in'] = ['managed', 'prod_test', 'rc_test']
     elif jobtype == 'groupproduction':
         query['prodsourcelabel'] = 'managed'
         query['workinggroup__isnull'] = False
@@ -1951,6 +1951,8 @@ def dashSummary(request, hours, view='all', cloudview='region'):
         else:
             cloud = rec['cloud']
         site = rec['computingsite']
+        if view != 'analysis' and site.startswith('ANALY'): continue
+        if view == 'analysis' and not site.startswith('ANALY'): continue
         jobstatus = rec['jobstatus']
         count = rec['jobstatus__count']
         if jobstatus not in sitestatelist: continue
@@ -1988,6 +1990,31 @@ def dashSummary(request, hours, view='all', cloudview='region'):
                 clouds[cloud]['sites'][site]['states'][state]['count'] = 0
         clouds[cloud]['sites'][site]['count'] += count
         clouds[cloud]['sites'][site]['states'][jobstatus]['count'] += count
+
+    ## Go through the sites, add any that are missing (because they have no jobs in the interval)
+    if cloudview != 'cloud':
+        for site in pandaSites:
+            if view != 'analysis' and site.startswith('ANALY'): continue
+            if view == 'analysis' and not site.startswith('ANALY'): continue
+            cloud = pandaSites[site]['cloud']
+            if cloud not in clouds:
+                ## Bail. Adding sites is one thing; adding clouds is another
+                continue
+            if site not in clouds[cloud]['sites']:
+                clouds[cloud]['sites'][site] = {}
+                clouds[cloud]['sites'][site]['name'] = site
+                if site in siteinfo: clouds[cloud]['sites'][site]['status'] = siteinfo[site]
+                clouds[cloud]['sites'][site]['count'] = 0
+                if site in pilots:
+                    clouds[cloud]['sites'][site]['pilots'] = pilots[site]['count']
+                    clouds[cloud]['pilots'] += pilots[site]['count']
+                else:
+                    clouds[cloud]['sites'][site]['pilots'] = 0
+                clouds[cloud]['sites'][site]['states'] = {}
+                for state in sitestatelist:
+                    clouds[cloud]['sites'][site]['states'][state] = {}
+                    clouds[cloud]['sites'][site]['states'][state]['name'] = state
+                    clouds[cloud]['sites'][site]['states'][state]['count'] = 0
 
     ## Convert dict to summary list
     cloudkeys = clouds.keys()
