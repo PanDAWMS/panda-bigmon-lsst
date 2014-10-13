@@ -421,25 +421,32 @@ def cleanJobList(jobs, mode='drop'):
     for job in jobs:
         if 'jeditaskid' in job: taskids[job['jeditaskid']] = 1
     droplist = []
+    newjobs = []
     if len(taskids) == 1:
         for task in taskids:
             retryquery = {}
             retryquery['jeditaskid'] = task
             retries = JediJobRetryHistory.objects.filter(**retryquery).order_by('newpandaid').values()
-        newjobs = []
-        for job in jobs:
-            dropJob = 0
-            pandaid = job['pandaid']
+    job1 = {}
+    for job in jobs:
+        dropJob = 0
+        pandaid = job['pandaid']
+        if len(taskids) == 1:
             for retry in retries:
                 if retry['oldpandaid'] == pandaid and retry['newpandaid'] != pandaid and (retry['relationtype'] == '' or retry['relationtype'] == 'retry'):
                     ## there is a retry for this job. Drop it.
                     dropJob = retry['newpandaid']
-            if (dropJob == 0) or isEventService(job):
-                newjobs.append(job)
-            else:
-                droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
-        droplist = sorted(droplist, key=lambda x:-x['pandaid'])
-        jobs = newjobs
+        if pandaid in job1:
+            ## This is a duplicate. Drop it.
+            dropJob = 1
+        else:
+            job1[pandaid] = 1
+        if (dropJob == 0) or isEventService(job):
+            newjobs.append(job)
+        else:
+            droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
+    droplist = sorted(droplist, key=lambda x:-x['pandaid'])
+    jobs = newjobs
     global TFIRST, TLAST, PLOW, PHIGH
     TFIRST = timezone.now()
     TLAST = timezone.now() - timedelta(hours=2400)
