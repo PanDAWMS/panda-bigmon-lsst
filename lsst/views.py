@@ -3567,7 +3567,7 @@ def getErrorDescription(job):
                 try:
                     errval = int(errval)                                                                                                                                                      
                 except:
-                    errval = -1
+                    pass # errval = -1
                 errdiag = errcode.replace('errorcode','errordiag')
                 if errcode.find('errorcode') > 0:
                     diagtxt = job[errdiag]
