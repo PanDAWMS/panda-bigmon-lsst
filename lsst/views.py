@@ -1003,10 +1003,10 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         fileq = fileq.values('pandaid','type')
         if fileq and len(fileq) > 0:
             pandaid = fileq[0]['pandaid']
-        #else:  Unusably slow
-        #    fileq = FilestableArch.objects.filter(**fquery).values('pandaid','type')
-        #    if fileq and len(fileq) > 0:
-        #        pandaid = fileq[0]['pandaid']
+        else:
+            fileq = FilestableArch.objects.filter(**fquery).values('pandaid','type')
+            if fileq and len(fileq) > 0:
+                pandaid = fileq[0]['pandaid']
     if pandaid:
         jobid = pandaid
         try:
