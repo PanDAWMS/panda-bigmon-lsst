@@ -470,7 +470,6 @@ def cleanTaskList(tasks):
     dsquery = {}
     dsquery['type__in'] = ['input', 'pseudo_input' ]
     dsquery['masterid__isnull'] = True
-    print 'dsquery', dsquery
     taskl = []
     for t in tasks:
         taskl.append(t['jeditaskid'])
@@ -483,7 +482,6 @@ def cleanTaskList(tasks):
             if taskid not in dsinfo:
                 dsinfo[taskid] = []
             dsinfo[taskid].append(ds)
-    print 'got datasets', len(dsets), len(dsinfo)
     for task in tasks:
         if len(task['errordialog']) > 100: task['errordialog'] = task['errordialog'][:90]+'...'
         if 'reqid' in task and task['reqid'] < 100000 and task['reqid'] > 100 and task['reqid'] != 300 and task['tasktype'] != 'anal':
@@ -514,8 +512,6 @@ def cleanTaskList(tasks):
 
         task['dsinfo'] = dstotals
 
-    print 'made dstotals'
-
     if 'sortby' in requestParams:
         sortby = requestParams['sortby']
         if sortby == 'time-ascending':
@@ -540,7 +536,6 @@ def cleanTaskList(tasks):
         sortby = "jeditaskid"
         tasks = sorted(tasks, key=lambda x:-x['jeditaskid'])
 
-    print 'finished clean'
     return tasks
 
 def jobSummaryDict(request, jobs, fieldlist = None):
@@ -1172,12 +1167,10 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     jobparams = None
     if len(jobparamrec) > 0:
         jobparams = jobparamrec[0].jobparameters
-    else:
-        jobparamrec = JobparamstableArch.objects.filter(pandaid=pandaid)
-        if len(jobparamrec) > 0:
-            jobparams = jobparamrec[0].jobparameters
-
-    print 'jobparams',jobparams
+    #else:
+    #    jobparamrec = JobparamstableArch.objects.filter(pandaid=pandaid)
+    #    if len(jobparamrec) > 0:
+    #        jobparams = jobparamrec[0].jobparameters
 
     ## Get job metadata
     metadatarec = Metatable.objects.filter(pandaid=pandaid)
@@ -2409,9 +2402,7 @@ def taskInfo(request, jeditaskid=0):
         if len(tasks) > 0:
             jeditaskid = tasks[0]['jeditaskid']
         query = {'jeditaskid' : jeditaskid}
-    print 'got tasks'
     tasks = cleanTaskList(tasks)
-    print 'cleaned'
     try:
         taskrec = tasks[0]
         colnames = taskrec.keys()
@@ -2426,9 +2417,7 @@ def taskInfo(request, jeditaskid=0):
     except IndexError:
         taskrec = None
 
-    print 'params query', query
     taskpars = JediTaskparams.objects.filter(**query).values()
-    print 'got task params'
     jobparams = None
     taskparams = None
     taskparaml = None
