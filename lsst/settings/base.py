@@ -32,6 +32,7 @@ INSTALLED_APPS_BIGPANDAMON_LSST = (
 #    'core.graphics', #NOT-IMPLEMENTED
     'core.pandajob',
     'core.resource',
+    'core.status_summary',
 #    'core.htcondor', #NOT-NEEDED-IN-LSST
 #    'core.task', #NOT-IMPLEMENTED
     'filebrowser',
