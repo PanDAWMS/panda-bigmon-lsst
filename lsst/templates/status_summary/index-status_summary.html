@@ -1,0 +1,67 @@
+{% extends "_base_lsst.html" %}{% load url from future %}
+{% block page_title %} {{ viewParams.MON_VO }} PanDA Activity Summary{% endblock %}
+{% block title %} <a href="{% url 'index' %}">{{ viewParams.MON_VO }} PanDA monitor</a>{% endblock %}
+{% block subtitle %}PanDA Activity Summary{{ viewParams.selection|safe }}{% endblock %}
+{% block body %}
+
+{% if errors_GET %}
+{% if errors_GET.noparams %}
+	<div><span style="color: orange; font-weight: bold;">Query warning.</span> {{errors_GET.noparams}}</div>
+{% else %}
+{% if errors_GET.startdate %}<div><span style="color: orange; font-weight: bold;">Query error.</span> {{errors_GET.startdate}}</div>{% endif %}
+{% if errors_GET.enddate %}<div><span style="color: orange; font-weight: bold;">Query error.</span> {{errors_GET.enddate}}</div>{% endif %}
+{% if errors_GET.ndays %}<div><span style="color: orange; font-weight: bold;">Query error.</span> {{errors_GET.ndays}}</div>{% endif %}
+{% endif %}
+{% endif %}
+{% if data %}
+<br/><br/>
+<table>
+<theader>
+<tr>
+<th>MCP Cloud</th>
+<th>PanDA Resource</th>
+<th>defined</th>
+<th>waiting</th>
+<th>pending</th>
+<th>assigned</th>
+<th>throttled</th>
+<th>activated</th>
+<th>sent</th>
+<th>starting</th>
+<th>running</th>
+<th>holding</th>
+<th>transferring</th>
+<th>finished</th>
+<th>failed</th>
+<th>cancelled</th>
+<th>merging</th>
+</tr>
+</theader>
+{% for item in data %}
+<tr>
+<td>{{item.cloud}}</td>
+<td>{{item.computingsite}}</td>
+<td>{{item.defined}}</td>
+<td>{{item.waiting}}</td>
+<td>{{item.pending}}</td>
+<td>{{item.assigned}}</td>
+<td>{{item.throttled}}</td>
+<td>{{item.activated}}</td>
+<td>{{item.sent}}</td>
+<td>{{item.starting}}</td>
+<td>{{item.running}}</td>
+<td>{{item.holding}}</td>
+<td>{{item.transferring}}</td>
+<td>{{item.finished}}</td>
+<td>{{item.failed}}</td>
+<td>{{item.cancelled}}</td>
+<td>{{item.merging}}</td>
+</tr>
+{% endfor %}
+</table>
+{% else %}
+<div><span style="color: orange; font-weight: bold;">Result warning.</span> No entry satisfied your query parameters.</div>
+{% endif %}
+{% endblock %}
+
+
