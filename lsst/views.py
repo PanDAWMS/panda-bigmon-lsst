@@ -21,6 +21,7 @@ from core.common.models import Sitedata
 from core.common.models import FilestableArch
 from core.common.models import Users
 from core.common.models import Jobparamstable
+from core.common.models import JobparamstableArch
 from core.common.models import Metatable
 from core.common.models import MetatableArch
 from core.common.models import Logstable
@@ -469,6 +470,10 @@ def cleanTaskList(tasks):
     dsquery = {}
     dsquery['type__in'] = ['input', 'pseudo_input' ]
     dsquery['masterid__isnull'] = True
+    taskl = []
+    for t in tasks:
+        taskl.append(t['jeditaskid'])
+    dsquery['jeditaskid__in'] = taskl
     dsets = JediDatasets.objects.filter(**dsquery).values('jeditaskid','nfiles','nfilesfinished','nfilesfailed')
     dsinfo = {}
     if len(dsets) > 0:
@@ -1160,7 +1165,12 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     ## Get job parameters
     jobparamrec = Jobparamstable.objects.filter(pandaid=pandaid)
     jobparams = None
-    if len(jobparamrec) > 0: jobparams = jobparamrec[0].jobparameters
+    if len(jobparamrec) > 0:
+        jobparams = jobparamrec[0].jobparameters
+    #else:
+    #    jobparamrec = JobparamstableArch.objects.filter(pandaid=pandaid)
+    #    if len(jobparamrec) > 0:
+    #        jobparams = jobparamrec[0].jobparameters
 
     ## Get job metadata
     metadatarec = Metatable.objects.filter(pandaid=pandaid)
