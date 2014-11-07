@@ -52,6 +52,7 @@ urlpatterns = patterns('',
     url(r'^filebrowser/', include('filebrowser.urls'), name='filebrowser'),
     ### PanDA Brokerage Monitor
     url(r'^pbm/', include('pbm.urls'), name='pbm'),
+    url(r'^status_summary/', include('core.status_summary.urls'), name='status_summary'),
 
     ### support views for LSST
     url(r'^support/$', core_lsstmon_support_views.maxpandaid, name='supportRoot'),
