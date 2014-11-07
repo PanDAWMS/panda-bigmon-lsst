@@ -166,6 +166,7 @@ def initRequest(request):
 def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     global viewParams
     global LAST_N_HOURS_MAX, JOB_LIMIT
+    print 'setupView'
     deepquery = False
     fields = standard_fields
     if VOMODE == 'atlas':
@@ -284,30 +285,41 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
                     query['username__icontains'] = requestParams[param].strip()
                 else:
                     query['produsername__icontains'] = requestParams[param].strip()
-        elif param in ( 'project', 'stream', 'tag') and querytype == 'task':
+        elif param in ( 'project', ) and querytype == 'task':
                 val = requestParams[param]
-                query['taskname__icontains'] = requestParams[param]
+                query['taskname__icontains'] = val
+        elif param in ( 'stream', 'tag') and querytype == 'task':
+                val = requestParams[param]
+                query['taskname__icontains'] = val
 
         if querytype == 'task':
-            for param in requestParams:
-                for field in JediTasks._meta.get_all_field_names():
-                    if param == field:
-                        if param == 'transpath':
-                            query['%s__endswith' % param] = requestParams[param]
-                        elif param in ( 'taskname', ):
-                            ## support wildcarding
-                            if requestParams[param].startswith('*') and requestParams[param].endswith('*'):
-                                query['%s__icontains' % param] = requestParams[param].replace('*','')
-                            elif requestParams[param].endswith('*'):
-                                query['%s__istartswith' % param] = requestParams[param].replace('*','')
-                            elif requestParams[param].startswith('*'):
-                                query['%s__iendswith' % param] = requestParams[param].replace('*','')
+            for field in JediTasks._meta.get_all_field_names():
+                        #for param in requestParams:
+                        if param == field:
+                            if param == 'transpath':
+                                query['%s__endswith' % param] = requestParams[param]
+                            elif param in ( 'taskname', ):
+                                ## support wildcarding
+                                if requestParams[param][1:-1].find('*') > 0:
+                                    ## If there are embedded wildcards...
+                                    tokens = requestParams[param].split('*')
+                                    for t in tokens:
+                                        if len(t) == 0: continue
+                                        query['%s__icontains' % param] = t
+                                elif requestParams[param].startswith('*') and requestParams[param].endswith('*'):
+                                    query['%s__icontains' % param] = requestParams[param].replace('*','')
+                                elif requestParams[param].endswith('*'):
+                                    query['%s__istartswith' % param] = requestParams[param].replace('*','')                                    
+                                    #query['%s__icontains' % param] = [ requestParams[param].replace('*',''), ]
+                                elif requestParams[param].startswith('*'):
+                                    query['%s__iendswith' % param] = requestParams[param].replace('*','')
+                                    #query['%s__icontains' % param] = requestParams[param].replace('*','')
+                                else:
+                                    query[param] = requestParams[param]
                             else:
                                 query[param] = requestParams[param]
-                        else:
-                            query[param] = requestParams[param]
-                if param == 'eventservice':
-                    query['eventservice'] = 1
+                        if param == 'eventservice':
+                            query['eventservice'] = 1
         else:
             for field in Jobsactive4._meta.get_all_field_names():
                 if param == field:
@@ -873,6 +885,8 @@ def jobList(request, mode=None, param=None):
     valid, response = initRequest(request)
     if not valid: return response
     query = setupView(request)
+    if 'batchid' in requestParams:
+        query['batchid'] = requestParams['batchid']
     jobs = []
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         values = Jobsactive4._meta.get_all_field_names()
@@ -2338,6 +2352,7 @@ def dashTasks(request, hours, view='production'):
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
+@csrf_exempt
 def taskList(request):
     valid, response = initRequest(request)
     if not valid: return response
@@ -2350,6 +2365,9 @@ def taskList(request):
     tasks = cleanTaskList(tasks)
     ntasks = len(tasks)
     nmax = ntasks
+
+    from django.db import connection
+    print connection.queries
 
     if 'display_limit' in requestParams and int(requestParams['display_limit']) < nmax:
         display_limit = int(requestParams['display_limit'])

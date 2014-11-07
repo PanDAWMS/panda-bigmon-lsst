@@ -79,7 +79,7 @@ Select what you'd like to have a look at in the top menu bar: dashboard overview
 <td><form action="{% url 'jobInfo' %}" method='get'>
 PanDA job ID or name</td><td><font size=-1> <input id="pandaid" name="pandaid" size="25" maxlength="200" class="inputW" />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
 
-<tr><td><form action="{% url 'jobInfo' %}" method='get'>
+<tr><td><form action="{% url 'jobList' %}" method='get'>
 Batch ID</td><td><font size=-1> <input id="batchid" name="batchid" size="25" maxlength="200" class="inputW" />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
 
 <tr><td><form action="{% url 'taskInfo' %}?" method='get'>
@@ -151,6 +151,8 @@ for over <font size=-1><input id="statenotupdated" name="statenotupdated" class=
 <div style="width:500px;height:100%;overflow:auto;word-wrap: break-word">
 <ul style="font-size:small">
 <!-- most recent at the top -->
+<li class="news">20141107: Task name search supports front and/or back wildcards
+<li class="news">20141102: batchid search uses job list instead of a single-job search
 <li class="news">20141013: Support date_from=2014-10-01&amp;date_to=2014-10-03
 <li class="news">20141013: Support earlierthan=Nhours, earlierthandays=Ndays on URL
 <li class="news">20141013: Filter duplicate jobs arising from archive transfer overlap
