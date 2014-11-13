@@ -287,7 +287,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
                     query['produsername__icontains'] = requestParams[param].strip()
         elif param in ( 'project', ) and querytype == 'task':
                 val = requestParams[param]
-                query['taskname__icontains'] = val
+                query['taskname__istartswith'] = val
         elif param in ( 'stream', 'tag') and querytype == 'task':
                 val = requestParams[param]
                 query['taskname__icontains'] = val
