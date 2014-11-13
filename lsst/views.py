@@ -1752,44 +1752,54 @@ def siteInfo(request, site=''):
 
 def siteSummary(query):
     summary = []
-    summary.extend(Jobsactive4.objects.filter(**query).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))     
-    summary.extend(Jobsdefined4.objects.filter(**query).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))
-    summary.extend(Jobswaiting4.objects.filter(**query).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))
+    querynotime = query
+    del querynotime['modificationtime__range']
+    summary.extend(Jobsactive4.objects.filter(**querynotime).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))     
+    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))
+    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))
     summary.extend(Jobsarchived4.objects.filter(**query).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))
     return summary
 
 def taskSummaryData(query):
     summary = []
-    summary.extend(Jobsactive4.objects.filter(**query).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
-    summary.extend(Jobsdefined4.objects.filter(**query).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
-    summary.extend(Jobswaiting4.objects.filter(**query).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
+    querynotime = query
+    del querynotime['modificationtime__range']
+    summary.extend(Jobsactive4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
+    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
+    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
     summary.extend(Jobsarchived4.objects.filter(**query).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
-    summary.extend(Jobsactive4.objects.filter(**query).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus'))
-    summary.extend(Jobsdefined4.objects.filter(**query).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus'))
-    summary.extend(Jobswaiting4.objects.filter(**query).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus'))
+    summary.extend(Jobsactive4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus'))
+    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus'))
+    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus'))
     summary.extend(Jobsarchived4.objects.filter(**query).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus'))
 
     return summary
 
 def voSummary(query):
     summary = []
-    summary.extend(Jobsactive4.objects.filter(**query).values('vo','jobstatus').annotate(Count('jobstatus')))
-    summary.extend(Jobsdefined4.objects.filter(**query).values('vo','jobstatus').annotate(Count('jobstatus')))
-    summary.extend(Jobswaiting4.objects.filter(**query).values('vo','jobstatus').annotate(Count('jobstatus')))
+    querynotime = query
+    del querynotime['modificationtime__range']
+    summary.extend(Jobsactive4.objects.filter(**querynotime).values('vo','jobstatus').annotate(Count('jobstatus')))
+    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('vo','jobstatus').annotate(Count('jobstatus')))
+    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('vo','jobstatus').annotate(Count('jobstatus')))
     summary.extend(Jobsarchived4.objects.filter(**query).values('vo','jobstatus').annotate(Count('jobstatus')))
     return summary
 
 def wgSummary(query):
     summary = []
-    summary.extend(Jobsdefined4.objects.filter(**query).values('workinggroup','jobstatus').annotate(Count('jobstatus')))
-    summary.extend(Jobsactive4.objects.filter(**query).values('workinggroup','jobstatus').annotate(Count('jobstatus')))
-    summary.extend(Jobswaiting4.objects.filter(**query).values('workinggroup','jobstatus').annotate(Count('jobstatus')))
+    querynotime = query
+    del querynotime['modificationtime__range']
+    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('workinggroup','jobstatus').annotate(Count('jobstatus')))
+    summary.extend(Jobsactive4.objects.filter(**querynotime).values('workinggroup','jobstatus').annotate(Count('jobstatus')))
+    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('workinggroup','jobstatus').annotate(Count('jobstatus')))
     summary.extend(Jobsarchived4.objects.filter(**query).values('workinggroup','jobstatus').annotate(Count('jobstatus')))
     return summary
 
 def wnSummary(query):
     summary = []
-    summary.extend(Jobsactive4.objects.filter(**query).values('modificationhost', 'jobstatus').annotate(Count('jobstatus')).order_by('modificationhost', 'jobstatus'))
+    querynotime = query
+    del querynotime['modificationtime__range']
+    summary.extend(Jobsactive4.objects.filter(**querynotime).values('modificationhost', 'jobstatus').annotate(Count('jobstatus')).order_by('modificationhost', 'jobstatus'))
     summary.extend(Jobsarchived4.objects.filter(**query).values('modificationhost', 'jobstatus').annotate(Count('jobstatus')).order_by('modificationhost', 'jobstatus'))
     return summary
 
