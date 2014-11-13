@@ -305,7 +305,12 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
                                     tokens = requestParams[param].split('*')
                                     for t in tokens:
                                         if len(t) == 0: continue
-                                        query['%s__icontains' % param] = t
+                                        if t == tokens[0]:
+                                            query['%s__istartswith' % param] = t
+                                        elif t == tokens[-1]:
+                                            query['%s__iendswith' % param] = t
+                                        else:
+                                            query['%s__icontains' % param] = t
                                 elif requestParams[param].startswith('*') and requestParams[param].endswith('*'):
                                     query['%s__icontains' % param] = requestParams[param].replace('*','')
                                 elif requestParams[param].endswith('*'):
