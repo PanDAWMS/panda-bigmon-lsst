@@ -13,6 +13,7 @@
 <tr class='tablesection'>
 	<th>ID</th>
 	<th>Type</th>
+	<th>Scope</th>
 	<th>Stream</th>
 	<th>Task</th>
 	<th>State</th>
@@ -24,6 +25,7 @@
 	<tr>
 		<td>{{ dsrec.datasetid }}</td>
 		<td>{{ dsrec.type }}</td>
+		<td>{{ dsrec.scope }}</td>
 		<td>{{ dsrec.streamname }}</td>
 		<td><a href="{% url 'taskInfo' %}?jeditaskid={{ dsrec.jeditaskid }}">{{ dsrec.jeditaskid }}</a></td>
 		<td>{{ dsrec.state }}</td>

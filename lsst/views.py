@@ -339,7 +339,12 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
                         if requestParams['taskid'] != 'None': query[param] = requestParams[param]
                     elif param == 'pandaid':
                         try:
-                            query['pandaid'] = int(requestParams['pandaid'])
+                            pid = requestParams['pandaid']
+                            if pid.find(',') >= 0:
+                                pidl = pid.split(',')
+                                query['pandaid__in'] = pidl
+                            else:
+                                query['pandaid'] = int(pid)
                         except:
                             query['jobname'] = requestParams['pandaid']
                     elif param in ( 'computingsite', ):
