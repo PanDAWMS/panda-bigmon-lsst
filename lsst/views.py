@@ -367,6 +367,8 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
                     elif requestParams[param].find('|') > 0:
                         vals = requestParams[param].split('|')
                         query[param+"__in"] = vals
+                    elif param == 'jobstatus' and requestParams[param] == 'finished' and 'mode' in requestParams and requestParams['mode'] == 'eventservice':
+                        query['jobstatus__in'] = ( 'finished', 'cancelled' )
                     else:
                         query[param] = requestParams[param]
     if 'jobtype' in requestParams:
@@ -897,6 +899,9 @@ def errorInfo(job, nchars=300):
 def jobList(request, mode=None, param=None):
     valid, response = initRequest(request)
     if not valid: return response
+    eventservice = False
+    if 'mode' in requestParams and requestParams['mode'] == 'eventservice':
+        eventservice = True
     query = setupView(request)
     if 'batchid' in requestParams:
         query['batchid'] = requestParams['batchid']
@@ -1017,7 +1022,10 @@ def jobList(request, mode=None, param=None):
             'taskname' : taskname,
         }
         data.update(getContextVariables(request))
-        return render_to_response('jobList.html', data, RequestContext(request))
+        if eventservice:
+            return render_to_response('jobListES.html', data, RequestContext(request))
+        else:
+            return render_to_response('jobList.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(jobs, cls=DateEncoder), mimetype='text/html')
 
@@ -2474,7 +2482,7 @@ def taskInfo(request, jeditaskid=0):
         if len(tasks) > 0:
             if 'eventservice' in tasks[0] and tasks[0]['eventservice'] == 1: eventservice = True
         if eventservice:
-            jobsummary = jobSummary2(query, mode='nodrop')
+            jobsummary = jobSummary2(query, mode='eventservice')
         else:
             jobsummary = jobSummary2(query)
     elif 'taskname' in requestParams:
@@ -2731,6 +2739,8 @@ def jobSummary2(query, mode='drop'):
         statecount['name'] = state
         statecount['count'] = 0
         for job in jobs:
+            if mode == 'eventservice' and job['jobstatus'] == 'cancelled':
+                job['jobstatus'] = 'finished'
             if job['jobstatus'] == state:
                 statecount['count'] += 1
                 continue
