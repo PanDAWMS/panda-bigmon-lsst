@@ -2,7 +2,7 @@
 
 {% block page_title %}PanDA job {{ pandaid }}{% endblock %}
 {% block title %} <a href="{% url 'index' %}">{{ viewParams.MON_VO }} PanDA monitor</a>{% endblock %}
-{% block subtitle %}Job details for PanDA job <b>{{ jobid }}</b>{% endblock %}
+{% block subtitle %}PanDA Event Service job details for job <b>{{ jobid }}</b>{% endblock %}
 
 {% block body %}
 
@@ -40,9 +40,9 @@
 	<td>{{ job.currentpriority }}</td>
 </tr>
 <tr>
-	<td colspan="20"><b>Job name:</b> <a href="{% url 'jobList' %}?jobname={{ job.jobname }}&taskid={{ job.taskid }}&jeditaskid={{ job.jeditaskid }}&sortby=attemptnr">{{ job.jobname }}</a> 
-	{% if job.processingtype %} &nbsp; <b>type:</b> {{ job.processingtype }} {% endif %}
-    {% if job.transformation %} &nbsp; <b>transformation:</b> {{ job.transformation|safe }} {% endif %}
+	<td colspan="20">
+	{% if job.processingtype %} &nbsp; <b>Job type:</b> {{ job.processingtype }} {% endif %}
+    {% if job.transformation %} &nbsp; <b>Job transform:</b> {{ job.transformation|safe }} {% endif %}
 	</td>
 </tr>
 <tr> 
@@ -87,8 +87,8 @@ This is attempt number {{ job.attemptnr }} for this job. To see a history of job
 		<tr><th class="tablesection"><span class="alarm">Supervisor error message</span></th><td class="alarm">{{ job.superrordiag }}</td></tr>
 	{% endif %}
 	{% if job.taskbuffererrorcode %}
-		<tr><th class="tablesection"><span class="alarm">TaskBuffer error code</span></th><td class="alarm">{{ job.taskbuffererrorcode }}</td></tr>
-		<tr><th class="tablesection"><span class="alarm">TaskBuffer error message</span></th><td class="alarm">{{ job.taskbuffererrordiag }}</td></tr>
+		<tr><th class="tablesection"><span>TaskBuffer return code</span></th><td>{{ job.taskbuffererrorcode }}</td></tr>
+		<tr><th class="tablesection"><span>TaskBuffer message</span></th><td>{{ job.taskbuffererrordiag }}</td></tr>
 	{% endif %}
 </table>
 
@@ -290,32 +290,29 @@ pinkpanda</a> <a href="https://rucio-ui.cern.ch/did?scope={{ file.scope }}&name=
 <b>This is an event service merge job.</b>
 
 {% elif eventservice %}
-<p><div class='section'>This is an event service job. Event range records:</div>
+
+{% if evtable|length > 0 %}
+<p><div class='section'>Latest event range records:</div>
 
 <table>
 <tr>
 <th> Min event </th>
 <th> Max </th>
-<th> Processed<br>up to </th>
 <th> Status </th>
 <th> ProcessID </th>
 <th> Attempt </th>
-<th> File </th>
-<th> Dataset </th>
 </tr>
 {% for ev in evtable %}
 <tr>
 <td> {{ ev.def_min_eventid }} </td>
 <td> {{ ev.def_max_eventid }} </td>
-<td> {{ ev.processed_upto_eventid }} </td>
 <td> <span class="{{ ev.status }}">{{ ev.status }}</span> </td>
 <td> {{ ev.job_processid }} </td>
 <td> {{ ev.attemptnr }} </td>
-<td> <font size=-1><a href="{% url 'fileInfo' %}?filename={{ ev.fileid }}">{{ ev.fileid }}</font> </td>
-<td> <font size=-1><a href="{% url 'datasetInfo' %}?datasetname={{ ev.datasetid }}">{{ ev.datasetid }}</a></font> </td>
 </tr>
 {% endfor %}
 </table>
+{% endif %}
 
 {% endif %}
 

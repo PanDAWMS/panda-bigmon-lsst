@@ -195,7 +195,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     if 'computingsite' in requestParams:
         LAST_N_HOURS_MAX = 12
     if 'jobtype' in requestParams and requestParams['jobtype'] == 'eventservice':
-        LAST_N_HOURS_MAX = 72
+        LAST_N_HOURS_MAX = 7*24
     ## hours specified in the URL takes priority over the above
     if 'hours' in requestParams:
         LAST_N_HOURS_MAX = int(requestParams['hours'])
@@ -389,6 +389,9 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
 
 def cleanJobList(jobs, mode='drop'):
     for job in jobs:
+        if isEventService(job):
+            if job['jobstatus'] == 'cancelled':
+                job['jobstatus'] = 'finished'
         try:
             job['homecloud'] = homeCloud[job['cloud']]
         except:
@@ -1028,6 +1031,7 @@ def isEventService(job):
 def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     valid, response = initRequest(request)
     if not valid: return response
+    eventservice = False
     query = setupView(request, hours=365*24)
     jobid = ''
     if 'creator' in requestParams:
@@ -1249,12 +1253,12 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
 
     if isEventService(job):
         ## for ES jobs, prepare the event table
-        evtable = JediEvents.objects.filter(pandaid=job['pandaid']).values()
+        evtable = JediEvents.objects.filter(pandaid=job['pandaid']).order_by('-def_min_eventid')[:100].values('def_min_eventid','def_max_eventid','processed_upto_eventid','status','job_processid','attemptnr')
         fileids = {}
         datasetids = {}
-        for evrange in evtable:
-            fileids[int(evrange['fileid'])] = {}
-            datasetids[int(evrange['datasetid'])] = {}
+        #for evrange in evtable:
+        #    fileids[int(evrange['fileid'])] = {}
+        #    datasetids[int(evrange['datasetid'])] = {}
         flist = []
         for f in fileids:
             flist.append(f)
@@ -1263,13 +1267,13 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             dslist.append(ds)
         datasets = JediDatasets.objects.filter(datasetid__in=dslist).values()
         dsfiles = JediDatasetContents.objects.filter(fileid__in=flist).values()        
-        for ds in datasets:
-            datasetids[int(ds['datasetid'])]['dict'] = ds
-        for f in dsfiles:
-            fileids[int(f['fileid'])]['dict'] = f
+        #for ds in datasets:
+        #    datasetids[int(ds['datasetid'])]['dict'] = ds
+        #for f in dsfiles:
+        #    fileids[int(f['fileid'])]['dict'] = f
         for evrange in evtable:
-            evrange['fileid'] = fileids[int(evrange['fileid'])]['dict']['lfn']
-            evrange['datasetid'] = datasetids[evrange['datasetid']]['dict']['datasetname']
+            #evrange['fileid'] = fileids[int(evrange['fileid'])]['dict']['lfn']
+            #evrange['datasetid'] = datasetids[evrange['datasetid']]['dict']['datasetname']
             evrange['status'] = eventservicestatelist[evrange['status']]
     else:
         evtable = None
@@ -1323,7 +1327,10 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             'mergejobs' : mergejobs,
         }
         data.update(getContextVariables(request))
-        return render_to_response('jobInfo.html', data, RequestContext(request))
+        if isEventService(job):
+            return render_to_response('jobInfoES.html', data, RequestContext(request))
+        else:
+            return render_to_response('jobInfo.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse('json', mimetype='text/html')
     else:
@@ -1706,23 +1713,49 @@ def siteInfo(request, site=''):
         colnames = siterec.get_all_fields()
     except IndexError:
         siterec = None
+    HPC = False
+    njobhours = 12
+    if siterec.catchall.find('HPC') >= 0:
+        HPC = True
+        njobhours = 48
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         attrs = []
         if siterec:
             attrs.append({'name' : 'GOC name', 'value' : siterec.gocname })
-            attrs.append({'name' : 'Queue (nickname)', 'value' : siterec.nickname })
-            attrs.append({'name' : 'Total queues for this site', 'value' : len(sites) })
+            if HPC: attrs.append({'name' : 'HPC', 'value' : 'This is a High Performance Computing (HPC) supercomputer queue' })
+            if siterec.catchall.find('log_to_objectstore') >= 0:
+                attrs.append({'name' : 'Object store logs', 'value' : 'Logging to object store is enabled' })
+            if len(siterec.objectstore) > 0:
+                fields = siterec.objectstore.split('|')
+                nfields = len(fields)
+                for nf in range (0, len(fields)):
+                    if nf == 0:
+                        attrs.append({'name' : 'Object store location', 'value' : fields[0] })
+                    else:
+                        fields2 = fields[nf].split('^')
+                        if len(fields2) > 1:
+                            ostype = fields2[0]
+                            ospath = fields2[1]
+                            attrs.append({'name' : 'Object store %s path' % ostype, 'value' : ospath })
+                
+            if siterec.nickname != site:
+                attrs.append({'name' : 'Queue (nickname)', 'value' : siterec.nickname })
+            if len(sites) > 1:
+                attrs.append({'name' : 'Total queues for this site', 'value' : len(sites) })
             attrs.append({'name' : 'Status', 'value' : siterec.status })
-            attrs.append({'name' : 'Comment', 'value' : siterec.comment_field })
-            attrs.append({'name' : 'Last modified', 'value' : "%s" % (siterec.lastmod.strftime('%Y-%m-%d %H:%M')) })
+            if len(siterec.comment_field) > 0:
+                attrs.append({'name' : 'Comment', 'value' : siterec.comment_field })
             attrs.append({'name' : 'Cloud', 'value' : siterec.cloud })
-            attrs.append({'name' : 'Multicloud', 'value' : siterec.multicloud })
+            if len(siterec.multicloud) > 0:
+                attrs.append({'name' : 'Multicloud', 'value' : siterec.multicloud })
             attrs.append({'name' : 'Tier', 'value' : siterec.tier })
             attrs.append({'name' : 'DDM endpoint', 'value' : siterec.ddm })
             attrs.append({'name' : 'Maximum memory', 'value' : "%.1f GB" % (float(siterec.maxmemory)/1000.) })
-            attrs.append({'name' : 'Maximum time', 'value' : "%.1f hours" % (float(siterec.maxtime)/3600.) })
+            if siterec.maxtime > 0:
+                attrs.append({'name' : 'Maximum time', 'value' : "%.1f hours" % (float(siterec.maxtime)/3600.) })
             attrs.append({'name' : 'Space', 'value' : "%d TB as of %s" % ((float(siterec.space)/1000.), siterec.tspace.strftime('%m-%d %H:%M')) })
+            attrs.append({'name' : 'Last modified', 'value' : "%s" % (siterec.lastmod.strftime('%Y-%m-%d %H:%M')) })
 
             iquery = {}
             startdate = timezone.now() - timedelta(hours=24*30)
@@ -1741,6 +1774,7 @@ def siteInfo(request, site=''):
             'attrs' : attrs,
             'incidents' : incidents,
             'name' : site,
+            'njobhours' : njobhours,
         }
         data.update(getContextVariables(request))
         return render_to_response('siteInfo.html', data, RequestContext(request))
@@ -2415,7 +2449,10 @@ def taskList(request):
             'url_nolimit' : url_nolimit,
             'display_limit' : display_limit,
         }
-        return render_to_response('taskList.html', data, RequestContext(request))
+        if 'eventservice' in requestParams:
+            return render_to_response('taskListES.html', data, RequestContext(request))
+        else:
+            return render_to_response('taskList.html', data, RequestContext(request))
 
 def taskInfo(request, jeditaskid=0):
     valid, response = initRequest(request)
@@ -2423,6 +2460,7 @@ def taskInfo(request, jeditaskid=0):
     if 'taskname' in requestParams and requestParams['taskname'].find('*') >= 0:
         return taskList(request)
     setupView(request, hours=365*24, limit=999999999, querytype='task')
+    eventservice = False
     query = {}
     tasks = []
     taskrec = None
@@ -2432,14 +2470,20 @@ def taskInfo(request, jeditaskid=0):
     if 'jeditaskid' in requestParams: jeditaskid = requestParams['jeditaskid']
     if jeditaskid != 0:
         query = {'jeditaskid' : jeditaskid}
-        jobsummary = jobSummary2(query)
         tasks = JediTasks.objects.filter(**query).values()
+        if len(tasks) > 0:
+            if 'eventservice' in tasks[0] and tasks[0]['eventservice'] == 1: eventservice = True
+        if eventservice:
+            jobsummary = jobSummary2(query, mode='nodrop')
+        else:
+            jobsummary = jobSummary2(query)
     elif 'taskname' in requestParams:
         querybyname = {'taskname' : requestParams['taskname'] }
         tasks = JediTasks.objects.filter(**querybyname).values()
         if len(tasks) > 0:
             jeditaskid = tasks[0]['jeditaskid']
         query = {'jeditaskid' : jeditaskid}
+
     tasks = cleanTaskList(tasks)
     try:
         taskrec = tasks[0]
@@ -2556,6 +2600,8 @@ def taskInfo(request, jeditaskid=0):
     cquery['jeditaskid'] = jeditaskid
     cquery['type__in'] = ( 'output', 'log' )
     outctrs = JediDatasets.objects.filter(**cquery).values_list('containername',flat=True).distinct()
+    if len(outctrs) == 0 or outctrs[0] == '':
+        outctrs = None
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
@@ -2591,7 +2637,10 @@ def taskInfo(request, jeditaskid=0):
             'outctrs' : outctrs,
         }
         data.update(getContextVariables(request))
-        return render_to_response('taskInfo.html', data, RequestContext(request))       
+        if eventservice:
+            return render_to_response('taskInfoES.html', data, RequestContext(request))       
+        else:
+            return render_to_response('taskInfo.html', data, RequestContext(request))       
 
 def jobSummaryForTasks(request):
     valid, response = initRequest(request)
@@ -2640,38 +2689,40 @@ def jobSummaryForTasks(request):
         taskd[task][status] += 1
     return taskd
 
-def jobSummary2(query):
+def jobSummary2(query, mode='drop'):
     jobs = []
     jobs.extend(Jobsdefined4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid'))
     jobs.extend(Jobswaiting4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid'))
     jobs.extend(Jobsactive4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid'))
     jobs.extend(Jobsarchived4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid'))
     jobs.extend(Jobsarchived.objects.filter(**query).values('pandaid','jobstatus','jeditaskid'))
-    
-    ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
-    taskids = {}
-    for job in jobs:
-        if 'jeditaskid' in job: taskids[job['jeditaskid']] = 1
-    droplist = []
-    if len(taskids) == 1:
-        for task in taskids:
-            retryquery = {}
-            retryquery['jeditaskid'] = task
-            retries = JediJobRetryHistory.objects.filter(**retryquery).order_by('newpandaid').values()
-        newjobs = []
+
+    if mode == 'drop':
+        ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
+        taskids = {}
         for job in jobs:
-            dropJob = 0
-            pandaid = job['pandaid']
-            for retry in retries:
-                if retry['oldpandaid'] == pandaid and retry['newpandaid'] != pandaid and (retry['relationtype'] == '' or retry['relationtype'] == 'retry'):
-                    ## there is a retry for this job. Drop it.
-                    dropJob = retry['newpandaid']
-            if dropJob == 0:
-                newjobs.append(job)
-            else:
-                droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
-        droplist = sorted(droplist, key=lambda x:-x['pandaid'])
-        jobs = newjobs
+            if 'jeditaskid' in job: taskids[job['jeditaskid']] = 1
+        droplist = []
+        if len(taskids) == 1:
+            for task in taskids:
+                retryquery = {}
+                retryquery['jeditaskid'] = task
+                retries = JediJobRetryHistory.objects.filter(**retryquery).order_by('newpandaid').values()
+            newjobs = []
+            for job in jobs:
+                dropJob = 0
+                pandaid = job['pandaid']
+                for retry in retries:
+                    if retry['oldpandaid'] == pandaid and retry['newpandaid'] != pandaid and (retry['relationtype'] == '' or retry['relationtype'] == 'retry'):
+                        ## there is a retry for this job. Drop it.
+                        print 'dropping job', pandaid, ' for retry ', retry['newpandaid']
+                        dropJob = retry['newpandaid']
+                if dropJob == 0:
+                    newjobs.append(job)
+                else:
+                    droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
+            droplist = sorted(droplist, key=lambda x:-x['pandaid'])
+            jobs = newjobs
 
     jobstates = []
     global statelist
@@ -2684,7 +2735,8 @@ def jobSummary2(query):
                 statecount['count'] += 1
                 continue
         jobstates.append(statecount)
-    return jobstates            
+    print 'jobstates', jobstates
+    return jobstates
 
 def jobStateSummary(jobs):
     global statelist

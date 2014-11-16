@@ -26,7 +26,7 @@
 {% endfor %}
 </table>
 
-{% if queues %}
+{% if queues|length > 1 %}
 
 <table>
 <tr class='tablesection'><th colspan=20> All queues for {{ site.siteid }} </th></tr>
@@ -53,10 +53,10 @@
 <a href="{% url 'wnInfo' site.siteid %}">worker nodes</a>
 </td>
 <td>
-<a href="{% url 'jobList' %}?computingsite={{site.siteid}}&display_limit=100">jobs</a>, <a href="{% url 'errorSummary' %}?computingsite={{site.siteid}}">job errors</a>
+<a href="{% url 'jobList' %}?computingsite={{site.siteid}}&hours={{njobhours}}&display_limit=100">jobs</a>, <a href="{% url 'errorSummary' %}?computingsite={{site.siteid}}">job errors</a>
 </td>
 <td>
-<a href="{% url 'pandaLogger' %}?category=panda.mon.prod&type=brokerage&site={{ site.siteid }}&hours=12">brokerage actions</a>
+<a href="{% url 'pandaLogger' %}?category=panda.mon.prod&type=brokerage&site={{ site.siteid }}&hours={{njobhours}}">brokerage actions</a>
 </td>
 {% if site.nickname %}
 <td>
