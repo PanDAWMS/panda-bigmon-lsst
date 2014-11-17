@@ -383,7 +383,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
         query['prodsourcelabel'] = 'managed'
         query['workinggroup__isnull'] = False
     elif jobtype == 'eventservice':
-        query['specialhandling__contains'] = 'eventservice'
+        query['specialhandling__in'] = ( 'eventservice', 'esmerge' )
     elif jobtype == 'test':
         query['prodsourcelabel__icontains'] = 'test'
     print 'Query:', query
@@ -434,6 +434,8 @@ def cleanJobList(jobs, mode='drop'):
         if isEventService(job):
             if 'taskbuffererrordiag' in job and len(job['taskbuffererrordiag']) > 0:
                 job['jobinfo'] = job['taskbuffererrordiag']
+            elif 'specialhandling' in job and job['specialhandling'] == 'esmerge':
+                job['jobinfo'] = 'Event service merge job'
             else:
                 job['jobinfo'] = 'Event service job'
         job['duration'] = ""
@@ -2448,7 +2450,10 @@ def dashTasks(request, hours, view='production'):
 def taskList(request):
     valid, response = initRequest(request)
     if not valid: return response
-    query = setupView(request, hours=7*24, limit=9999999, querytype='task')
+    hours = 7*24
+    if 'eventservice' in requestParams: eventservice = True
+    if eventservice: hours = 7*24
+    query = setupView(request, hours=hours, limit=9999999, querytype='task')
     if 'statenotupdated' in requestParams:
         tasks = taskNotUpdated(request, query)
     else:

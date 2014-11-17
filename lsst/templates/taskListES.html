@@ -27,8 +27,6 @@
 {% if requestParams.status %}<br><b>{% if viewParams.MON_VO == 'ATLAS' %}Detailed JEDI task status {% else %}Task status {% endif %}: <span class='{{requestParams.status}}'>{{ requestParams.status }}</span></b> {% endif %}
 {% if requestParams.superstatus %}<br><b>{% if viewParams.MON_VO == 'ATLAS' %}Task status {% else %}Task status {% endif %}: <span class='{{requestParams.superstatus}}'>{{ requestParams.superstatus }}</span></b> {% endif %}
 
-{% if requestParams.eventservice %}<br><b>Event service tasks</b> {% endif %}
-
 <p>
 {% if tasks %}
 
