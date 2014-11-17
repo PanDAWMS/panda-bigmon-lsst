@@ -392,16 +392,16 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
 def cleanJobList(jobs, mode='drop'):
     for job in jobs:
         if isEventService(job):
-            if job['jobstatus'] == 'cancelled':
-                job['jobstatus'] = 'finished'
             if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 111:
                 job['taskbuffererrordiag'] = 'Rerun scheduled to pick up unprocessed events'
                 job['piloterrorcode'] = 0
                 job['piloterrordiag'] = 'Job terminated by signal from PanDA server'
+                job['jobstatus'] = 'finished'
             if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 112:
                 job['taskbuffererrordiag'] = 'All events processed, merge job created'
                 job['piloterrorcode'] = 0
                 job['piloterrordiag'] = 'Job terminated by signal from PanDA server'
+                job['jobstatus'] = 'finished'
             if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 114:
                 job['taskbuffererrordiag'] = 'No rerun to pick up unprocessed, at max attempts'
                 job['piloterrorcode'] = 0
@@ -411,10 +411,12 @@ def cleanJobList(jobs, mode='drop'):
                 job['taskbuffererrordiag'] = 'No events remaining, other jobs still processing'
                 job['piloterrorcode'] = 0
                 job['piloterrordiag'] = 'Job terminated by signal from PanDA server'
+                job['jobstatus'] = 'finished'
             if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 116:
                 job['taskbuffererrordiag'] = 'No remaining event ranges to allocate'
                 job['piloterrorcode'] = 0
                 job['piloterrordiag'] = 'Job terminated by signal from PanDA server'
+                job['jobstatus'] = 'finished'
 
         try:
             job['homecloud'] = homeCloud[job['cloud']]
@@ -497,7 +499,12 @@ def cleanJobList(jobs, mode='drop'):
             dropJob = 1
         else:
             job1[pandaid] = 1
-        if (dropJob == 0) or isEventService(job):
+        if isEventService(job):
+            if 'jobstatus' in requestParams and requestParams['jobstatus'] == 'cancelled' and job['jobstatus'] != 'cancelled':
+                dropJob = 1
+            else:
+                dropJob = 0
+        if (dropJob == 0):
             newjobs.append(job)
         else:
             droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
