@@ -2458,6 +2458,7 @@ def taskList(request):
     valid, response = initRequest(request)
     if not valid: return response
     hours = 7*24
+    eventservice = False
     if 'eventservice' in requestParams: eventservice = True
     if eventservice: hours = 7*24
     query = setupView(request, hours=hours, limit=9999999, querytype='task')
