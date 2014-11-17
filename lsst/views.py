@@ -394,11 +394,33 @@ def cleanJobList(jobs, mode='drop'):
         if isEventService(job):
             if job['jobstatus'] == 'cancelled':
                 job['jobstatus'] = 'finished'
+            if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 111:
+                job['taskbuffererrordiag'] = 'Rerun scheduled to pick up unprocessed events'
+                job['piloterrorcode'] = 0
+                job['piloterrordiag'] = 'Job terminated by signal from PanDA server'
+            if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 112:
+                job['taskbuffererrordiag'] = 'All events processed, merge job created'
+                job['piloterrorcode'] = 0
+                job['piloterrordiag'] = 'Job terminated by signal from PanDA server'
+            if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 114:
+                job['taskbuffererrordiag'] = 'No rerun to pick up unprocessed, at max attempts'
+                job['piloterrorcode'] = 0
+                job['piloterrordiag'] = 'Job terminated by signal from PanDA server'
+                job['jobstatus'] = 'finished'
+            if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 115:
+                job['taskbuffererrordiag'] = 'No events remaining, other jobs still processing'
+                job['piloterrorcode'] = 0
+                job['piloterrordiag'] = 'Job terminated by signal from PanDA server'
+            if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 116:
+                job['taskbuffererrordiag'] = 'No remaining event ranges to allocate'
+                job['piloterrorcode'] = 0
+                job['piloterrordiag'] = 'Job terminated by signal from PanDA server'
+
         try:
             job['homecloud'] = homeCloud[job['cloud']]
         except:
             job['homecloud'] = None
-        if not job['produsername']:
+        if 'produsername' in job and not job['produsername']:
             if job['produserid']:
                 job['produsername'] = job['produserid']
             else:
@@ -409,7 +431,11 @@ def cleanJobList(jobs, mode='drop'):
         else:
             job['errorinfo'] = ''
         job['jobinfo'] = ''
-        if isEventService(job): job['jobinfo'] = 'Event service job'
+        if isEventService(job):
+            if 'taskbuffererrordiag' in job and len(job['taskbuffererrordiag']) > 0:
+                job['jobinfo'] = job['taskbuffererrordiag']
+            else:
+                job['jobinfo'] = 'Event service job'
         job['duration'] = ""
         #if job['jobstatus'] in ['finished','failed','holding']:
         if 'endtime' in job and 'starttime' in job and job['starttime']:
@@ -902,12 +928,16 @@ def jobList(request, mode=None, param=None):
     eventservice = False
     if 'mode' in requestParams and requestParams['mode'] == 'eventservice':
         eventservice = True
+    if 'jobtype' in requestParams and requestParams['jobtype'] == 'eventservice':
+        eventservice = True
     query = setupView(request)
     if 'batchid' in requestParams:
         query['batchid'] = requestParams['batchid']
     jobs = []
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         values = Jobsactive4._meta.get_all_field_names()
+    elif eventservice:
+        values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'proddblock', 'destinationdblock'
     else:
         values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'computingelement', 'proddblock', 'destinationdblock'
     if 'transferringnotupdated' in requestParams:
