@@ -2571,6 +2571,7 @@ def taskList(request):
             return render_to_response('taskList.html', data, RequestContext(request))
 
 def taskInfo(request, jeditaskid=0):
+    jeditaskid = int(jeditaskid)
     valid, response = initRequest(request)
     if not valid: return response
     if 'taskname' in requestParams and requestParams['taskname'].find('*') >= 0:
@@ -2583,7 +2584,7 @@ def taskInfo(request, jeditaskid=0):
     colnames = []
     columns = []
     jobsummary = []
-    if 'jeditaskid' in requestParams: jeditaskid = requestParams['jeditaskid']
+    if 'jeditaskid' in requestParams: jeditaskid = int(requestParams['jeditaskid'])
     if jeditaskid != 0:
         query = {'jeditaskid' : jeditaskid}
         tasks = JediTasks.objects.filter(**query).values()
@@ -2718,6 +2719,41 @@ def taskInfo(request, jeditaskid=0):
     outctrs = JediDatasets.objects.filter(**cquery).values_list('containername',flat=True).distinct()
     if len(outctrs) == 0 or outctrs[0] == '':
         outctrs = None
+
+    ## For event service, pull the jobs and event ranges
+    if eventservice:
+        jquery = {}
+        jquery['jeditaskid'] = jeditaskid
+        jobs = []
+        jobs.extend(Jobsactive4.objects.filter(**jquery).values('pandaid','jeditaskid'))
+        jobs.extend(Jobsarchived4.objects.filter(**jquery).values('pandaid','jeditaskid'))
+        taskdict = {}
+        for job in jobs:
+            taskdict[job['pandaid']] = job['jeditaskid']
+        estaskdict = {}
+        esjobs = []
+        for job in jobs:
+            esjobs.append(job['pandaid'])
+        esquery = {}
+        esquery['pandaid__in'] = esjobs
+        evtable = JediEvents.objects.filter(**esquery).values('pandaid','status')
+        print 'evtable', evtable
+        for ev in evtable:
+            taskid = taskdict[ev['pandaid']]
+            if taskid not in estaskdict:
+                estaskdict[taskid] = {}
+                for s in eventservicestatelist:
+                    estaskdict[taskid][s] = 0
+            evstat = eventservicestatelist[ev['status']]
+            estaskdict[taskid][evstat] += 1
+        print 'jeditaskid', jeditaskid, 'estaskdict', estaskdict
+        if jeditaskid in estaskdict:
+            estaskstr = ''
+            for s in estaskdict[jeditaskid]:
+                if estaskdict[jeditaskid][s] > 0:
+                    estaskstr += " %s(%s) " % ( s, estaskdict[jeditaskid][s] )
+            print 'estaskstr',estaskstr
+            taskrec['estaskstr'] = estaskstr
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []

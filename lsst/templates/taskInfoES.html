@@ -21,7 +21,7 @@
 	{% if task.campaign %} <th> Campaign </th> {% endif %}
 	<th>Task status </th>{% if task.superstatus %} {% if task.superstatus != task.status %}<th> Detailed JEDI status </th>{% endif %} {% endif %}
 {% if task.dsinfo %}
-    <th> Ninputfiles | <span class='finished'>finished</span> | <span class='failed'>failed</span> </th>
+    <th> Event dispatches </th>
 {% endif %}
 	<th>Created</th>
 	<th>Modified</th>
@@ -40,10 +40,7 @@
 		{% if task.campaign %} <td><a href='/tasks/?campaign={{ task.campaign }}'>{{ task.campaign }}</a></td> {% endif %}
 		<td class='{{task.status}}_fill'>{% if task.superstatus %}<b><a href="https://twiki.cern.ch/twiki/bin/view/PanDA/PandaJEDI#Transition_of_task_status">{{ task.superstatus }}</a></b> {% if task.superstatus != task.status %}<td class='{{task.status}}'><a href="https://twiki.cern.ch/twiki/bin/view/PanDA/PandaJEDI#Transition_of_task_status">{{ task.status }}</a></td>{% endif %} {% else %}<a href="https://twiki.cern.ch/twiki/bin/view/PanDA/PandaJEDI#Transition_of_task_status">{{ task.status }}</a>{% endif %}</td>
 
-{% if task.dsinfo %}
-        <td> {{task.dsinfo.nfiles}} |
-            <span class='finished'>{{task.dsinfo.nfilesfinished}} ({{task.dsinfo.pctfinished}}%)</span> | <span class='failed'>{{task.dsinfo.nfilesfailed}} ({{task.dsinfo.pctfailed}}%)</span> </td>
-{% endif %}
+        <td> {{task.estaskstr}} </td>
 		<td>{{ task.creationdate|date:"Y-m-d H:i" }}</td>
 		<td>{{ task.modificationtime|date:"m-d H:i" }}</td>
 		<td>{{ task.corecount }}</td>
