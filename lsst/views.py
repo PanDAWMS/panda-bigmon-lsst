@@ -1360,7 +1360,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             if esjobdict[s] > 0:
                 esjobstr += " %s(%s) " % ( s, esjobdict[s] )
     else:
-        evtable = None
+        evtable = []
 
     ## For LSST, pick up parameters from jobparams
     if VOMODE == 'lsst' or ('vo' in job and job['vo'] == 'lsst'):
