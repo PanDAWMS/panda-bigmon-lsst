@@ -43,6 +43,8 @@
 	<td colspan="20">
 	{% if job.processingtype %} &nbsp; <b>Job type:</b> {{ job.processingtype }} {% endif %}
     {% if job.transformation %} &nbsp; <b>Job transform:</b> {{ job.transformation|safe }} {% endif %}
+    {% if esjobstr|length > 0 %} &nbsp; <b>Dispatched event states:</b> {{ esjobstr|safe }} {% endif %}
+
 	</td>
 </tr>
 <tr> 
@@ -59,6 +61,8 @@ This is attempt number {{ job.attemptnr }} for this job. To see a history of job
 </font>
 
 <table>
+    {% if esjobstr|length > 0 %} <tr><th class="tablesection">Dispatched event states</span></th><td> {{ esjobstr|safe }} </td></tr> {% endif %}
+
     {% if job.errorinfo %}
 		<tr><th class="tablesection"><span class="alarm">Error description</span></th><td class="alarm">{{ job.errorinfo|safe }}</td></tr>
     {% endif %}

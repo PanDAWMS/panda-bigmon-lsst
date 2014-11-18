@@ -1326,9 +1326,13 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
                 if j['processingtype'] == 'usermerge':
                     mergejobs.append(id)
 
+    esjobstr = ''
     if isEventService(job):
         ## for ES jobs, prepare the event table
-        evtable = JediEvents.objects.filter(pandaid=job['pandaid']).order_by('-def_min_eventid')[:100].values('def_min_eventid','def_max_eventid','processed_upto_eventid','status','job_processid','attemptnr')
+        esjobdict = {}
+        for s in eventservicestatelist:
+            esjobdict[s] = 0
+        evtable = JediEvents.objects.filter(pandaid=job['pandaid']).order_by('-def_min_eventid').values('def_min_eventid','def_max_eventid','processed_upto_eventid','status','job_processid','attemptnr')
         fileids = {}
         datasetids = {}
         #for evrange in evtable:
@@ -1350,6 +1354,11 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             #evrange['fileid'] = fileids[int(evrange['fileid'])]['dict']['lfn']
             #evrange['datasetid'] = datasetids[evrange['datasetid']]['dict']['datasetname']
             evrange['status'] = eventservicestatelist[evrange['status']]
+            esjobdict[evrange['status']] += 1
+        esjobstr = ''
+        for s in esjobdict:
+            if esjobdict[s] > 0:
+                esjobstr += " %s(%s) " % ( s, esjobdict[s] )
     else:
         evtable = None
 
@@ -1394,12 +1403,13 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             'retries' : retries,
             'pretries' : pretries,
             'eventservice' : isEventService(job),
-            'evtable' : evtable,
+            'evtable' : evtable[:100],
             'debugmode' : debugmode,
             'debugstdout' : debugstdout,
             'libjob' : libjob,
             'runjobs' : runjobs,
             'mergejobs' : mergejobs,
+            'esjobstr': esjobstr,
         }
         data.update(getContextVariables(request))
         if isEventService(job):
