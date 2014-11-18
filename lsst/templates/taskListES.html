@@ -59,11 +59,7 @@
     <th>Site</th>
 
 	<th>Task status</th>
-	<th><a href="{{nosorturl}}sortby=nfiles">Nfiles</a></th>
-
-	<th>Input files <br><a href="{{nosorturl}}sortby=pctfinished"><span class='finished'>finish%</span></a> <a href="{{nosorturl}}sortby=pctfailed"><span class='failed'>fail%</span></a>
-<br>	<a href="{{nosorturl}}sortby=pctfinished"><span class='finished'>Nfinish</span></a> <a href="{{nosorturl}}sortby=pctfailed"><span class='failed'>Nfail</span></a>
-	</th>
+	<th>Event dispatches</th>
 
 	<th><a href="{{nosorturl}}sortby=time-descending">Modified</a></th>
 	<th><a href="{{nosorturl}}sortby=statetime-descending">State changed</a></th>
@@ -81,11 +77,8 @@
         <td> <a href="{% url 'siteInfo' task.site %}">{{ task.site }}</a> </td>
 
 		<td  class='{{task.superstatus}}_fill'><a href="https://twiki.cern.ch/twiki/bin/view/PanDA/PandaJEDI#Transition_of_task_status">{% if task.superstatus %} {{ task.superstatus }} {% else %} {{ task.status }} {% endif %}</a></td>
-        <td>{% if task.dsinfo.nfiles > 0 %} {{task.dsinfo.nfiles}} {% endif %} </td>
+        <td> {{task.estaskstr}} </td>
 
-        <td>{% if task.dsinfo.nfilesfinished > 0 %}<span  class='finished'>{{task.dsinfo.pctfinished}}%</span>{% endif %} {% if task.dsinfo.nfilesfailed > 0 %}<a href="{% url 'errorSummary' %}?jeditaskid={{task.jeditaskid}}"><span class='failed'> {{task.dsinfo.pctfailed}}%</span>{% endif %}</a>
-        <br> {% if task.dsinfo.nfilesfinished > 0 %} <span  class='finished'>{{ task.dsinfo.nfilesfinished }}</span> {% endif %} &nbsp; {% if task.dsinfo.nfilesfailed > 0 %} <a href="{% url 'errorSummary' %}?jeditaskid={{task.jeditaskid}}"><span  class='failed'>{{ task.dsinfo.nfilesfailed }}</span></a> {% endif %}
-		</td>
 		<td><font size=-1>{{ task.modificationtime|date:"Y-m-d H:i" }}</font></td>
 		<td><font size=-1>{{ task.statechangetime|date:"m-d H:i" }}</font></td>
 		<td>{{ task.taskpriority }}</td>

@@ -166,7 +166,6 @@ def initRequest(request):
 def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     global viewParams
     global LAST_N_HOURS_MAX, JOB_LIMIT
-    print 'setupView'
     deepquery = False
     fields = standard_fields
     if VOMODE == 'atlas':
@@ -622,6 +621,27 @@ def jobSummaryDict(request, jobs, fieldlist = None):
                     if not job[f] in sumd[f]: sumd[f][job[f]] = 0
                     sumd[f][job[f]] += 1
 
+    ## event service
+    esjobdict = {}
+    esjobs = []
+    for job in jobs:
+        if isEventService(job):
+            esjobs.append(job['pandaid'])
+            esjobdict[job['pandaid']] = {}
+            for s in eventservicestatelist:
+                esjobdict[job['pandaid']][s] = 0
+    if len(esjobs) > 0:
+        sumd['eventservice'] = {}
+        esquery = {}
+        esquery['pandaid__in'] = esjobs
+        evtable = JediEvents.objects.filter(**esquery).values('pandaid','status')
+        for ev in evtable:
+            evstat = eventservicestatelist[ev['status']]
+            if evstat not in sumd['eventservice']:
+                sumd['eventservice'][evstat] = 0
+            sumd['eventservice'][evstat] += 1
+            esjobdict[ev['pandaid']][evstat] += 1
+
     ## convert to ordered lists
     suml = []
     for f in sumd:
@@ -650,7 +670,7 @@ def jobSummaryDict(request, jobs, fieldlist = None):
         itemd['list'] = iteml
         suml.append(itemd)
         suml = sorted(suml, key=lambda x:x['field'])
-    return suml
+    return suml, esjobdict
 
 def siteSummaryDict(sites):
     """ Return a dictionary summarizing the field values for the chosen most interesting fields """
@@ -1034,7 +1054,15 @@ def jobList(request, mode=None, param=None):
     else:
         user = None
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
-        sumd = jobSummaryDict(request, jobs)
+        sumd, esjobdict = jobSummaryDict(request, jobs)
+        if esjobdict and len(esjobdict) > 0:
+            for job in jobs:
+                if job['pandaid'] in esjobdict and job['specialhandling'].find('esmerge') < 0:
+                    esjobstr = 'Dispatched event states: '
+                    for s in esjobdict[job['pandaid']]:
+                        if esjobdict[job['pandaid']][s] > 0:
+                            esjobstr += " %s(%s) " % ( s, esjobdict[job['pandaid']][s] )
+                    job['esjobstr'] = esjobstr
         xurl = extensibleURL(request)
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
         nosorturl = removeParam(nosorturl, 'display_limit', mode='extensible')
@@ -2474,6 +2502,43 @@ def taskList(request):
     from django.db import connection
     print connection.queries
 
+    ## For event service, pull the jobs and event ranges
+    if eventservice:
+        taskl = []
+        for task in tasks:
+            taskl.append(task['jeditaskid'])
+        jquery = {}
+        jquery['jeditaskid__in'] = taskl
+        jobs = []
+        jobs.extend(Jobsactive4.objects.filter(**jquery).values('pandaid','jeditaskid'))
+        jobs.extend(Jobsarchived4.objects.filter(**jquery).values('pandaid','jeditaskid'))
+        taskdict = {}
+        for job in jobs:
+            taskdict[job['pandaid']] = job['jeditaskid']
+        estaskdict = {}
+        esjobs = []
+        for job in jobs:
+            esjobs.append(job['pandaid'])
+        esquery = {}
+        esquery['pandaid__in'] = esjobs
+        evtable = JediEvents.objects.filter(**esquery).values('pandaid','status')
+        for ev in evtable:
+            taskid = taskdict[ev['pandaid']]
+            if taskid not in estaskdict:
+                estaskdict[taskid] = {}
+                for s in eventservicestatelist:
+                    estaskdict[taskid][s] = 0
+            evstat = eventservicestatelist[ev['status']]
+            estaskdict[taskid][evstat] += 1
+        for task in tasks:
+            taskid = task['jeditaskid']
+            if taskid in estaskdict:
+                estaskstr = ''
+                for s in estaskdict[taskid]:
+                    if estaskdict[taskid][s] > 0:
+                        estaskstr += " %s(%s) " % ( s, estaskdict[taskid][s] )
+                task['estaskstr'] = estaskstr
+
     if 'display_limit' in requestParams and int(requestParams['display_limit']) < nmax:
         display_limit = int(requestParams['display_limit'])
         nmax = display_limit
@@ -2766,7 +2831,7 @@ def jobSummary2(query, mode='drop'):
                 for retry in retries:
                     if retry['oldpandaid'] == pandaid and retry['newpandaid'] != pandaid and (retry['relationtype'] == '' or retry['relationtype'] == 'retry'):
                         ## there is a retry for this job. Drop it.
-                        print 'dropping job', pandaid, ' for retry ', retry['newpandaid']
+                        #print 'dropping job', pandaid, ' for retry ', retry['newpandaid']
                         dropJob = retry['newpandaid']
                 if dropJob == 0:
                     newjobs.append(job)
@@ -2788,7 +2853,6 @@ def jobSummary2(query, mode='drop'):
                 statecount['count'] += 1
                 continue
         jobstates.append(statecount)
-    print 'jobstates', jobstates
     return jobstates
 
 def jobStateSummary(jobs):
