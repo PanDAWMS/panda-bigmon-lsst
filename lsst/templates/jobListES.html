@@ -95,6 +95,7 @@ Sort by
 	<th>Task ID</th>
 	<th>Transformation</th>
 	<th>Mode</th>
+	<th>Cores</th>
 	<th>Status</th>
 	<th>Substate</th>
 	<th>Created</th>
@@ -114,6 +115,7 @@ Sort by
 		<td><font size=-1><a href="{{xurl}}transformation={{job.transformation}}">{{ job.transformation }}</a></font></td>
 
 	    <td>{{ job.jobmode }}</td>
+	    <td>{{ job.corecount }}</td>
 		<td class='{{job.jobstatus}}_fill'>{{ job.jobstatus }}</td>
 	    <td>{{ job.substate }}</td>
 		<td><font size=-1>{{ job.creationtime|date:"Y-m-d H:i" }}</font></td>

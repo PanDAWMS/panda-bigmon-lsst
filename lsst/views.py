@@ -194,7 +194,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     if 'computingsite' in requestParams:
         LAST_N_HOURS_MAX = 12
     if 'jobtype' in requestParams and requestParams['jobtype'] == 'eventservice':
-        LAST_N_HOURS_MAX = 7*24
+        LAST_N_HOURS_MAX = 3*24
     ## hours specified in the URL takes priority over the above
     if 'hours' in requestParams:
         LAST_N_HOURS_MAX = int(requestParams['hours'])
@@ -422,6 +422,10 @@ def cleanJobList(jobs, mode='drop'):
                 if mat:
                     job['jobmode'] = mat.group(1)
                     job['substate'] = mat.group(2)
+                pat = re.compile('.*coreCount\=([0-9]+)')
+                mat = pat.match(job['jobmetrics'])
+                if mat:
+                    job['corecount'] = mat.group(1)
 
         try:
             job['homecloud'] = homeCloud[job['cloud']]
