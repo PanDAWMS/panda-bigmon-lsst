@@ -366,7 +366,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
                     elif requestParams[param].find('|') > 0:
                         vals = requestParams[param].split('|')
                         query[param+"__in"] = vals
-                    elif param == 'jobstatus' and requestParams[param] == 'finished' and 'mode' in requestParams and requestParams['mode'] == 'eventservice':
+                    elif param == 'jobstatus' and requestParams[param] == 'finished' and  ( ('mode' in requestParams and requestParams['mode'] == 'eventservice') or ('jobtype' in requestParams and requestParams['jobtype'] == 'eventservice') ):
                         query['jobstatus__in'] = ( 'finished', 'cancelled' )
                     else:
                         query[param] = requestParams[param]
@@ -632,7 +632,6 @@ def jobSummaryDict(request, jobs, fieldlist = None):
                     sumd[f][job[f]] += 1
         for extra in ( 'jobmode', 'substate' ):
             if extra in job:
-                print 'got', extra
                 if not extra in sumd: sumd[extra] = {}
                 if not job[extra] in sumd[extra]: sumd[extra][job[extra]] = 0
                 sumd[extra][job[extra]] += 1
