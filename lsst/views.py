@@ -416,6 +416,12 @@ def cleanJobList(jobs, mode='drop'):
                 job['piloterrorcode'] = 0
                 job['piloterrordiag'] = 'Job terminated by signal from PanDA server'
                 job['jobstatus'] = 'finished'
+            if 'jobmetrics' in job:
+                pat = re.compile('.*mode\=([^\s]+).*HPCStatus\=([A-Za-z0-9]+)')
+                mat = pat.match(job['jobmetrics'])
+                if mat:
+                    job['jobmode'] = mat.group(1)
+                    job['substate'] = mat.group(2)
 
         try:
             job['homecloud'] = homeCloud[job['cloud']]
@@ -620,6 +626,12 @@ def jobSummaryDict(request, jobs, fieldlist = None):
                     if not f in sumd: sumd[f] = {}
                     if not job[f] in sumd[f]: sumd[f][job[f]] = 0
                     sumd[f][job[f]] += 1
+        for extra in ( 'jobmode', 'substate' ):
+            if extra in job:
+                print 'got', extra
+                if not extra in sumd: sumd[extra] = {}
+                if not job[extra] in sumd[extra]: sumd[extra][job[extra]] = 0
+                sumd[extra][job[extra]] += 1
 
     ## event service
     esjobdict = {}
@@ -966,7 +978,7 @@ def jobList(request, mode=None, param=None):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         values = Jobsactive4._meta.get_all_field_names()
     elif eventservice:
-        values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'proddblock', 'destinationdblock'
+        values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'proddblock', 'destinationdblock', 'jobmetrics'
     else:
         values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'computingelement', 'proddblock', 'destinationdblock'
     if 'transferringnotupdated' in requestParams:

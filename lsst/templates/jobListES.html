@@ -94,7 +94,9 @@ Sort by
 	<th>Owner {% if viewParams.MON_VO != 'ATLAS' %} / VO{% endif %}<br>Group  </th>
 	<th>Task ID</th>
 	<th>Transformation</th>
+	<th>Mode</th>
 	<th>Status</th>
+	<th>Substate</th>
 	<th>Created</th>
 	<th>Time to start<br>d:h:m:s</th>
 	<th>Duration<br>d:h:m:s</th>
@@ -111,7 +113,9 @@ Sort by
 		<td>{% if job.jeditaskid  and job.jeditaskid != 'None' %}<a href="{{xurl}}jeditaskid={{job.jeditaskid}}">{{ job.jeditaskid }}</a> {% elif job.taskid and job.taskid != 'None' %} <a href="{% url 'jobList' %}?taskid={{job.taskid}}{% if job.taskid < 1000000 %}&produsername={{job.produsername}}{% endif %}&display_limit=100">{{ job.taskid }}</a> {% endif %}</td>
 		<td><font size=-1><a href="{{xurl}}transformation={{job.transformation}}">{{ job.transformation }}</a></font></td>
 
+	    <td>{{ job.jobmode }}</td>
 		<td class='{{job.jobstatus}}_fill'>{{ job.jobstatus }}</td>
+	    <td>{{ job.substate }}</td>
 		<td><font size=-1>{{ job.creationtime|date:"Y-m-d H:i" }}</font></td>
 		<td><font size=-1>{{ job.waittime }}</font></td>
 		<td><font size=-1>{{ job.duration }}</font></td>
@@ -121,7 +125,7 @@ Sort by
 		<td width=250>{% if job.jobinfo != '' %}<font size=-1>{{job.jobinfo|safe}}</font><br>{% endif %}
 		{% if job.errorinfo != '' %}<font size=-1 class='alarm'>{{job.errorinfo|safe}}</font>{% endif %}
 		</td>
-	<tr><td colspan=11> {{ job.esjobstr }} </td></tr>
+	<tr><td colspan=20> {{ job.esjobstr }} </td></tr>
 	</tr>
 	<tr><td colspan="20" class='highlightcell'> Datasets: &nbsp; {% if job.proddblock %} <b>In:</b> <a href="{% url 'datasetInfo' %}?datasetname={{ job.proddblock }}"> {{ job.proddblock }} </a> {% endif %} {% if job.destinationdblock %} {% if job.proddblock %}<br> &nbsp;{% endif %} <b>Out:</b> <a href="{% url 'datasetInfo' %}?datasetname={{ job.destinationdblock }}"> {{ job.destinationdblock }} </a> {% endif %} </td></tr>
 

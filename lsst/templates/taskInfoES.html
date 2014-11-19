@@ -55,7 +55,7 @@
 
 <table>
 <tr bgcolor="lightcyan"><th colspan=20>
-<b>States of jobs in this task</b>   &nbsp; &nbsp; <a href="{% url 'jobList' %}?jeditaskid={{jeditaskid}}&display_limit=100">Show jobs</a>
+<b>States of jobs in this task</b>   &nbsp; &nbsp; <a href="{% url 'jobList' %}?jeditaskid={{jeditaskid}}&mode=eventservice&display_limit=100">Show jobs</a>
 </th></tr>
 <tr>
 {% for state in jobsummary %}
