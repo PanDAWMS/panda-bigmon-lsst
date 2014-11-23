@@ -320,6 +320,11 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
                                     #query['%s__icontains' % param] = requestParams[param].replace('*','')
                                 else:
                                     query[param] = requestParams[param]
+                            elif param == 'tasktype':
+                                ttype = requestParams[param]
+                                if ttype.startswith('anal'): ttype='anal'
+                                elif ttype.startswith('prod'): ttype='prod'
+                                query[param] = ttype
                             else:
                                 query[param] = requestParams[param]
                         if param == 'eventservice':
@@ -374,9 +379,9 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
         jobtype = requestParams['jobtype']
     else:
         jobtype = opmode
-    if jobtype in ( 'analysis', 'anal' ):
+    if jobtype.startswith('anal'):
         query['prodsourcelabel__in'] = ['panda', 'user', 'prod_test', 'rc_test']
-    elif jobtype in ( 'production', 'prod' ):
+    elif jobtype.startswith('prod'):
         query['prodsourcelabel__in'] = ['managed', 'prod_test', 'rc_test']
     elif jobtype == 'groupproduction':
         query['prodsourcelabel'] = 'managed'
@@ -555,7 +560,7 @@ def cleanTaskList(tasks):
             dsinfo[taskid].append(ds)
     for task in tasks:
         if len(task['errordialog']) > 100: task['errordialog'] = task['errordialog'][:90]+'...'
-        if 'reqid' in task and task['reqid'] < 100000 and task['reqid'] > 100 and task['reqid'] != 300 and task['tasktype'] != 'anal':
+        if 'reqid' in task and task['reqid'] < 100000 and task['reqid'] > 100 and task['reqid'] != 300 and not task['tasktype'].startswith('anal'):
             task['deftreqid'] = task['reqid']
         #if task['status'] == 'running' and task['jeditaskid'] in dsinfo:
         dstotals = {}
@@ -821,9 +826,11 @@ def taskSummaryDict(request, tasks, fieldlist = None):
                     except:
                         pass
             if f in task and task[f]:
+                val = task[f]
+                if val == 'anal': val = 'analy'
                 if not f in sumd: sumd[f] = {}
-                if not task[f] in sumd[f]: sumd[f][task[f]] = 0
-                sumd[f][task[f]] += 1
+                if not val in sumd[f]: sumd[f][val] = 0
+                sumd[f][val] += 1
     ## convert to ordered lists
     suml = []
     for f in sumd:
@@ -2303,7 +2310,7 @@ def dashTaskSummary(request, hours, view='all'):
             if taskid in tasknamedict:
                 tasks[taskid]['name'] = tasknamedict[taskid]
             else:
-                tasks[taskid]['name'] = taskid
+                tasks[taskid]['name'] = str(taskid)
             tasks[taskid]['count'] = 0
             tasks[taskid]['states'] = {}
             tasks[taskid]['statelist'] = []
@@ -2318,7 +2325,7 @@ def dashTaskSummary(request, hours, view='all'):
         ## Show only tasks starting with 'user.'
         kys = tasks.keys()
         for t in kys:
-            if not str(tasks[t]['name']).startswith('user.'): del tasks[t]
+            if not str(tasks[t]['name'].encode('ascii','ignore')).startswith('user.'): del tasks[t]
 
     ## Convert dict to summary list
     taskkeys = tasks.keys()
@@ -2344,15 +2351,7 @@ def dashboard(request, view='production'):
     valid, response = initRequest(request)
     if not valid: return response
     taskdays = 3
-    hoursSinceUpdate = 36
-    if view == 'production':
-        noldtransjobs, transclouds, transrclouds = stateNotUpdated(request, state='transferring', hoursSinceUpdate=hoursSinceUpdate, count=True)
-    else:
-        noldtransjobs = 0
-        transclouds = []
-        transrclouds = []
 
-    errthreshold = 10
     if dbaccess['default']['ENGINE'].find('oracle') >= 0:
         VOMODE = 'atlas'
     else:
@@ -2361,6 +2360,18 @@ def dashboard(request, view='production'):
         hours = 24*taskdays
     else:
         hours = 12
+
+    hoursSinceUpdate = 36
+    if view == 'production':
+        noldtransjobs, transclouds, transrclouds = stateNotUpdated(request, state='transferring', hoursSinceUpdate=hoursSinceUpdate, count=True)
+    else:
+        hours = 3
+        noldtransjobs = 0
+        transclouds = []
+        transrclouds = []
+
+    errthreshold = 10
+
     query = setupView(request,hours=hours,limit=999999,opmode=view)
 
     if 'mode' in requestParams and requestParams['mode'] == 'task':
@@ -2472,7 +2483,8 @@ def dashTasks(request, hours, view='production'):
     taskdays = 3
     cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view, taskdays=taskdays)
 
-    taskJobSummary = dashTaskSummary(request, hours, view)
+    #taskJobSummary = dashTaskSummary(request, hours, view)     not particularly informative
+    taskJobSummary = []  
 
     if 'display_limit' in requestParams:
         try:
@@ -2510,7 +2522,10 @@ def dashTasks(request, hours, view='production'):
 def taskList(request):
     valid, response = initRequest(request)
     if not valid: return response
-    hours = 7*24
+    if 'tasktype' in requestParams and requestParams['tasktype'].startswith('anal'):
+        hours = 3*24
+    else:
+        hours = 7*24
     eventservice = False
     if 'eventservice' in requestParams: eventservice = True
     if eventservice: hours = 7*24

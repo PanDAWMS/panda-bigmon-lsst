@@ -32,7 +32,7 @@
 		<td><a href="{% url 'taskInfo' task.jeditaskid %}">{{ task.jeditaskid }}</a></td>
         {% if task.deftreqid %} <td> <a href="http://bigpanda.cern.ch/prodsys/prodtask/inputlist_with_request/{{task.deftreqid}}/">{{task.deftreqid}}</a> </td> {% endif %}
 		{% if task.reqid != task.jeditaskid and not task.deftreqid %}<td>{{ task.reqid }}</td>{% endif %}
-		<td>{{ task.tasktype }}</td>
+		<td>{% if task.tasktype == 'anal' %} analy {% else %} {{ task.tasktype }} {% endif %}</td>
 		<td>{% if task.workinggroup %} {{ task.workinggroup }} {% endif %} </td>
 		<td><a href="{% url 'taskList' %}?username={{ task.username }}">{{ task.username }}</a></td>
 		{% if task.campaign %} <td><a href='/tasks/?campaign={{ task.campaign }}'>{{ task.campaign }}</a></td> {% endif %}
