@@ -2649,7 +2649,9 @@ def taskInfo(request, jeditaskid=0):
         if eventservice:
             jobsummary = jobSummary2(query, mode='eventservice')
         else:
-            jobsummary = jobSummary2(query)
+            ## Exclude merge jobs. Can be misleading. Can show failures with no downstream successes.
+            exclude = {'processingtype' : 'pmerge' }
+            jobsummary = jobSummary2(query, exclude=exclude)
     elif 'taskname' in requestParams:
         querybyname = {'taskname' : requestParams['taskname'] }
         tasks = JediTasks.objects.filter(**querybyname).values()
@@ -2894,13 +2896,13 @@ def jobSummaryForTasks(request):
         taskd[task][status] += 1
     return taskd
 
-def jobSummary2(query, mode='drop'):
+def jobSummary2(query, exclude={}, mode='drop'):
     jobs = []
-    jobs.extend(Jobsdefined4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid','processingtype'))
-    jobs.extend(Jobswaiting4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid','processingtype'))
-    jobs.extend(Jobsactive4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid','processingtype'))
-    jobs.extend(Jobsarchived4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid','processingtype'))
-    jobs.extend(Jobsarchived.objects.filter(**query).values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobsdefined4.objects.filter(**query).exclude(**exclude).values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobswaiting4.objects.filter(**query).exclude(**exclude).values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobsactive4.objects.filter(**query).exclude(**exclude).values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobsarchived4.objects.filter(**query).exclude(**exclude).values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobsarchived.objects.filter(**query).exclude(**exclude).values('pandaid','jobstatus','jeditaskid','processingtype'))
 
     if mode == 'drop':
         ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
