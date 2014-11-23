@@ -99,7 +99,6 @@ def setupSiteInfo():
     global homeCloud, objectStores, pandaSites, callCount
     callCount += 1
     if len(homeCloud) > 0 and callCount%100 != 1 and 'refresh' not in requestParams: return
-    print 'Updating site info'
     sflist = ('siteid','status','cloud','tier','comment_field','objectstore','catchall')
     sites = Schedconfig.objects.filter().exclude(cloud='CMS').values(*sflist)
     for site in sites:
@@ -505,7 +504,7 @@ def cleanJobList(jobs, mode='drop'):
         pandaid = job['pandaid']
         if len(taskids) == 1:
             for retry in retries:
-                if retry['oldpandaid'] == pandaid and retry['newpandaid'] != pandaid and (retry['relationtype'] == '' or retry['relationtype'] == 'retry'):
+                if retry['oldpandaid'] == pandaid and retry['newpandaid'] != pandaid and (retry['relationtype'] == '' or retry['relationtype'] == 'retry' or ( job['processingtype'] == 'pmerge' and retry['relationtype'] == 'merge')):
                     ## there is a retry for this job. Drop it.
                     dropJob = retry['newpandaid']
         if pandaid in job1:
@@ -2543,7 +2542,7 @@ def taskList(request):
     nmax = ntasks
 
     from django.db import connection
-    print connection.queries
+    #print 'SQL query:', connection.queries
 
     ## For event service, pull the jobs and event ranges
     if eventservice:
@@ -2780,7 +2779,6 @@ def taskInfo(request, jeditaskid=0):
         esquery = {}
         esquery['pandaid__in'] = esjobs
         evtable = JediEvents.objects.filter(**esquery).values('pandaid','status')
-        print 'evtable', evtable
         for ev in evtable:
             taskid = taskdict[ev['pandaid']]
             if taskid not in estaskdict:
@@ -2789,13 +2787,11 @@ def taskInfo(request, jeditaskid=0):
                     estaskdict[taskid][s] = 0
             evstat = eventservicestatelist[ev['status']]
             estaskdict[taskid][evstat] += 1
-        print 'jeditaskid', jeditaskid, 'estaskdict', estaskdict
         if jeditaskid in estaskdict:
             estaskstr = ''
             for s in estaskdict[jeditaskid]:
                 if estaskdict[jeditaskid][s] > 0:
                     estaskstr += " %s(%s) " % ( s, estaskdict[jeditaskid][s] )
-            print 'estaskstr',estaskstr
             taskrec['estaskstr'] = estaskstr
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
@@ -2886,11 +2882,11 @@ def jobSummaryForTasks(request):
 
 def jobSummary2(query, mode='drop'):
     jobs = []
-    jobs.extend(Jobsdefined4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid'))
-    jobs.extend(Jobswaiting4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid'))
-    jobs.extend(Jobsactive4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid'))
-    jobs.extend(Jobsarchived4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid'))
-    jobs.extend(Jobsarchived.objects.filter(**query).values('pandaid','jobstatus','jeditaskid'))
+    jobs.extend(Jobsdefined4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobswaiting4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobsactive4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobsarchived4.objects.filter(**query).values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobsarchived.objects.filter(**query).values('pandaid','jobstatus','jeditaskid','processingtype'))
 
     if mode == 'drop':
         ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
@@ -2908,7 +2904,7 @@ def jobSummary2(query, mode='drop'):
                 dropJob = 0
                 pandaid = job['pandaid']
                 for retry in retries:
-                    if retry['oldpandaid'] == pandaid and retry['newpandaid'] != pandaid and (retry['relationtype'] == '' or retry['relationtype'] == 'retry'):
+                    if retry['oldpandaid'] == pandaid and retry['newpandaid'] != pandaid and (retry['relationtype'] == '' or retry['relationtype'] == 'retry' or ( job['processingtype'] == 'pmerge' and retry['relationtype'] == 'merge')):
                         ## there is a retry for this job. Drop it.
                         #print 'dropping job', pandaid, ' for retry ', retry['newpandaid']
                         dropJob = retry['newpandaid']
