@@ -85,7 +85,7 @@ Batch ID</td><td><font size=-1> <input id="batchid" name="batchid" size="25" max
 <tr><td><form action="{% url 'taskInfo' %}?" method='get'>
 Task ID </td><td><font size=-1><input id="jeditaskid" name="jeditaskid" size="25" maxlength="15" class="inputW" /><input type='hidden' name="display_limit" readonly="readonly" value=200 />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
 
-<tr><td><form action="{% url 'taskInfo' %}" method='get'>
+<tr><td><form action="{% url 'taskList' %}" method='get'>
 Task name </td><td><font size=-1><input id="taskname" name="taskname" size="25" maxlength="400" class="inputW" /><input type='hidden' name="display_limit" readonly="readonly" value=200 />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
 
 <tr><td><form action="{% url 'taskList' %}" method='post'>
