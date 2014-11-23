@@ -40,7 +40,7 @@
 
 {% if task.dsinfo %}
         <td> {{task.dsinfo.nfiles}} |
-            <span class='finished'>{{task.dsinfo.nfilesfinished}} ({{task.dsinfo.pctfinished}}%)</span> | <span class='failed'>{{task.dsinfo.nfilesfailed}} ({{task.dsinfo.pctfailed}}%)</span> </td>
+            <span class='finished'>{{task.dsinfo.nfilesfinished}} ({{task.dsinfo.pctfinished}}%)</span> {% if task.dsinfo.nfilesfailed > 0 %} | <span class='failed'>{{task.dsinfo.nfilesfailed}} ({{task.dsinfo.pctfailed}}%)</span>  {% endif %} </td>
 {% endif %}
 		<td>{{ task.creationdate|date:"Y-m-d H:i" }}</td>
 		<td>{{ task.modificationtime|date:"m-d H:i" }}</td>
