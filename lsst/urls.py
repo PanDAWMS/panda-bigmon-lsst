@@ -47,27 +47,20 @@ urlpatterns = patterns('',
     url(r'^datasetList/$', lsstmon_views.datasetList, name='datasetList'),
     url(r'^workQueues/$', lsstmon_views.workQueues, name='workQueues'),
 
-
-    ### filebrowser
-    url(r'^filebrowser/', include('filebrowser.urls'), name='filebrowser'),
-    ### PanDA Brokerage Monitor
-    url(r'^pbm/', include('pbm.urls'), name='pbm'),
-    url(r'^status_summary/', include('core.status_summary.urls'), name='status_summary'),
-
     ### support views for LSST
-    url(r'^support/$', core_lsstmon_support_views.maxpandaid, name='supportRoot'),
-    url(r'^support/maxpandaid/$', core_lsstmon_support_views.maxpandaid, name='supportMaxpandaid'),
-    url(r'^support/jobinfouservohrs/(?P<vo>[-A-Za-z0-9_.+ @]+)/(?P<nhours>\d+)/$', core_lsstmon_support_views.jobUserOrig, name='supportJobUserVoHrs'),
-    url(r'^support/jobinfouservo/(?P<vo>[-A-Za-z0-9_.+ @]+)/(?P<ndays>\d+)/$', core_lsstmon_support_views.jobUserDaysOrig, name='supportJobUserVo'),
+#    url(r'^support/$', core_lsstmon_support_views.maxpandaid, name='supportRoot'),
+#    url(r'^support/maxpandaid/$', core_lsstmon_support_views.maxpandaid, name='supportMaxpandaid'),
+#    url(r'^support/jobinfouservohrs/(?P<vo>[-A-Za-z0-9_.+ @]+)/(?P<nhours>\d+)/$', core_lsstmon_support_views.jobUserOrig, name='supportJobUserVoHrs'),
+#    url(r'^support/jobinfouservo/(?P<vo>[-A-Za-z0-9_.+ @]+)/(?P<ndays>\d+)/$', core_lsstmon_support_views.jobUserDaysOrig, name='supportJobUserVo'),
 
 
     ### api
-    url(r'^api/$', core_lsstmon_support_views.maxpandaid, name='supportRoot'),
+#    url(r'^api/$', core_lsstmon_support_views.maxpandaid, name='supportRoot'),
 #    url(r'^api/reprocessing/$', include('core.api.reprocessing.urls')),
 
 
     ### robots.txt
-    url('^robots\.txt$', TemplateView.as_view(template_name='robots.txt', content_type='text/plain')),
+#    url('^robots\.txt$', TemplateView.as_view(template_name='robots.txt', content_type='text/plain')),
 
 ) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 

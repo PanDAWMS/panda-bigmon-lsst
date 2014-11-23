@@ -17,6 +17,11 @@ for p in PYTHONPATH:
     if p not in sys.path:
         sys.path.insert(0, p)
 
+sys.path.append('/afs/cern.ch/user/w/wenaus/public/work/virtualenv/django1.6.1__python2.6.6__lsst/appdir/lsst-git')
+sys.path.append('/afs/cern.ch/user/w/wenaus/public/work/virtualenv/django1.6.1__python2.6.6__lsst/appdir/core-git')
+
+for p in sys.path:
+    print p
 
 os.environ['DJANGO_SETTINGS_MODULE'] = DJANGO_SETTINGS_MODULE
 
