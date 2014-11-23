@@ -2476,11 +2476,14 @@ def dashTasks(request, hours, view='production'):
         errthreshold = 5
     else:
         errthreshold = 15
-        hours = 3
-
+    
+    if 'days' in requestParams:
+        taskdays = int(requestParams['days'])
+    else:
+        taskdays = 7
+    hours = taskdays*24
     query = setupView(request,hours=hours,limit=999999,opmode=view, querytype='task')
 
-    taskdays = 3
     cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view, taskdays=taskdays)
 
     #taskJobSummary = dashTaskSummary(request, hours, view)     not particularly informative
@@ -2505,7 +2508,7 @@ def dashTasks(request, hours, view='production'):
             'user' : None,
             'view' : view,
             'mode' : 'task',
-            'hours' : LAST_N_HOURS_MAX,
+            'hours' : hours,
             'errthreshold' : errthreshold,
             'cloudTaskSummary' : cloudTaskSummary,
             'taskstates' : taskstatedict,
