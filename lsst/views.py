@@ -393,6 +393,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     return query
 
 def cleanJobList(jobs, mode='drop'):
+    if 'mode' in requestParams and requestParams['mode'] == 'nodrop': mode='nodrop'
     for job in jobs:
         if isEventService(job):
             if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 111:
@@ -486,6 +487,22 @@ def cleanJobList(jobs, mode='drop'):
             phi = plo+99
             job['jobsetrange'] = "%d:%d" % ( plo, phi )
 
+    ## drop duplicate jobs
+    droplist = []
+    job1 = {}
+    newjobs = []
+    for job in jobs:
+        pandaid = job['pandaid']
+        dropJob = 0
+        if pandaid in job1:
+            ## This is a duplicate. Drop it.
+            dropJob = 1
+        else:
+            job1[pandaid] = 1
+        if (dropJob == 0):
+            newjobs.append(job)
+    jobs = newjobs
+
     if mode == 'nodrop': return jobs
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
     taskids = {}
@@ -498,7 +515,6 @@ def cleanJobList(jobs, mode='drop'):
             retryquery = {}
             retryquery['jeditaskid'] = task
             retries = JediJobRetryHistory.objects.filter(**retryquery).order_by('newpandaid').values()
-    job1 = {}
     for job in jobs:
         dropJob = 0
         pandaid = job['pandaid']
@@ -507,11 +523,6 @@ def cleanJobList(jobs, mode='drop'):
                 if retry['oldpandaid'] == pandaid and retry['newpandaid'] != pandaid and (retry['relationtype'] == '' or retry['relationtype'] == 'retry' or ( job['processingtype'] == 'pmerge' and retry['relationtype'] == 'merge')):
                     ## there is a retry for this job. Drop it.
                     dropJob = retry['newpandaid']
-        if pandaid in job1:
-            ## This is a duplicate. Drop it.
-            dropJob = 1
-        else:
-            job1[pandaid] = 1
         if isEventService(job):
             if 'jobstatus' in requestParams and requestParams['jobstatus'] == 'cancelled' and job['jobstatus'] != 'cancelled':
                 dropJob = 1
@@ -1006,8 +1017,11 @@ def jobList(request, mode=None, param=None):
     taskids = {}
     for job in jobs:
         if 'jeditaskid' in job: taskids[job['jeditaskid']] = 1
+    dropmode = True
+    if 'mode' in requestParams and requestParams['mode'] == 'nodrop': dropmode = False
     droplist = []
-    if len(taskids) == 1:
+    if dropmode and (len(taskids) == 1):
+        print 'doing the drop'
         for task in taskids:
             retryquery = {}
             retryquery['jeditaskid'] = task
@@ -1938,7 +1952,7 @@ def wgSummary(query):
 def wnSummary(query):
     summary = []
     querynotime = query
-    del querynotime['modificationtime__range']
+    # del querynotime['modificationtime__range']    ### creates inconsistency with job lists. Stick to advertised 12hrs
     summary.extend(Jobsactive4.objects.filter(**querynotime).values('modificationhost', 'jobstatus').annotate(Count('jobstatus')).order_by('modificationhost', 'jobstatus'))
     summary.extend(Jobsarchived4.objects.filter(**query).values('modificationhost', 'jobstatus').annotate(Count('jobstatus')).order_by('modificationhost', 'jobstatus'))
     return summary
@@ -2066,7 +2080,7 @@ def wnInfo(request,site,wnname='all'):
             wns[wn]['pctfail'] = int(100.*float(wns[wn]['states']['failed']['count'])/(wns[wn]['states']['finished']['count']+wns[wn]['states']['failed']['count']))
         if float(wns[wn]['states']['finished']['count']) < float(avgstates['finished'])/5. :
             outlier += " LowFinished "
-        if float(wns[wn]['states']['failed']['count']) > float(avgstates['failed'])*3. :
+        if float(wns[wn]['states']['failed']['count']) > max(float(avgstates['failed'])*3.,5.) :
             outlier += " HighFailed "
         wns[wn]['outlier'] = outlier
         fullsummary.append(wns[wn])
