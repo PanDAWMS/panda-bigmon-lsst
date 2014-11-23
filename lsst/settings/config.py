@@ -3,14 +3,26 @@ from os.path import dirname, join
 
 import core
 import lsst
+import filebrowser
+import pbm
 
+#from local import defaultDatabase, MY_SECRET_KEY
 from local import dbaccess, MY_SECRET_KEY
 
 ### VIRTUALENV
-VIRTUALENV_PATH = '/afs/cern.ch/user/w/wenaus/work/virtualenv/django1.6.1__python2.6.6__lsst'
+#VIRTUALENV_PATH = '/data/virtualenv/django1.6.1__python2.6.6'
+#VIRTUALENV_PATH = '/data/virtualenv/django1.6.1__python2.6.6__lsst'
+#VIRTUALENV_PATH = '/data/wenaus/virtualenv/twdev__django1.6.1__python2.6.6__lsst'
+VIRTUALENV_PATH = '/data/wenaus/virtualenv/twrpm'
 
 ### WSGI
 WSGI_PATH = VIRTUALENV_PATH + '/pythonpath'
+
+### DB_ROUTERS for atlas's prodtask
+DATABASE_ROUTERS = [\
+    'atlas.dbrouter.ProdMonDBRouter', \
+    'pbm.dbrouter.PandaBrokerageMonDBRouter', \
+]
 
 STATICFILES_DIRS = (
     # Put strings here, like "/home/html/static" or "C:/www/django/static".
@@ -24,8 +36,10 @@ TEMPLATE_DIRS = (
     # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
-    join(dirname(core.common.__file__), 'templates'),
     join(dirname(lsst.__file__), 'templates'),
+    join(dirname(core.common.__file__), 'templates'),
+    join(dirname(filebrowser.__file__), 'templates'),
+    join(dirname(pbm.__file__), 'templates'),
 )
 
 STATIC_ROOT = join(dirname(lsst.__file__), 'static')
@@ -39,33 +53,35 @@ SECRET_KEY = MY_SECRET_KEY
 
 # Database
 # https://docs.djangoproject.com/en/1.6/ref/settings/#databases
-#DATABASES = {
-#    'default': {
-#        'ENGINE': 'django.db.backends.', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-#        'NAME': '',                      # Or path to database file if using sqlite3.
-#        'USER': '',                      # Not used with sqlite3.
-#        'PASSWORD': '',                  # Not used with sqlite3.
-#        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
-#        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
-#    }
-#    'default': defaultDatabase
-#}
+# DATABASES = {
+# #    'default': {
+# #        'ENGINE': 'django.db.backends.', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+# #        'NAME': '',                      # Or path to database file if using sqlite3.
+# #        'USER': '',                      # Not used with sqlite3.
+# #        'PASSWORD': '',                  # Not used with sqlite3.
+# #        'HOST': '',                      # Set to empty string for localhost. Not used with sqlite3.
+# #        'PORT': '',                      # Set to empty string for default. Not used with sqlite3.
+# #    }
+#     'default': defaultDatabase
+# }
 DATABASES = dbaccess
-
 
 ### URL_PATH_PREFIX for multi-developer apache/wsgi instance
 ### on EC2: URL_PATH_PREFIX = '/bigpandamon' or URL_PATH_PREFIX = '/developersprefix'
 #URL_PATH_PREFIX = '/lsst'
 #URL_PATH_PREFIX = '/twrpmlsst'
-URL_PATH_PREFIX = ''
+URL_PATH_PREFIX = '/lsst'
 #URL_PATH_PREFIX = ''
 ### on localhost:8000: URL_PATH_PREFIX = '/.'
 #URL_PATH_PREFIX = ''
 MEDIA_URL = URL_PATH_PREFIX + MEDIA_URL_BASE
 STATIC_URL = URL_PATH_PREFIX + STATIC_URL_BASE
 
-LOG_ROOT = "/afs/cern.ch/user/w/wenaus/maxi/logs"
 
+#LOG_ROOT = '/data/bigpandamon_virtualhosts/lsst/logs'
+#LOG_ROOT = '/data/wenaus/logs'
+LOG_ROOT = '/data/wenaus/bigpandamon_virtualhosts/twrpm/logs'
+LOG_SIZE = 1000000000
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -84,7 +100,7 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': LOG_ROOT + "/logfile.bigpandamon",
-            'maxBytes': 1000000000,
+            'maxBytes': LOG_SIZE,
             'backupCount': 2,
             'formatter': 'verbose',
         },
@@ -92,7 +108,7 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': LOG_ROOT + "/logfile.django",
-            'maxBytes': 1000000000,
+            'maxBytes': LOG_SIZE,
             'backupCount': 2,
             'formatter': 'verbose',
         },
@@ -100,7 +116,7 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': LOG_ROOT + "/logfile.viewdatatables",
-            'maxBytes': 1000000000,
+            'maxBytes': LOG_SIZE,
             'backupCount': 2,
             'formatter': 'verbose',
         },
@@ -108,7 +124,31 @@ LOGGING = {
             'level':'DEBUG',
             'class':'logging.handlers.RotatingFileHandler',
             'filename': LOG_ROOT + "/logfile.rest",
-            'maxBytes': 1000000000,
+            'maxBytes': LOG_SIZE,
+            'backupCount': 2,
+            'formatter': 'verbose',
+        },
+        'logfile-api_reprocessing': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': LOG_ROOT + "/logfile.api_reprocessing",
+            'maxBytes': LOG_SIZE,
+            'backupCount': 2,
+            'formatter': 'verbose',
+        },
+        'logfile-filebrowser': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': LOG_ROOT + "/logfile.filebrowser",
+            'maxBytes': LOG_SIZE,
+            'backupCount': 2,
+            'formatter': 'verbose',
+        },
+        'logfile-pbm': {
+            'level':'DEBUG',
+            'class':'logging.handlers.RotatingFileHandler',
+            'filename': LOG_ROOT + "/logfile.pbm",
+            'maxBytes': LOG_SIZE,
             'backupCount': 2,
             'formatter': 'verbose',
         },
@@ -145,6 +185,18 @@ LOGGING = {
             'handlers': ['logfile-bigpandamon'],
             'level': 'DEBUG',
         },
+        'api_reprocessing':{
+            'handlers': ['logfile-api_reprocessing'],
+            'level': 'DEBUG',
+        },
+        'bigpandamon-filebrowser':{
+            'handlers': ['logfile-filebrowser'],
+            'level': 'DEBUG',
+        },
+        'bigpandamon-pbm':{
+            'handlers': ['logfile-pbm'],
+            'level': 'DEBUG',
+        }
     },
     'formatters': {
         'verbose': {
