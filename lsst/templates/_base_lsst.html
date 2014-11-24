@@ -282,6 +282,7 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
                 {% if viewParams.MON_VO == 'ATLAS' %}
                     <li><a href="{% url 'errorSummary' %}?jobtype=analysis&sortby=count">Analysis</a></li>
                     <li><a href="{% url 'errorSummary' %}?jobtype=production&sortby=count">Production</a></li>
+                    <li><a href="{% url 'errorSummary' %}?sortby=count&prodsourcelabel=rc_test">rc_test</a></li>
                 {% endif %}
             </ul>
             </li>

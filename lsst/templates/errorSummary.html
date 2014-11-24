@@ -14,7 +14,9 @@
 
 {% if sumd %}
 
-<b>{{ njobs }} jobs found in failed or holding state. </b> &nbsp;  <a href="{% url 'jobList' %}?{{ requestString }}&jobstatus=failed|holding&hours={{hours}}&limit={{limit}}"><b>Show job list</b></a>
+<b>{{ njobs }} jobs found. Show jobs: </b>
+&nbsp;  <a href="{% url 'jobList' %}?{{ requestString }}&jobstatus=failed|holding&hours={{hours}}&limit={{limit}}"><b>Failed and holding only</b></a>
+&nbsp; &nbsp;  <a href="{% url 'jobList' %}?{{ requestString }}&hours={{hours}}&limit={{limit}}"><b>All</b></a>
 
 {% if sortby == "count" %}
 <p>Sort by <b>count</b>, <a href="{{nosorturl}}">alpha</a>
@@ -98,9 +100,9 @@
 {% for site in errsBySite %}
 <tr><th> <a href="{{xurl}}computingsite={{ site.name }}"> {{ site.name }} </a> </th>
 <th> {{ site.toterrors }} </th>
-<th> Total errors in {{ site.toterrjobs }} jobs with errors. &nbsp; <a href="{% url 'jobList' %}?computingsite={{ site.name }}&jobstatus=finished&hours={{ hours }}"><span class='finished'> Finished: {{ site.finished }} </span></a> &nbsp; <a href="{% url 'jobList' %}?computingsite={{ site.name }}&jobstatus=failed&hours={{ hours }}"><span class='failed'> Failed: {{ site.failed }} </span></a> &nbsp; % failed: {{ site.pctfail }} &nbsp; <a href="{% url 'jobList' %}?computingsite={{ site.name }}&jobstatus=holding&hours={{ hours }}"><span class='holding'> Holding: {{ site.holding }} </span></a> &nbsp;  <a href="{% url 'jobList' %}?computingsite={{ site.name }}&jobstatus=cancelled&hours={{ hours }}"><span class='cancelled'> Cancelled: {{ site.cancelled }} </span></a> </th>  </tr>
+<th> Total errors in {{ site.toterrjobs }} jobs. &nbsp; <a href="{% url 'jobList' %}{{xurl}}computingsite={{ site.name }}&jobstatus=finished&hours={{ hours }}"><span class='finished'> Finished: {{ site.finished }} </span></a> &nbsp; <a href="{% url 'jobList' %}{{xurl}}computingsite={{ site.name }}&jobstatus=failed&hours={{ hours }}"><span class='failed'> Failed: {{ site.failed }} </span></a> &nbsp; % failed: {{ site.pctfail }} &nbsp; <a href="{% url 'jobList' %}{{xurl}}computingsite={{ site.name }}&jobstatus=holding&hours={{ hours }}"><span class='holding'> Holding: {{ site.holding }} </span></a> &nbsp;  <a href="{% url 'jobList' %}{{xurl}}computingsite={{ site.name }}&jobstatus=cancelled&hours={{ hours }}"><span class='cancelled'> Cancelled: {{ site.cancelled }} </span></a> </th>  </tr>
 {% for errval in site.errorlist %}
-<tr><td>  </td> <td> <a href="{{xurl}}computingsite={{site.name}}&jobstatus=failed|holding&{{errval.codename}}={{errval.codeval}}&hours={{hours}}&display_limit=100">{{ errval.count }}</a> </td> <td> <b>{{ errval.error }}</b> &nbsp; <font size=-1> {{ errval.diag }} </font></td>  </tr>
+<tr><td>  </td> <td> <a href="{{xurl}}computingsite={{site.name}}&{{errval.codename}}={{errval.codeval}}&hours={{hours}}&display_limit=100">{{ errval.count }}</a> </td> <td> <b>{{ errval.error }}</b> &nbsp; <font size=-1> {{ errval.diag }} </font></td>  </tr>
 {% endfor %}
 {% endfor %}
 </table>
@@ -113,7 +115,7 @@
 {% for user in errsByUser %}
 <tr><th> <a href="{{xurl}}produsername={{ user.name }}"> {{ user.name }} </a> </th> <th> {{ user.toterrors }} </th> <th> Total errors </th>  </tr>
 {% for errval in user.errorlist %}
-<tr><td>  </td> <td> <a href="{{xurl}}produsername={{user.name}}&jobstatus=failed|holding&{{errval.codename}}={{errval.codeval}}&hours={{hours}}&display_limit=100">{{ errval.count }}</a> </td> <td> <b>{{ errval.error }}</b> &nbsp; <font size=-1> {{ errval.diag }} </font></td>  </tr>
+<tr><td>  </td> <td> <a href="{{xurl}}produsername={{user.name}}&{{errval.codename}}={{errval.codeval}}&hours={{hours}}&display_limit=100">{{ errval.count }}</a> </td> <td> <b>{{ errval.error }}</b> &nbsp; <font size=-1> {{ errval.diag }} </font></td>  </tr>
 {% endfor %}
 {% endfor %}
 </table>
@@ -129,18 +131,14 @@
 <th> &nbsp; </th>
 <th> {{ task.toterrors }} </th>
 
-<th> Total errors in {{ task.toterrjobs }} jobs with errors. &nbsp; <a href="{% url 'jobList' %}?taskid={{ task.name }}&jobstatus=finished&hours={{ hours }}"><span class='finished'> Finished: {{ task.finished }} </span></a> &nbsp; <a href="{% url 'jobList' %}?taskid={{ task.name }}&jobstatus=failed&hours={{ hours }}"><span class='failed'> Failed: {{ task.failed }} </span></a> &nbsp; % failed: {{ task.pctfail }} &nbsp; <a href="{% url 'jobList' %}?taskid={{ task.name }}&jobstatus=holding&hours={{ hours }}"><span class='holding'> Holding: {{ task.holding }} </span></a> &nbsp;  <a href="{% url 'jobList' %}?taskid={{ task.name }}&jobstatus=cancelled&hours={{ hours }}"><span class='cancelled'> Cancelled: {{ task.cancelled }} </span></a> </th>
+<th> Total errors in {{ task.toterrjobs }} jobs. &nbsp; <a href="{% url 'jobList' %}?taskid={{ task.name }}&jobstatus=finished&hours={{ hours }}"><span class='finished'> Finished: {{ task.finished }} </span></a> &nbsp; <a href="{% url 'jobList' %}?taskid={{ task.name }}&jobstatus=failed&hours={{ hours }}"><span class='failed'> Failed: {{ task.failed }} </span></a> &nbsp; % failed: {{ task.pctfail }} &nbsp; <a href="{% url 'jobList' %}?taskid={{ task.name }}&jobstatus=holding&hours={{ hours }}"><span class='holding'> Holding: {{ task.holding }} </span></a> &nbsp;  <a href="{% url 'jobList' %}?taskid={{ task.name }}&jobstatus=cancelled&hours={{ hours }}"><span class='cancelled'> Cancelled: {{ task.cancelled }} </span></a> </th>
 
 </tr>
 {% for errval in task.errorlist %}
-<tr><td>  </td> <td> <a href="{{xurl}}{{task.tasktype}}={{task.name}}&jobstatus=failed|holding&{{errval.codename}}={{errval.codeval}}&hours={{hours}}&display_limit=100">{{ errval.count }}</a> </td> <td> <b>{{ errval.error }}</b> &nbsp; <font size=-1> {{ errval.diag }} </font></td>  </tr>
+<tr><td>  </td> <td> <a href="{{xurl}}{{task.tasktype}}={{task.name}}&{{errval.codename}}={{errval.codeval}}&hours={{hours}}&display_limit=100">{{ errval.count }}</a> </td> <td> <b>{{ errval.error }}</b> &nbsp; <font size=-1> {{ errval.diag }} </font></td>  </tr>
 {% endfor %}
 {% endfor %}
 </table>
-
-{% else %}
-
-No failed/holding jobs found.
 
 {% endif %}
 

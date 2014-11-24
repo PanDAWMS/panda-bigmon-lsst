@@ -387,8 +387,8 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
         query['workinggroup__isnull'] = False
     elif jobtype == 'eventservice':
         query['specialhandling__in'] = ( 'eventservice', 'esmerge' )
-    elif jobtype == 'test':
-        query['prodsourcelabel__icontains'] = 'test'
+    elif jobtype.find('test') >= 0:
+        query['prodsourcelabel__icontains'] = jobtype
     print 'Query:', query
     return query
 
@@ -1904,10 +1904,10 @@ def siteInfo(request, site=''):
             resp.append({ 'pandaid': job.pandaid, 'status': job.jobstatus, 'prodsourcelabel': job.prodsourcelabel, 'produserid' : job.produserid})
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
-def siteSummary(query):
+def siteSummary(query, notime=True):
     summary = []
     querynotime = query
-    del querynotime['modificationtime__range']
+    if notime: del querynotime['modificationtime__range']
     summary.extend(Jobsactive4.objects.filter(**querynotime).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))     
     summary.extend(Jobsdefined4.objects.filter(**querynotime).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))
     summary.extend(Jobswaiting4.objects.filter(**querynotime).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))
@@ -2124,7 +2124,7 @@ def wnInfo(request,site,wnname='all'):
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
-def dashSummary(request, hours, view='all', cloudview='region'):
+def dashSummary(request, hours, view='all', cloudview='region', notime=True):
     pilots = getPilotCounts(view)
     query = setupView(request,hours=hours,limit=999999,opmode=view)
     if VOMODE == 'atlas' and len(requestParams) == 0:
@@ -2140,7 +2140,7 @@ def dashSummary(request, hours, view='all', cloudview='region'):
     for s in siteinfol:
         siteinfo[s['siteid']] = s['status']    
 
-    sitesummarydata = siteSummary(query)
+    sitesummarydata = siteSummary(query, notime)
     clouds = {}
     totstates = {}
     totjobs = 0
@@ -2156,8 +2156,9 @@ def dashSummary(request, hours, view='all', cloudview='region'):
         else:
             cloud = rec['cloud']
         site = rec['computingsite']
-        if view != 'analysis' and site.startswith('ANALY'): continue
-        if view == 'analysis' and not site.startswith('ANALY'): continue
+        if view.find('test') < 0:
+            if view != 'analysis' and site.startswith('ANALY'): continue
+            if view == 'analysis' and not site.startswith('ANALY'): continue
         jobstatus = rec['jobstatus']
         count = rec['jobstatus__count']
         if jobstatus not in sitestatelist: continue
@@ -2199,8 +2200,9 @@ def dashSummary(request, hours, view='all', cloudview='region'):
     ## Go through the sites, add any that are missing (because they have no jobs in the interval)
     if cloudview != 'cloud':
         for site in pandaSites:
-            if view != 'analysis' and site.startswith('ANALY'): continue
-            if view == 'analysis' and not site.startswith('ANALY'): continue
+            if view.find('test') < 0:
+                if view != 'analysis' and site.startswith('ANALY'): continue
+                if view == 'analysis' and not site.startswith('ANALY'): continue
             cloud = pandaSites[site]['cloud']
             if cloud not in clouds:
                 ## Bail. Adding sites is one thing; adding clouds is another
@@ -2955,7 +2957,7 @@ def jobStateSummary(jobs):
         statecount[job['jobstatus']] += 1
     return statecount
 
-def errorSummaryDict(request,jobs, tasknamedict):
+def errorSummaryDict(request,jobs, tasknamedict, testjobs):
     """ take a job list and produce error summaries from it """
     errsByCount = {}
     errsBySite = {}
@@ -2967,7 +2969,8 @@ def errorSummaryDict(request,jobs, tasknamedict):
     flist = [ 'cloud', 'computingsite', 'produsername', 'taskid', 'jeditaskid', 'processingtype', 'prodsourcelabel', 'transformation', 'workinggroup', 'specialhandling', 'jobstatus' ]
 
     for job in jobs:
-        if job['jobstatus'] not in [ 'failed', 'holding' ]: continue
+        if not testjobs:
+            if job['jobstatus'] not in [ 'failed', 'holding' ]: continue
         site = job['computingsite']
         if 'cloud' in requestParams:
             if site in homeCloud and homeCloud[site] != requestParams['cloud']: continue
@@ -3175,7 +3178,10 @@ def errorSummary(request):
         sortby = requestParams['sortby']
     else:
         sortby = 'alpha'
-    query['jobstatus__in'] = [ 'failed', 'holding' ]
+    testjobs = False
+    if 'prodsourcelabel' in requestParams and requestParams['prodsourcelabel'].lower().find('test') >= 0:
+        testjobs = True
+    if not testjobs: query['jobstatus__in'] = [ 'failed', 'holding' ]
     jobtype = ''
     if 'jobtype' in requestParams:
         jobtype = requestParams['jobtype']
@@ -3183,6 +3189,8 @@ def errorSummary(request):
         jobtype = 'analysis'
     elif '/production' in request.path:
         jobtype = 'production'
+    elif testjobs:
+        jobtype = 'rc_test'
     jobs = []
     values = 'produsername', 'pandaid', 'cloud','computingsite','cpuconsumptiontime','jobstatus','transformation','prodsourcelabel','specialhandling','vo','modificationtime', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'currentpriority', 'computingelement'
     jobs.extend(Jobsdefined4.objects.filter(**query)[:JOB_LIMIT].values(*values))
@@ -3190,16 +3198,18 @@ def errorSummary(request):
     jobs.extend(Jobswaiting4.objects.filter(**query)[:JOB_LIMIT].values(*values))
     jobs.extend(Jobsarchived4.objects.filter(**query)[:JOB_LIMIT].values(*values))
     jobs.extend(Jobsarchived.objects.filter(**query)[:JOB_LIMIT].values(*values))
-    jobs = cleanJobList(jobs)
+    jobs = cleanJobList(jobs, mode='nodrop')
     njobs = len(jobs)
 
     tasknamedict = taskNameDict(jobs)
 
     ## Build the error summary.
-    errsByCount, errsBySite, errsByUser, errsByTask, sumd, errHist = errorSummaryDict(request,jobs, tasknamedict)
+    errsByCount, errsBySite, errsByUser, errsByTask, sumd, errHist = errorSummaryDict(request,jobs, tasknamedict, testjobs)
 
     ## Build the state summary and add state info to site error summary
-    statesummary = dashSummary(request, hours, view=jobtype, cloudview='region')
+    notime = True
+    if testjobs: notime = False
+    statesummary = dashSummary(request, hours, view=jobtype, cloudview='region', notime=notime)
     sitestates = {}
     savestates = [ 'finished', 'failed', 'cancelled', 'holding', ]
     for cloud in statesummary:
@@ -3217,26 +3227,27 @@ def errorSummary(request):
                 if s in sitestates[sitename]: site[s] = sitestates[sitename][s]
             if 'pctfail' in sitestates[sitename]: site['pctfail'] = sitestates[sitename]['pctfail']
 
-    ## Build the task state summary and add task state info to task error summary
-    taskstatesummary = dashTaskSummary(request, hours, view=jobtype)
-    taskstates = {}
-    for task in taskstatesummary:
-        taskid = task['taskid']
-        taskstates[taskid] = {}
-        for s in savestates:
-            taskstates[taskid][s] = task['states'][s]['count']
-        if 'pctfail' in task: taskstates[taskid]['pctfail'] = task['pctfail']
-
-    for task in errsByTask:
-        taskid = task['name']
-        if taskid in taskstates:
-            for s in savestates:
-                if s in taskstates[taskid]: task[s] = taskstates[taskid][s]
-            if 'pctfail' in taskstates[taskid]: task['pctfail'] = taskstates[taskid]['pctfail']
-
     taskname = ''
-    if 'jeditaskid' in requestParams:
-        taskname = getTaskName('jeditaskid',requestParams['jeditaskid'])
+    if not testjobs:
+        ## Build the task state summary and add task state info to task error summary
+        taskstatesummary = dashTaskSummary(request, hours, view=jobtype)
+        taskstates = {}
+        for task in taskstatesummary:
+            taskid = task['taskid']
+            taskstates[taskid] = {}
+            for s in savestates:
+                taskstates[taskid][s] = task['states'][s]['count']
+            if 'pctfail' in task: taskstates[taskid]['pctfail'] = task['pctfail']
+
+        for task in errsByTask:
+            taskid = task['name']
+            if taskid in taskstates:
+                for s in savestates:
+                    if s in taskstates[taskid]: task[s] = taskstates[taskid][s]
+                if 'pctfail' in taskstates[taskid]: task['pctfail'] = taskstates[taskid]['pctfail']
+
+        if 'jeditaskid' in requestParams:
+            taskname = getTaskName('jeditaskid',requestParams['jeditaskid'])
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         nosorturl = removeParam(request.get_full_path(), 'sortby')
