@@ -3209,6 +3209,7 @@ def errorSummary(request):
     ## Build the state summary and add state info to site error summary
     notime = True
     if testjobs: notime = False
+    notime = False #### behave as it used to. Pull only 12hrs.
     statesummary = dashSummary(request, hours, view=jobtype, cloudview='region', notime=notime)
     sitestates = {}
     savestates = [ 'finished', 'failed', 'cancelled', 'holding', ]
