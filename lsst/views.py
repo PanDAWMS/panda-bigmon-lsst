@@ -170,9 +170,15 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     if VOMODE == 'atlas':
         LAST_N_HOURS_MAX = 12
         if 'hours' not in requestParams and 'days' not in requestParams:
-            JOB_LIMIT = 6000
+            if 'limit' in requestParams:
+                JOB_LIMIT = requestParams['limit']
+            else:
+                JOB_LIMIT = 6000
         else:
-            JOB_LIMIT = 6000
+            if 'limit' in requestParams:
+                JOB_LIMIT = requestParams['limit']
+            else:
+                JOB_LIMIT = 6000
         if 'cloud' not in fields: fields.append('cloud')
         if 'atlasrelease' not in fields: fields.append('atlasrelease')
         if 'produsername' in requestParams or 'jeditaskid' in requestParams or 'user' in requestParams:
@@ -3207,9 +3213,9 @@ def errorSummary(request):
     errsByCount, errsBySite, errsByUser, errsByTask, sumd, errHist = errorSummaryDict(request,jobs, tasknamedict, testjobs)
 
     ## Build the state summary and add state info to site error summary
-    notime = True
-    if testjobs: notime = False
-    notime = False #### behave as it used to. Pull only 12hrs.
+    #notime = True
+    #if testjobs: notime = False
+    notime = False #### behave as it used to before introducing notime for dashboards. Pull only 12hrs.
     statesummary = dashSummary(request, hours, view=jobtype, cloudview='region', notime=notime)
     sitestates = {}
     savestates = [ 'finished', 'failed', 'cancelled', 'holding', ]
