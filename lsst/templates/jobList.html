@@ -136,6 +136,13 @@ No jobs matched the query. You can increase the time depth with a days=N paramet
 
 {% endif %}
 
+{% if DEBUG_TEXT|length > 0 %}
+<p><font size=-2>
+<b>Debug info:</b>
+{{ DEBUG_TEXT }}
+</font></p>
+{% endif %}
+
 {% endblock %}
 
 

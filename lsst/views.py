@@ -80,6 +80,7 @@ _logger = logging.getLogger('bigpandamon')
 viewParams = {}
 requestParams = {}
 
+DEBUG_TEXT = ""
 LAST_N_HOURS_MAX = 0
 JOB_LIMIT = 0
 TFIRST = timezone.now()
@@ -164,11 +165,12 @@ def initRequest(request):
 
 def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     global viewParams
-    global LAST_N_HOURS_MAX, JOB_LIMIT
+    global LAST_N_HOURS_MAX, JOB_LIMIT, DEBUG_TEXT
+    DEBUG_TEXT = ""
     deepquery = False
     fields = standard_fields
-    print 'requestParams', requestParams
-    if 'limit' in requestParams:
+    DEBUG_TEXT += 'requestParams %s ' % requestParams
+    if u'limit' in requestParams:
         JOB_LIMIT = int(requestParams['limit'])
     elif limit != -99 and limit > 0:
         JOB_LIMIT = limit
@@ -1004,6 +1006,9 @@ def jobList(request, mode=None, param=None):
         values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'proddblock', 'destinationdblock', 'jobmetrics'
     else:
         values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'computingelement', 'proddblock', 'destinationdblock'
+    global JOB_LIMIT
+    if 'limit' in requestParams:
+        JOB_LIMIT = int(requestParams['limit'])
     if 'transferringnotupdated' in requestParams:
         jobs = stateNotUpdated(request, state='transferring', values=values)
     elif 'statenotupdated' in requestParams:
@@ -1054,7 +1059,7 @@ def jobList(request, mode=None, param=None):
     elif '/production' in request.path:
         jobtype = 'production'
 
-    if 'display_limit' in requestParams and int(requestParams['display_limit']) < njobs:
+    if u'display_limit' in requestParams and int(requestParams['display_limit']) < njobs:
         display_limit = int(requestParams['display_limit'])
         url_nolimit = removeParam(request.get_full_path(), 'display_limit')
     else:
@@ -1091,6 +1096,7 @@ def jobList(request, mode=None, param=None):
         user = requestParams['user']
     else:
         user = None
+    #print 'debug:', DEBUG_TEXT
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         sumd, esjobdict = jobSummaryDict(request, jobs)
         if esjobdict and len(esjobdict) > 0:
@@ -1125,6 +1131,7 @@ def jobList(request, mode=None, param=None):
             'sortby' : sortby,
             'nosorturl' : nosorturl,
             'taskname' : taskname,
+            'DEBUG_TEXT' : DEBUG_TEXT,
         }
         data.update(getContextVariables(request))
         if eventservice:
