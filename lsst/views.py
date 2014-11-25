@@ -169,16 +169,10 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     fields = standard_fields
     if VOMODE == 'atlas':
         LAST_N_HOURS_MAX = 12
-        if 'hours' not in requestParams and 'days' not in requestParams:
-            if 'limit' in requestParams:
-                JOB_LIMIT = requestParams['limit']
-            else:
-                JOB_LIMIT = 6000
+        if 'limit' in requestParams:
+            JOB_LIMIT = requestParams['limit']
         else:
-            if 'limit' in requestParams:
-                JOB_LIMIT = requestParams['limit']
-            else:
-                JOB_LIMIT = 6000
+            JOB_LIMIT = 6000
         if 'cloud' not in fields: fields.append('cloud')
         if 'atlasrelease' not in fields: fields.append('atlasrelease')
         if 'produsername' in requestParams or 'jeditaskid' in requestParams or 'user' in requestParams:
