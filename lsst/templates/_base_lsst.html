@@ -452,6 +452,13 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
 
 {% endblock %}
 
+{% if viewParams.debug|length > 0 %}
+<p><font size=-2>
+<b>Debug info:</b>
+{{ viewParams.debug|safe }}
+</font></p>
+{% endif %}
+
 </td></tr>
 </table>
 

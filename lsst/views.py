@@ -78,9 +78,9 @@ errorcodelist = [
 
 _logger = logging.getLogger('bigpandamon')
 viewParams = {}
+viewParams['debug'] = ''
 requestParams = {}
 
-DEBUG_TEXT = ""
 LAST_N_HOURS_MAX = 0
 JOB_LIMIT = 0
 TFIRST = timezone.now()
@@ -165,11 +165,11 @@ def initRequest(request):
 
 def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     global viewParams
-    global LAST_N_HOURS_MAX, JOB_LIMIT, DEBUG_TEXT
-    DEBUG_TEXT = ""
+    global LAST_N_HOURS_MAX, JOB_LIMIT
+    viewParams['debug'] = ""
     deepquery = False
     fields = standard_fields
-    DEBUG_TEXT += 'requestParams %s ' % requestParams
+    viewParams['debug'] += 'requestParams %s ' % requestParams
     if u'limit' in requestParams:
         JOB_LIMIT = int(requestParams['limit'])
     elif limit != -99 and limit > 0:
@@ -1096,7 +1096,6 @@ def jobList(request, mode=None, param=None):
         user = requestParams['user']
     else:
         user = None
-    #print 'debug:', DEBUG_TEXT
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         sumd, esjobdict = jobSummaryDict(request, jobs)
         if esjobdict and len(esjobdict) > 0:
@@ -1131,7 +1130,6 @@ def jobList(request, mode=None, param=None):
             'sortby' : sortby,
             'nosorturl' : nosorturl,
             'taskname' : taskname,
-            'DEBUG_TEXT' : DEBUG_TEXT,
         }
         data.update(getContextVariables(request))
         if eventservice:
