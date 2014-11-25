@@ -79,6 +79,7 @@ errorcodelist = [
 _logger = logging.getLogger('bigpandamon')
 viewParams = {}
 viewParams['debug'] = ''
+viewParams['session'] = ''
 requestParams = {}
 
 LAST_N_HOURS_MAX = 0
@@ -119,8 +120,12 @@ def setupSiteInfo():
 
 def initRequest(request):
     global VOMODE, ENV, viewParams
+    if 'AI_SESSION' in request:
+        if request['AI_SESSION'] != viewParams['session']:
+            viewParams['debug'] = ''
+            viewParams['session'] = request['AI_SESSION']
     viewParams['debug'] = ''
-    viewParams['debug'] += '<br>******* NEW REQUEST *******<br>'
+    viewParams['debug'] += '<br>******* initRequest *******<br>'
     ENV['MON_VO'] = ''
     viewParams['MON_VO'] = ''
     VOMODE = ''
@@ -176,7 +181,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     deepquery = False
     fields = standard_fields
     viewParams['debug'] += 'requestParams: %s<br>' % requestParams
-    if u'limit' in requestParams:
+    if 'limit' in requestParams:
         JOB_LIMIT = int(requestParams['limit'])
     elif limit != -99 and limit > 0:
         JOB_LIMIT = limit
