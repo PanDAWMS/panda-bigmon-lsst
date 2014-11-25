@@ -167,15 +167,21 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     global LAST_N_HOURS_MAX, JOB_LIMIT
     deepquery = False
     fields = standard_fields
+    print 'requestParams', requestParams
+    if 'limit' in requestParams:
+        JOB_LIMIT = int(requestParams['limit'])
+    elif limit != -99 and limit > 0:
+        JOB_LIMIT = limit
+    elif VOMODE == 'atlas':
+        JOB_LIMIT = 6000
+    else:
+        JOB_LIMIT = 10000
+
     if VOMODE == 'atlas':
-        JOB_LIMIT = 7000
         LAST_N_HOURS_MAX = 12
     else:
-        JOB_LIMIT=10000
         LAST_N_HOURS_MAX = 7*24
-    if 'limit' in requestParams:
-        limit = requestParams['limit']
-        JOB_LIMIT = limit
+
     if VOMODE == 'atlas':
         if 'cloud' not in fields: fields.append('cloud')
         if 'atlasrelease' not in fields: fields.append('atlasrelease')
@@ -201,11 +207,6 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
         LAST_N_HOURS_MAX = int(requestParams['hours'])
     if 'days' in requestParams:
         LAST_N_HOURS_MAX = int(requestParams['days'])*24
-    if limit != -99 and limit >= 0:
-        ## Call param overrides default, but not a param on the URL
-        JOB_LIMIT = limit
-    if 'limit' in requestParams:
-        JOB_LIMIT = int(requestParams['limit'])
     ## Exempt single-job, single-task etc queries from time constraint
     if 'jeditaskid' in requestParams: deepquery = True
     if 'taskid' in requestParams: deepquery = True
@@ -215,7 +216,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     if deepquery:
         opmode = 'notime'
         hours = LAST_N_HOURS_MAX = 24*180
-        limit = JOB_LIMIT = 999999
+        JOB_LIMIT = 999999
     if opmode != 'notime':
         if LAST_N_HOURS_MAX <= 72 :
             viewParams['selection'] = ", last %s hours" % LAST_N_HOURS_MAX
