@@ -119,6 +119,7 @@ def setupSiteInfo():
 
 def initRequest(request):
     global VOMODE, ENV, viewParams
+    viewParams['debug'] = ''
     ENV['MON_VO'] = ''
     viewParams['MON_VO'] = ''
     VOMODE = ''
@@ -134,14 +135,19 @@ def initRequest(request):
     global errorFields, errorCodes, errorStages
     requestParams = {}
 
+    viewParams['debug'] +=  "request: %s<br>" % request
+    viewParams['debug'] +=  "request.method: %s<br>" % request.method
     if request.method == 'POST':
+        viewParams['debug'] +=  "request.POST: %s<br>" % len(request.POST)
         for p in request.POST:
             if p in ( 'csrfmiddlewaretoken', ): continue
             pval = request.POST[p]
             pval = pval.replace('+',' ')
             requestParams[p.lower()] = pval
     else:
+        viewParams['debug'] +=  "request.GET: %s <br>" % len(request.GET)
         for p in request.GET:
+            viewParams['debug'] +=  "request.GET['%s']: %s<br>" % ( p, request.GET[p] )
             pval = request.GET[p]
             pval = pval.replace('+',' ')
             pval = pval.replace('#','')
@@ -166,10 +172,9 @@ def initRequest(request):
 def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     global viewParams
     global LAST_N_HOURS_MAX, JOB_LIMIT
-    viewParams['debug'] = ""
     deepquery = False
     fields = standard_fields
-    viewParams['debug'] += 'requestParams %s ' % requestParams
+    viewParams['debug'] += 'requestParams: %s<br>' % requestParams
     if u'limit' in requestParams:
         JOB_LIMIT = int(requestParams['limit'])
     elif limit != -99 and limit > 0:
