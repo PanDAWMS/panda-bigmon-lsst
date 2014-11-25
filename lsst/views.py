@@ -219,8 +219,8 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
             viewParams['selection'] = ", last %s hours" % LAST_N_HOURS_MAX
         else:
             viewParams['selection'] = ", last %d days" % (float(LAST_N_HOURS_MAX)/24.)
-        if JOB_LIMIT < 100000 and JOB_LIMIT > 0:
-            viewParams['selection'] += " (limit %s per table)" % JOB_LIMIT
+        if JOB_LIMIT < 1000000 and JOB_LIMIT > 0:
+            viewParams['selection'] += ", limit %s per table" % JOB_LIMIT
         viewParams['selection'] += ". &nbsp; <b>Params:</b> "
         #if 'days' not in requestParams:
         #    viewParams['selection'] += "hours=%s" % LAST_N_HOURS_MAX
