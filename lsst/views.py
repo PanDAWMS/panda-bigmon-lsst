@@ -191,7 +191,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     else:
         fields.append('vo')
         LAST_N_HOURS_MAX = 7*24
-        JOB_LIMIT = 6000
+        JOB_LIMIT = 10000
     if hours > 0:
         ## Call param overrides default hours, but not a param on the URL
         LAST_N_HOURS_MAX = hours
