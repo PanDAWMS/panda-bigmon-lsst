@@ -168,11 +168,15 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     deepquery = False
     fields = standard_fields
     if VOMODE == 'atlas':
+        JOB_LIMIT = 7000
         LAST_N_HOURS_MAX = 12
-        if 'limit' in requestParams:
-            JOB_LIMIT = requestParams['limit']
-        else:
-            JOB_LIMIT = 6000
+    else:
+        JOB_LIMIT=10000
+        LAST_N_HOURS_MAX = 7*24
+    if 'limit' in requestParams:
+        limit = requestParams['limit']
+        JOB_LIMIT = limit
+    if VOMODE == 'atlas':
         if 'cloud' not in fields: fields.append('cloud')
         if 'atlasrelease' not in fields: fields.append('atlasrelease')
         if 'produsername' in requestParams or 'jeditaskid' in requestParams or 'user' in requestParams:
@@ -184,8 +188,6 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
             if 'jobsetid' in fields: fields.remove('jobsetid')
     else:
         fields.append('vo')
-        LAST_N_HOURS_MAX = 7*24
-        JOB_LIMIT = 10000
     if hours > 0:
         ## Call param overrides default hours, but not a param on the URL
         LAST_N_HOURS_MAX = hours
@@ -1541,7 +1543,7 @@ def userList(request):
             nhours = 12
         else:
             nhours = 7*24
-        query = setupView(request, hours=nhours, limit=6000)
+        query = setupView(request, hours=nhours, limit=5000)
         ## dynamically assemble user summary info
         values = 'produsername','cloud','computingsite','cpuconsumptiontime','jobstatus','transformation','prodsourcelabel','specialhandling','vo','modificationtime','pandaid', 'atlasrelease', 'processingtype', 'workinggroup', 'currentpriority'
         jobs = QuerySetChain(\
@@ -1599,7 +1601,7 @@ def userInfo(request, user=''):
     tasksumd = taskSummaryDict(request,tasks)
 
     ## Jobs
-    limit = 6000
+    limit = 5000
     query = setupView(request,hours=72,limit=limit)
     query['produsername__icontains'] = user.strip()
     jobs = []
