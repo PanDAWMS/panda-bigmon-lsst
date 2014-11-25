@@ -119,6 +119,7 @@ def setupSiteInfo():
 
 def initRequest(request):
     global VOMODE, ENV, viewParams
+    viewParams['debug'] = ''
     viewParams['debug'] += '<br>******* NEW REQUEST *******<br>'
     ENV['MON_VO'] = ''
     viewParams['MON_VO'] = ''
