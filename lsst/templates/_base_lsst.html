@@ -452,10 +452,12 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
 
 {% endblock %}
 
-{% if viewParams.debug|length > 0 %}
+{% if request.GET.debug %}
 <p><font size=-2>
 <b>Debug info:<br></b>
 {{ viewParams.debug|safe }}
+{{ viewParams.debuginfo|safe }}
+Session: {{ request.session }}
 </font></p>
 {% endif %}
 

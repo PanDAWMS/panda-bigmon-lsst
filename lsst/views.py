@@ -124,6 +124,11 @@ def initRequest(request):
         if request['AI_SESSION'] != viewParams['session']:
             viewParams['debug'] = ''
             viewParams['session'] = request['AI_SESSION']
+    if 'debug' in request.GET:
+        from django.conf import settings
+        viewParams['debuginfo'] = "******* Settings<br>"
+        for name in dir(settings):
+            viewParams['debuginfo'] += "%s = %s<br>" % ( name, getattr(settings, name) )
     viewParams['debug'] = ''
     viewParams['debug'] += '<br>******* initRequest *******<br>'
     ENV['MON_VO'] = ''
@@ -946,6 +951,7 @@ def mainPage(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'prefix': getPrefix(request),
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
         }
