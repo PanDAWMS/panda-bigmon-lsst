@@ -125,10 +125,12 @@ def initRequest(request):
             viewParams['debug'] = ''
             viewParams['session'] = request['AI_SESSION']
     if 'debug' in request.GET:
+        #request.session['debug'] = True
         from django.conf import settings
         viewParams['debuginfo'] = "******* Settings<br>"
         for name in dir(settings):
             viewParams['debuginfo'] += "%s = %s<br>" % ( name, getattr(settings, name) )
+        #request.session['debuginfo'] = viewParams['debuginfo']
     viewParams['debug'] = ''
     viewParams['debug'] += '<br>******* initRequest *******<br>'
     ENV['MON_VO'] = ''
@@ -3328,10 +3330,13 @@ def removeParam(urlquery, parname, mode='complete'):
 def incidentList(request):
     valid, response = initRequest(request)
     if not valid: return response
-    if 'hours' not in requestParams:
-        hours = 24*3
+    if 'days' in requestParams:
+        hours = int(requestParams['days'])*24
     else:
-        hours = int(requestParams['hours'])
+        if 'hours' not in requestParams:
+            hours = 24*3
+        else:
+            hours = int(requestParams['hours'])
     setupView(request, hours=hours, limit=9999999)
     iquery = {}
     startdate = timezone.now() - timedelta(hours=hours)
