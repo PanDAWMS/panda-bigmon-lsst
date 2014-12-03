@@ -309,6 +309,9 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
         elif param in ( 'project', ) and querytype == 'task':
                 val = requestParams[param]
                 query['taskname__istartswith'] = val
+        elif param in ( 'outputfiletype', ) and querytype != 'task':
+                val = requestParams[param]
+                query['destinationdblock__icontains'] = val
         elif param in ( 'stream', 'tag') and querytype == 'task':
                 val = requestParams[param]
                 query['taskname__icontains'] = val
@@ -454,6 +457,18 @@ def cleanJobList(jobs, mode='drop'):
                 mat = pat.match(job['jobmetrics'])
                 if mat:
                     job['corecount'] = mat.group(1)
+
+        if 'destinationdblock' in job:
+            ddbfields = job['destinationdblock'].split('.')
+            if len(ddbfields) == 6:
+                job['outputfiletype'] = ddbfields[4]
+            elif len(ddbfields) >= 7:
+                job['outputfiletype'] = ddbfields[6]
+            else:
+                job['outputfiletype'] = '?'
+            print job['destinationdblock'], job['outputfiletype']
+        else:
+            print 'no destinationdblock'
 
         try:
             job['homecloud'] = homeCloud[job['cloud']]
@@ -668,7 +683,7 @@ def jobSummaryDict(request, jobs, fieldlist = None):
                     if not f in sumd: sumd[f] = {}
                     if not job[f] in sumd[f]: sumd[f][job[f]] = 0
                     sumd[f][job[f]] += 1
-        for extra in ( 'jobmode', 'substate' ):
+        for extra in ( 'jobmode', 'substate', 'outputfiletype' ):
             if extra in job:
                 if not extra in sumd: sumd[extra] = {}
                 if not job[extra] in sumd[extra]: sumd[extra][job[extra]] = 0
