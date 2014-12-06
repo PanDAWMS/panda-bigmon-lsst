@@ -39,11 +39,13 @@
 
 <p>Go to <a href="#summary">overall</a>, <a href="#sites">site</a>, <a href="#users">user</a>, <a href="#tasks">task</a> summary
 
+{% if flowstruct %}
+{% include "googleFlowDiagram.html" with struct=flowstruct %}
+{% endif %}
+
 {% if errHist %}
 
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
     <script type="text/javascript">
-      google.load("visualization", "1", {packages:["corechart"]});
       google.setOnLoadCallback(drawChart);
       function drawChart() {
         var data = google.visualization.arrayToDataTable([

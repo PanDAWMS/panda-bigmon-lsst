@@ -34,6 +34,10 @@
 <br>Job <b>current priorities</b> in this listing range from <b>{{ plow }}</b> to <b>{{ phigh }}</b>. See priorityrange in the job attribute summary to see how priorities are distributed.
 {% endif %}
 
+{% if flowstruct %}
+{% include "googleFlowDiagram.html" with struct=flowstruct %}
+{% endif %}
+
 {% if ndrops > 0 %}
 <table width=900><tr><td class='highlightcell'>
 <b>{{ ndrops }} jobs were dropped from this listing because they were retried. Where there were retries, the latest retry job (only) is listed. </b>

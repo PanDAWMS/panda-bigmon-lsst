@@ -1,4 +1,4 @@
-import logging, re, json, commands
+import logging, re, json, commands, os
 from datetime import datetime, timedelta
 import time
 import json
@@ -89,9 +89,9 @@ TLAST = timezone.now() - timedelta(hours=2400)
 PLOW = 1000000
 PHIGH = -1000000
 
-standard_fields = [ 'processingtype', 'computingsite', 'destinationse', 'jobstatus', 'prodsourcelabel', 'produsername', 'jeditaskid', 'taskid', 'workinggroup', 'transformation', 'cloud', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'computingelement', 'specialhandling', 'priorityrange' ]
+standard_fields = [ 'processingtype', 'computingsite', 'destinationse', 'jobstatus', 'prodsourcelabel', 'produsername', 'jeditaskid', 'workinggroup', 'transformation', 'cloud', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'computingelement', 'specialhandling', 'priorityrange' ]
 standard_sitefields = [ 'region', 'gocname', 'nickname', 'status', 'tier', 'comment_field', 'cloud', 'allowdirectaccess', 'allowfax', 'copytool', 'faxredirector', 'retry', 'timefloor' ]
-standard_taskfields = [ 'tasktype', 'superstatus', 'corecount', 'taskpriority', 'username', 'transuses', 'transpath', 'workinggroup', 'processingtype', 'cloud', 'campaign', 'project', 'stream', 'tag']
+standard_taskfields = [ 'tasktype', 'superstatus', 'corecount', 'taskpriority', 'username', 'transuses', 'transpath', 'workinggroup', 'processingtype', 'cloud', 'campaign', 'project', 'stream', 'tag', 'reqid', ]
 
 VOLIST = [ 'atlas', 'bigpanda', 'htcondor', 'lsst', ]
 VONAME = { 'atlas' : 'ATLAS', 'bigpanda' : 'BigPanDA', 'htcondor' : 'HTCondor', 'lsst' : 'LSST', '' : '' }
@@ -130,6 +130,9 @@ def initRequest(request):
         viewParams['debuginfo'] = "******* Settings<br>"
         for name in dir(settings):
             viewParams['debuginfo'] += "%s = %s<br>" % ( name, getattr(settings, name) )
+        viewParams['debuginfo'] = "******* Environment<br>"
+        for env in os.environ:
+            viewParams['debuginfo'] += "%s = %s<br>" % ( env, os.environ[env] )
         #request.session['debuginfo'] = viewParams['debuginfo']
     viewParams['debug'] = ''
     viewParams['debug'] += '<br>******* initRequest *******<br>'
@@ -471,7 +474,7 @@ def cleanJobList(jobs, mode='drop'):
             print 'no destinationdblock'
 
         try:
-            job['homecloud'] = homeCloud[job['cloud']]
+            job['homecloud'] = homeCloud[job['computingsite']]
         except:
             job['homecloud'] = None
         if 'produsername' in job and not job['produsername']:
@@ -867,10 +870,12 @@ def taskSummaryDict(request, tasks, fieldlist = None):
                 if f == 'tag':
                     try:
                         if not f in sumd: sumd[f] = {}
-                        tag = task['taskname'].split('.')[4]
-                        if not tag.startswith('job_'):
-                            if not tag in sumd[f]: sumd[f][tag] = 0
-                            sumd[f][tag] += 1
+                        tags = task['taskname'].split('.')[4]
+                        if not tags.startswith('job_'):
+                            tagl = tags.split('_')
+                            for tag in tagl:
+                                if not tag in sumd[f]: sumd[f][tag] = 0
+                                sumd[f][tag] += 1
                     except:
                         pass
             if f in task and task[f]:
@@ -996,31 +1001,50 @@ def helpPage(request):
     else:
         return  HttpResponse('not understood', mimetype='text/html')
 
-def errorInfo(job, nchars=300):
+def errorInfo(job, nchars=300, mode='html'):
     errtxt = ''
+    err1 = ''
     if int(job['brokerageerrorcode']) != 0:
         errtxt += 'Brokerage error %s: %s <br>' % ( job['brokerageerrorcode'], job['brokerageerrordiag'] )
+        if err1  == '': err1 = "Broker: %s" % job['brokerageerrordiag']
     if int(job['ddmerrorcode']) != 0:
         errtxt += 'DDM error %s: %s <br>' % ( job['ddmerrorcode'], job['ddmerrordiag'] )
+        if err1  == '': err1 = "DDM: %s" % job['ddmerrordiag']
     if int(job['exeerrorcode']) != 0:
         errtxt += 'Executable error %s: %s <br>' % ( job['exeerrorcode'], job['exeerrordiag'] )
+        if err1  == '': err1 = "Exe: %s" % job['exeerrordiag']
     if int(job['jobdispatchererrorcode']) != 0:
         errtxt += 'Dispatcher error %s: %s <br>' % ( job['jobdispatchererrorcode'], job['jobdispatchererrordiag'] )
+        if err1  == '': err1 = "Dispatcher: %s" % job['jobdispatchererrordiag']
     if int(job['piloterrorcode']) != 0:
         errtxt += 'Pilot error %s: %s <br>' % ( job['piloterrorcode'], job['piloterrordiag'] )
+        if err1  == '': err1 = "Pilot: %s" % job['piloterrordiag']
     if int(job['superrorcode']) != 0:
         errtxt += 'Sup error %s: %s <br>' % ( job['superrorcode'], job['superrordiag'] )
+        if err1  == '': err1 = job['superrordiag']
     if int(job['taskbuffererrorcode']) != 0:
         errtxt += 'Task buffer error %s: %s <br>' % ( job['taskbuffererrorcode'], job['taskbuffererrordiag'] )
+        if err1  == '': err1 = 'Taskbuffer: %s' % job['taskbuffererrordiag']
     if job['transexitcode'] != '' and job['transexitcode'] is not None and int(job['transexitcode']) > 0:
         errtxt += 'Trf exit code %s.' % job['transexitcode']
+        if err1  == '': err1 = 'Trf exit code %s' % job['transexitcode']
     desc = getErrorDescription(job)
-    if len(desc) > 0: errtxt += '%s<br>' % desc
+    if len(desc) > 0:
+        errtxt += '%s<br>' % desc
+        if err1 == '': err1 = getErrorDescription(job,mode='string')
     if len(errtxt) > nchars:
         ret = errtxt[:nchars] + '...'
     else:
         ret = errtxt[:nchars]
-    return ret
+    if err1.find('lost heartbeat') >= 0: err1 = 'lost heartbeat'
+    if err1.lower().find('unknown transexitcode') >= 0: err1 = 'unknown transexit'
+    if err1.find(' at ') >= 0: err1 = err1[:err1.find(' at ')-1]
+    if errtxt.find('lost heartbeat') >= 0: err1 = 'lost heartbeat'
+    err1 = err1.replace('\n',' ')
+    if mode == 'html':
+        return errtxt
+    else:
+        return err1[:nchars]
 
 def jobList(request, mode=None, param=None):
     valid, response = initRequest(request)
@@ -1130,6 +1154,10 @@ def jobList(request, mode=None, param=None):
         user = requestParams['user']
     else:
         user = None
+
+    ## set up google flow diagram
+    flowstruct = buildGoogleFlowDiagram(jobs)
+
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         sumd, esjobdict = jobSummaryDict(request, jobs)
         if esjobdict and len(esjobdict) > 0:
@@ -1164,6 +1192,7 @@ def jobList(request, mode=None, param=None):
             'sortby' : sortby,
             'nosorturl' : nosorturl,
             'taskname' : taskname,
+            'flowstruct' : flowstruct,
         }
         data.update(getContextVariables(request))
         if eventservice:
@@ -1718,7 +1747,7 @@ def userInfo(request, user=''):
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         sumd = userSummaryDict(jobs)
-        flist =  [ 'jobstatus', 'prodsourcelabel', 'processingtype', 'specialhandling', 'transformation', 'jobsetid', 'taskid', 'jeditaskid', 'computingsite', 'cloud', 'workinggroup', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'priorityrange', 'jobsetrange' ]
+        flist =  [ 'jobstatus', 'prodsourcelabel', 'processingtype', 'specialhandling', 'transformation', 'jobsetid', 'jeditaskid', 'computingsite', 'cloud', 'workinggroup', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'priorityrange', 'jobsetrange' ]
         if VOMODE != 'atlas':
             flist.append('vo')
         else:
@@ -3292,6 +3321,8 @@ def errorSummary(request):
         if 'jeditaskid' in requestParams:
             taskname = getTaskName('jeditaskid',requestParams['jeditaskid'])
 
+    flowstruct = buildGoogleFlowDiagram(jobs)
+
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         nosorturl = removeParam(request.get_full_path(), 'sortby')
         xurl = extensibleURL(request)
@@ -3317,6 +3348,7 @@ def errorSummary(request):
             'tlast' : TLAST,
             'sortby' : sortby,
             'taskname' : taskname,
+            'flowstruct' : flowstruct,
         }
         data.update(getContextVariables(request))
         return render_to_response('errorSummary.html', data, RequestContext(request))
@@ -3957,7 +3989,7 @@ def taskNotUpdated(request, query, state='submitted', hoursSinceUpdate=36, value
         tasks = JediTasks.objects.filter(**query).values()
         return tasks
 
-def getErrorDescription(job):
+def getErrorDescription(job, mode='html'):
     txt = ''
     for errcode in errorCodes.keys():
         errval = 0
@@ -3981,7 +4013,10 @@ def getErrorDescription(job):
                     desc = "Unknown %s error code %s" % ( errcode, errval )
                 errname = errcode.replace('errorcode','')
                 errname = errname.replace('exitcode','')
-                txt += " <b>%s:</b> %s" % ( errname, desc )                                                                                                                                                                                                                               
+                if mode == 'html':
+                    txt += " <b>%s:</b> %s" % ( errname, desc )                                                                                                                                                                                                                               
+                else:
+                    txt = "%s: %s" % ( errname, desc ) 
     return txt
 
 def getPilotCounts(view):
@@ -4066,3 +4101,128 @@ def getFilePathForObjectStore(objectstore, filetype="logs"):
         print "Object store not defined in queuedata"
 
     return basepath
+
+def buildGoogleFlowDiagram(jobs):
+    ## set up google flow diagram
+    if 'flow' not in requestParams: return None
+    cloudd = {}
+    mcpcloudd = {}
+    mcpshownd = {}
+    errd = {}
+    errshownd = {}
+    sited = {}
+    statd = {}
+    errcountd = {}
+    sitecountd = {}
+    siteshownd = {}
+    ptyped = {}
+    ptypecountd = {}
+    ptypeshownd = {}
+    for job in jobs:
+        errinfo = errorInfo(job,nchars=40,mode='string')
+        jobstatus = job['jobstatus']
+        for js in ( 'finished', 'holding', 'merging', 'running', 'cancelled', 'transferring', 'starting' ):
+            if jobstatus == js: errinfo = js
+        if errinfo not in errcountd: errcountd[errinfo] = 0
+        errcountd[errinfo] += 1
+        cloud = job['homecloud']
+        mcpcloud = job['cloud']
+        ptype = job['processingtype']
+        if ptype not in ptypecountd: ptypecountd[ptype] = 0
+        ptypecountd[ptype] += 1
+        site = job['computingsite']
+        if site not in sitecountd: sitecountd[site] = 0
+        sitecountd[site] += 1
+
+        if cloud not in cloudd: cloudd[cloud] = {}
+        if site not in cloudd[cloud]: cloudd[cloud][site] = 0
+        cloudd[cloud][site] += 1
+
+        if mcpcloud not in mcpcloudd: mcpcloudd[mcpcloud] = {}
+        if cloud not in mcpcloudd[mcpcloud]: mcpcloudd[mcpcloud][cloud] = 0
+        mcpcloudd[mcpcloud][cloud] += 1
+
+        if jobstatus not in errd: errd[jobstatus] = {}
+        if errinfo not in errd[jobstatus]: errd[jobstatus][errinfo] = 0
+        errd[jobstatus][errinfo] += 1
+
+        if site not in sited: sited[site] = {}
+        if errinfo not in sited[site]: sited[site][errinfo] = 0
+        sited[site][errinfo] += 1
+
+        if jobstatus not in statd: statd[jobstatus] = {}
+        if errinfo not in statd[jobstatus]: statd[jobstatus][errinfo] = 0
+        statd[jobstatus][errinfo] += 1
+
+
+        if ptype not in ptyped: ptyped[ptype] = {}
+        if errinfo not in ptyped[ptype]: ptyped[ptype][errinfo] = 0
+        ptyped[ptype][errinfo] += 1
+
+    flowrows = []
+
+    for mcpcloud in mcpcloudd:
+        for cloud in mcpcloudd[mcpcloud]:
+            n = mcpcloudd[mcpcloud][cloud]
+            if float(n)/len(jobs)>0.0:
+                mcpshownd[mcpcloud] = 1
+                flowrows.append( [ "%s MCP" % mcpcloud, cloud, n ] )
+
+    othersited = {}
+    othersiteErrd = {}
+
+    for cloud in cloudd:
+        if cloud not in mcpshownd: continue
+        for e in cloudd[cloud]:
+            n = cloudd[cloud][e]
+            if float(sitecountd[e])/len(jobs)>.01:
+                siteshownd[e] = 1
+                flowrows.append( [ cloud, e, n ] )
+            else:
+                flowrows.append( [ cloud, 'Other sites', n ] )
+                othersited[e] = n
+    #for jobstatus in errd:
+    #    for errinfo in errd[jobstatus]:
+    #        flowrows.append( [ errinfo, jobstatus, errd[jobstatus][errinfo] ] )
+    for e in errcountd:
+        if float(errcountd[e])/len(jobs)>.01:
+            errshownd[e] = 1
+
+    for site in sited:
+        nother = 0
+        for e in sited[site]:
+            n = sited[site][e]
+            if site in siteshownd:
+                sitename = site
+            else:
+                sitename = "Other sites"
+            if e in errshownd:
+                errname = e
+            else:
+                errname = 'Other errors'
+            flowrows.append( [ sitename, errname, n ] )
+            if errname not in othersiteErrd: othersiteErrd[errname] = 0
+            othersiteErrd[errname] += n
+
+    #for e in othersiteErrd:
+    #    if e in errshownd:
+    #        flowrows.append( [ 'Other sites', e, othersiteErrd[e] ] )
+
+    for ptype in ptyped:
+        if float(ptypecountd[ptype])/len(jobs)>.05:
+            ptypeshownd[ptype] = 1
+            ptname = ptype
+        else:
+            ptname = "Other processing types"
+        for e in ptyped[ptype]:
+            n = ptyped[ptype][e]
+            if e in errshownd:
+                flowrows.append( [ e, ptname, n ] )
+            else:
+                flowrows.append( [ 'Other errors', ptname, n ] )
+
+    flowstruct = {}
+    flowstruct['maxweight'] = len(jobs)
+    flowstruct['columns'] = [ ['string', 'From'], ['string', 'To'], ['number', 'Weight'] ]
+    flowstruct['rows'] = flowrows[:3000]
+    return flowstruct
