@@ -318,6 +318,12 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
         elif param in ( 'stream', 'tag') and querytype == 'task':
                 val = requestParams[param]
                 query['taskname__icontains'] = val
+        elif param == 'reqid_from':
+                val = int(requestParams[param])
+                query['reqid__gte'] = val
+        elif param == 'reqid_to':
+                val = int(requestParams[param])
+                query['reqid__lte'] = val
 
         if querytype == 'task':
             for field in JediTasks._meta.get_all_field_names():
@@ -1156,7 +1162,7 @@ def jobList(request, mode=None, param=None):
         user = None
 
     ## set up google flow diagram
-    flowstruct = buildGoogleFlowDiagram(jobs)
+    flowstruct = buildGoogleFlowDiagram(jobs=jobs)
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         sumd, esjobdict = jobSummaryDict(request, jobs)
@@ -2677,6 +2683,9 @@ def taskList(request):
         nmax = display_limit
         url_nolimit = request.get_full_path()
 
+    ## set up google flow diagram
+    flowstruct = buildGoogleFlowDiagram(tasks=tasks)
+
     xurl = extensibleURL(request)
     nosorturl = removeParam(xurl, 'sortby',mode='extensible')
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
@@ -2693,6 +2702,7 @@ def taskList(request):
             'nosorturl' : nosorturl,
             'url_nolimit' : url_nolimit,
             'display_limit' : display_limit,
+            'flowstruct' : flowstruct,
         }
         if 'eventservice' in requestParams:
             return render_to_response('taskListES.html', data, RequestContext(request))
@@ -3321,7 +3331,7 @@ def errorSummary(request):
         if 'jeditaskid' in requestParams:
             taskname = getTaskName('jeditaskid',requestParams['jeditaskid'])
 
-    flowstruct = buildGoogleFlowDiagram(jobs)
+    flowstruct = buildGoogleFlowDiagram(jobs=jobs)
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         nosorturl = removeParam(request.get_full_path(), 'sortby')
@@ -4102,9 +4112,23 @@ def getFilePathForObjectStore(objectstore, filetype="logs"):
 
     return basepath
 
-def buildGoogleFlowDiagram(jobs):
+def buildGoogleFlowDiagram(jobs=[], tasks=[]):
     ## set up google flow diagram
     if 'flow' not in requestParams: return None
+    flowstruct = {}
+    if len(jobs) > 0:
+        flowstruct['maxweight'] = len(jobs)
+        flowrows = buildGoogleJobFlow(jobs)
+    elif len(tasks) > 0:
+        flowstruct['maxweight'] = len(tasks)
+        flowrows = buildGoogleTaskFlow(tasks)
+    else:
+        return None
+    flowstruct['columns'] = [ ['string', 'From'], ['string', 'To'], ['number', 'Weight'] ]
+    flowstruct['rows'] = flowrows[:3000]
+    return flowstruct
+
+def buildGoogleJobFlow(jobs):
     cloudd = {}
     mcpcloudd = {}
     mcpshownd = {}
@@ -4221,8 +4245,108 @@ def buildGoogleFlowDiagram(jobs):
             else:
                 flowrows.append( [ 'Other errors', ptname, n ] )
 
-    flowstruct = {}
-    flowstruct['maxweight'] = len(jobs)
-    flowstruct['columns'] = [ ['string', 'From'], ['string', 'To'], ['number', 'Weight'] ]
-    flowstruct['rows'] = flowrows[:3000]
-    return flowstruct
+    return flowrows
+
+def buildGoogleTaskFlow(tasks):
+    ptyped = {}
+    reqd = {}
+    statd = {}
+    substatd = {}
+    filestatd = {}
+    cloudd = {}
+    reqsized = {}
+    reqokd = {}
+    ## count the reqid's. Use only the biggest (in file count) if too many.
+    for task in tasks:
+        if 'deftreqid' not in task: continue
+        req = int(task['reqid'])
+        dsinfo = task['dsinfo']
+        nfiles = dsinfo['nfiles']
+        if req not in reqsized: reqsized[req] = 0
+        reqsized[req] += nfiles
+        ## Veto requests that are all done etc.
+        if task['superstatus'] != 'done': reqokd[req] = 1
+
+    for req in reqsized:
+        if req not in reqokd: reqsized[req] = 0
+
+    nmaxreq = 10
+    if len(reqsized) > nmaxreq:
+        reqkeys = reqsized.keys()
+        reqsortl = sorted(reqkeys, key=reqsized.__getitem__, reverse=True)
+        reqsortl = reqsortl[:nmaxreq-1]
+    else:
+        reqsortl = reqsized.keys()
+
+    for task in tasks:
+        ptype = task['processingtype']
+        #if 'jedireqid' not in task: continue
+        req = int(task['reqid'])
+        if req not in reqsortl: continue
+        stat = task['superstatus']
+        substat = task['status']
+        cloud = task['cloud']
+        dsinfo = task['dsinfo']
+        nfailed = dsinfo['nfilesfailed']
+        nfinished = dsinfo['nfilesfinished']
+        nfiles = dsinfo['nfiles']
+        npending = nfiles - nfailed - nfinished
+
+        if ptype not in ptyped: ptyped[ptype] = {}
+        if req not in ptyped[ptype]: ptyped[ptype][req] = 0
+        ptyped[ptype][req] += nfiles
+
+        if req not in reqd: reqd[req] = {}
+        if stat not in reqd[req]: reqd[req][stat] = 0
+        reqd[req][stat] += nfiles
+
+        if stat not in statd: statd[stat] = {}
+        if substat not in statd[stat]: statd[stat][substat] = 0
+        statd[stat][substat] += nfiles
+
+        if substat not in substatd: substatd[substat] = {}
+        if 'finished' not in substatd[substat]:
+            for filestat in ('finished', 'failed', 'pending'):
+                substatd[substat][filestat] = 0
+        substatd[substat]['finished'] += nfinished
+        substatd[substat]['failed'] += nfailed
+        substatd[substat]['pending'] += npending
+
+        if cloud not in cloudd: cloudd[cloud] = {}
+        if 'finished' not in cloudd[cloud]:
+            for filestat in ('finished', 'failed', 'pending'):
+                cloudd[cloud][filestat] = 0
+        cloudd[cloud]['finished'] += nfinished
+        cloudd[cloud]['failed'] += nfailed
+        cloudd[cloud]['pending'] += npending
+
+    flowrows = []
+
+    for ptype in ptyped:
+        for req in ptyped[ptype]:
+            n = ptyped[ptype][req]
+            flowrows.append( [ ptype, 'Request %s' % req, n ] )
+
+    for req in reqd:
+        for stat in reqd[req]:
+            n = reqd[req][stat]
+            flowrows.append( [ 'Request %s' % req, 'Task %s' % stat, n ] )
+
+    for stat in statd:
+        for substat in statd[stat]:
+            n = statd[stat][substat]
+            flowrows.append( [ 'Task %s' % stat, 'Substatus %s' % substat, n ] )
+
+    for substat in substatd:
+        for filestat in substatd[substat]:
+            if filestat not in substatd[substat]: continue
+            n = substatd[substat][filestat]
+            flowrows.append( [ 'Substatus %s' % substat, 'File status %s' % filestat, n ] )
+
+    for cloud in cloudd:
+        for filestat in cloudd[cloud]:
+            if filestat not in cloudd[cloud]: continue
+            n = cloudd[cloud][filestat]
+            flowrows.append( [ 'File status %s' % filestat, cloud, n ] )
+
+    return flowrows

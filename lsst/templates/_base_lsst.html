@@ -12,14 +12,16 @@
 
 	<!-- Included CSS Files -->
 
+
 	<link rel="stylesheet" href="http://hepsoftware.org/static/css/normalize.css" %}">
 	<link rel="stylesheet" href="http://hepsoftware.org/static/css/foundation.css" %}">
 
 {% comment %}
 	<link rel="stylesheet" href="{% static "css/normalize.css" %}">
 	<link rel="stylesheet" href="{% static "css/foundation.css" %}">
-	<link rel="stylesheet" href="{% static "css/bigpandamon.css" %}">
 {% endcomment %}
+	{% comment %} <link rel="stylesheet" href="{% static "css/bigpandamon.css" %}"> {% endcomment %}
+
 
 	{% block base_css %}{% endblock %}
 	{% block extra_css %}{% endblock %}
@@ -478,8 +480,9 @@ Session: {{ request.session }}
     </div>
   </footer>
 
-
 {% comment %}
+  <script src="{% static 'js/vendor/modernizr.js' %}"></script>
+  <script src="{% static 'js/vendor/jquery.js' %}"></script>
   <script src="{% static 'js/foundation/foundation.js' %}"></script>
   <script src="{% static 'js/foundation/foundation.topbar.js' %}"></script>
 {% endcomment %}
