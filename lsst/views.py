@@ -866,12 +866,12 @@ def taskSummaryDict(request, tasks, fieldlist = None):
         flist = fieldlist
     else:
         flist = standard_taskfields
-    if 'tasktype' in requestParams and requestParams['tasktype'].startswith('analy'):
-        ## Remove the noisy useless parameters in analysis listings
-        for p in ( 'reqid', 'stream', 'tag' ):
-            if p in flist: flist.remove(p)
     for task in tasks:
         for f in flist:
+            if 'tasktype' in requestParams and requestParams['tasktype'].startswith('analy'):
+                ## Remove the noisy useless parameters in analysis listings
+                if flist in ( 'reqid', 'stream', 'tag' ): continue
+
             if len(task['taskname'].split('.')) == 5:
                 if f == 'project':
                     try:
