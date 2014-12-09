@@ -19,6 +19,9 @@
 {% if requestParams.stream %}<br><b>Stream: {{ requestParams.stream }}</b> {% endif %}
 {% if requestParams.tag %}<br><b>Tag: {{ requestParams.tag }}</b> {% endif %}
 
+{% if requestParams.reqid_from %}<br><b>From request ID: {{ requestParams.reqid_from }}</b> {% endif %}
+{% if requestParams.reqid_to %}<br><b>To request ID: {{ requestParams.reqid_to }}</b> {% endif %}
+
 {% if requestParams.transpath %}<br><b>Transformation: {{ requestParams.transpath }}</b> {% endif %}
 {% if requestParams.transuses %}<br><b>Release: {{ requestParams.transuses }}</b> {% endif %}
 {% if requestParams.processingtype %}<br><b>Processing type: {{ requestParams.processingtype }}</b> {% endif %}

@@ -23,6 +23,10 @@
 {% if requestParams.taskid and requestParams.taskid != 'None' %}<br><b>Task: <a href="{% url 'taskInfo' requestParams.taskid  %}">{{ requestParams.taskid }}  &nbsp; {{ taskname }}</a></b> {% endif %}
 {% if requestParams.jobsetid %}<br><b>Jobset ID: {{ requestParams.jobsetid }}</b> {% endif %}
 {% if requestParams.parentid %}<br><b>Parent ID: {{ requestParams.parentid }}</b> {% endif %}
+
+{% if requestParams.reqid_from %}<br><b>From request ID: {{ requestParams.reqid_from }}</b> {% endif %}
+{% if requestParams.reqid_to %}<br><b>To request ID: {{ requestParams.reqid_to }}</b> {% endif %}
+
 {% if requestParams.jobname %}<br><b>Job name: {{ requestParams.jobname }}</b> {% endif %}
 {% if requestParams.priorityrange %}<br><b>Current priority range: {{ requestParams.priorityrange }}</b> {% endif %}
 {% if requestParams.processingtype %}<br><b>Processing type: {{ requestParams.processingtype }}</b> {% endif %}

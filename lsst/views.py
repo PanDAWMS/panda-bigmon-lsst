@@ -245,7 +245,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
             viewParams['selection'] = ", last %s hours" % LAST_N_HOURS_MAX
         else:
             viewParams['selection'] = ", last %d days" % (float(LAST_N_HOURS_MAX)/24.)
-        if JOB_LIMIT < 1000000 and JOB_LIMIT > 0:
+        if JOB_LIMIT < 999999 and JOB_LIMIT > 0:
             viewParams['selection'] += ", limit %s per table" % JOB_LIMIT
         viewParams['selection'] += ". &nbsp; <b>Params:</b> "
         #if 'days' not in requestParams:
@@ -305,25 +305,38 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
                 query['jobsetid__gte'] = plo
                 query['jobsetid__lte'] = phi 
         elif param == 'user' or param == 'username':
-                if querytype == 'task':
-                    query['username__icontains'] = requestParams[param].strip()
-                else:
-                    query['produsername__icontains'] = requestParams[param].strip()
+            if querytype == 'task':
+                query['username__icontains'] = requestParams[param].strip()
+            else:
+                query['produsername__icontains'] = requestParams[param].strip()
         elif param in ( 'project', ) and querytype == 'task':
-                val = requestParams[param]
-                query['taskname__istartswith'] = val
+            val = requestParams[param]
+            query['taskname__istartswith'] = val
         elif param in ( 'outputfiletype', ) and querytype != 'task':
-                val = requestParams[param]
-                query['destinationdblock__icontains'] = val
+            val = requestParams[param]
+            query['destinationdblock__icontains'] = val
         elif param in ( 'stream', 'tag') and querytype == 'task':
-                val = requestParams[param]
-                query['taskname__icontains'] = val
-        elif param == 'reqid_from':
-                val = int(requestParams[param])
-                query['reqid__gte'] = val
-        elif param == 'reqid_to':
-                val = int(requestParams[param])
-                query['reqid__lte'] = val
+            val = requestParams[param]
+            query['taskname__icontains'] = val
+        elif param == 'reqid_from' and querytype == 'task':
+            val = int(requestParams[param])
+            query['reqid__gte'] = val
+        elif param == 'reqid_to' and querytype == 'task':
+            val = int(requestParams[param])
+            query['reqid__lte'] = val
+        elif param == 'reqid_from' and querytype != 'task':
+            ## Obtain the job list corresponding to reqid range, via tasks
+            tquery = {}
+            tquery['reqid__gte'] = int(requestParams[param])
+            if 'reqid_to' in requestParams: tquery['reqid__lte'] = int(requestParams['reqid_to'])
+            print "Task query to get reqids:", tquery
+            tres = JediTasks.objects.filter(**tquery).values('jeditaskid')
+            tlist = []
+            for res in tres:
+                tlist.append(res['jeditaskid'])
+            query['jeditaskid__in'] = tlist
+        elif param == 'reqid_to' and querytype != 'task':
+            pass
 
         if querytype == 'task':
             for field in JediTasks._meta.get_all_field_names():
@@ -475,7 +488,7 @@ def cleanJobList(jobs, mode='drop'):
                 job['outputfiletype'] = ddbfields[6]
             else:
                 job['outputfiletype'] = '?'
-            print job['destinationdblock'], job['outputfiletype']
+            #print job['destinationdblock'], job['outputfiletype']
         else:
             print 'no destinationdblock'
 
@@ -1995,6 +2008,7 @@ def taskSummaryData(query):
     summary = []
     querynotime = query
     del querynotime['modificationtime__range']
+    print "Task summary query", query
     summary.extend(Jobsactive4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
     summary.extend(Jobsdefined4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
     summary.extend(Jobswaiting4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
@@ -2365,7 +2379,7 @@ def dashSummary(request, hours, view='all', cloudview='region', notime=True):
     return fullsummary
 
 def dashTaskSummary(request, hours, view='all'):
-    query = setupView(request,hours=hours,limit=999999,opmode=view, querytype='task') 
+    query = setupView(request,hours=hours,limit=999999,opmode=view) 
 
     tasksummarydata = taskSummaryData(query)
     tasks = {}
