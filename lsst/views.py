@@ -10,6 +10,7 @@ from django.db.models import Count
 from django import forms
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
+from django.utils.cache import patch_cache_control, patch_response_headers
 
 from core.common.utils import getPrefix, getContextVariables, QuerySetChain
 from core.common.settings import STATIC_URL, FILTER_UI_ENV, defaultDatetimeFormat
@@ -123,7 +124,7 @@ def setupSiteInfo():
                 pass
 
 def initRequest(request):
-    global VOMODE, ENV, viewParams
+    global VOMODE, ENV, viewParams, hostname
     if 'USER' in os.environ and os.environ['USER'] != 'apache':
         request.session['debug'] = True
     elif 'debug' in request.GET and request.GET['debug'] == 'insider':
@@ -131,7 +132,10 @@ def initRequest(request):
     else:
         request.session['debug'] = False
 
-    if len('hostname') > 0: request.session['hostname'] = hostname
+    if len(hostname) > 0: request.session['hostname'] = hostname
+
+    ## Set default page lifetime in the http header, for the use of the front end cache
+    request.session['max_age_minutes'] = 3
 
     ENV['MON_VO'] = ''
     viewParams['MON_VO'] = ''
@@ -1003,7 +1007,9 @@ def mainPage(request):
             'debuginfo' : debuginfo
         }
         data.update(getContextVariables(request))
-        return render_to_response('lsst-mainPage.html', data, RequestContext(request))
+        response = render_to_response('lsst-mainPage.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse('json', mimetype='text/html')
     else:
@@ -1016,6 +1022,7 @@ def helpPage(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'prefix': getPrefix(request),
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
         }
@@ -1198,6 +1205,7 @@ def jobList(request, mode=None, param=None):
         nosorturl = removeParam(nosorturl, 'display_limit', mode='extensible')
         data = {
             'prefix': getPrefix(request),
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'jobList': jobs[:njobsmax],
@@ -1513,6 +1521,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'prefix': getPrefix(request),
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'pandaid': pandaid,
@@ -1656,6 +1665,7 @@ def userList(request):
         jobsumd = jobSummaryDict(request, jobs, sumparams)
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'xurl' : extensibleURL(request),
@@ -1782,6 +1792,7 @@ def userInfo(request, user=''):
         xurl = extensibleURL(request)
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'xurl' : xurl,
@@ -1898,6 +1909,7 @@ def siteList(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         sumd = siteSummaryDict(sites)
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'sites': sites,
@@ -1983,6 +1995,7 @@ def siteInfo(request, site=''):
         else:
             incidents = []
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'site' : siterec,
             'queues' : sites,
@@ -2203,6 +2216,7 @@ def wnInfo(request,site,wnname='all'):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'url' : request.path,
@@ -2544,10 +2558,12 @@ def dashboard(request, view='production'):
 
     cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view, taskdays=taskdays)
 
+    request.session['max_age_minutes'] = 6
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'url' : request.path,
@@ -2569,7 +2585,9 @@ def dashboard(request, view='production'):
             'transrclouds' : transrclouds,
             'hoursSinceUpdate' : hoursSinceUpdate,
         }
-        return render_to_response('dashboard.html', data, RequestContext(request))
+        response = render_to_response('dashboard.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -2612,6 +2630,7 @@ def dashTasks(request, hours, view='production'):
         xurl = extensibleURL(request)
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'url' : request.path,
@@ -2713,6 +2732,7 @@ def taskList(request):
     else:
         sumd = taskSummaryDict(request,tasks)
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'tasks': tasks[:nmax],
@@ -2929,6 +2949,7 @@ def taskInfo(request, jeditaskid=0):
         if taskrec:
             attrs.append({'name' : 'Status', 'value' : taskrec['status'] })
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'task' : taskrec,
@@ -3358,6 +3379,7 @@ def errorSummary(request):
         xurl = extensibleURL(request)
         data = {
             'prefix': getPrefix(request),
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'requestString' : request.META['QUERY_STRING'],
@@ -3488,6 +3510,7 @@ def incidentList(request):
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'user' : None,
@@ -3608,6 +3631,7 @@ def pandaLogger(request):
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'user' : None,
@@ -3681,6 +3705,7 @@ def workingGroups(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'url' : request.path,
@@ -3751,6 +3776,7 @@ def datasetInfo(request):
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'dsrec' : dsrec,
@@ -3851,6 +3877,7 @@ def fileInfo(request):
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'frec' : frec,
@@ -3900,6 +3927,7 @@ def fileList(request):
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'files' : files,
@@ -3924,6 +3952,7 @@ def workQueues(request):
         
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
+            'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
             'queues': queues,
