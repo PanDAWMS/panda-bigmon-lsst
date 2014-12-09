@@ -866,6 +866,10 @@ def taskSummaryDict(request, tasks, fieldlist = None):
         flist = fieldlist
     else:
         flist = standard_taskfields
+    if 'tasktype' in requestParams and requestParams['tasktype'].startswith('analy'):
+        ## Remove the noisy useless parameters in analysis listings
+        for p in ( 'reqid', 'stream', 'tag' ):
+            if p in flist: flist.remove(p)
     for task in tasks:
         for f in flist:
             if len(task['taskname'].split('.')) == 5:
@@ -4262,17 +4266,19 @@ def buildGoogleJobFlow(jobs):
     return flowrows
 
 def buildGoogleTaskFlow(tasks):
+    analysis = 'tasktype' in requestParams and requestParams['tasktype'].startswith('anal')
     ptyped = {}
     reqd = {}
     statd = {}
     substatd = {}
+    trfd = {}
     filestatd = {}
     cloudd = {}
     reqsized = {}
     reqokd = {}
     ## count the reqid's. Use only the biggest (in file count) if too many.
     for task in tasks:
-        if 'deftreqid' not in task: continue
+        if not analysis and 'deftreqid' not in task: continue
         req = int(task['reqid'])
         dsinfo = task['dsinfo']
         nfiles = dsinfo['nfiles']
@@ -4281,25 +4287,30 @@ def buildGoogleTaskFlow(tasks):
         ## Veto requests that are all done etc.
         if task['superstatus'] != 'done': reqokd[req] = 1
 
-    for req in reqsized:
-        if req not in reqokd: reqsized[req] = 0
+    if not analysis:
+        for req in reqsized:
+            # de-prioritize requests not specifically OK'd for inclusion
+            if req not in reqokd: reqsized[req] = 0
 
-    nmaxreq = 10
-    if len(reqsized) > nmaxreq:
-        reqkeys = reqsized.keys()
-        reqsortl = sorted(reqkeys, key=reqsized.__getitem__, reverse=True)
-        reqsortl = reqsortl[:nmaxreq-1]
-    else:
-        reqsortl = reqsized.keys()
+        nmaxreq = 10
+        if len(reqsized) > nmaxreq:
+            reqkeys = reqsized.keys()
+            reqsortl = sorted(reqkeys, key=reqsized.__getitem__, reverse=True)
+            reqsortl = reqsortl[:nmaxreq-1]
+        else:
+            reqsortl = reqsized.keys()
 
     for task in tasks:
         ptype = task['processingtype']
         #if 'jedireqid' not in task: continue
         req = int(task['reqid'])
-        if req not in reqsortl: continue
+        if not analysis and req not in reqsortl: continue
         stat = task['superstatus']
         substat = task['status']
+        #trf = task['transpath']
+        trf = task['taskname']
         cloud = task['cloud']
+        if cloud == '': cloud = 'No cloud assigned'
         dsinfo = task['dsinfo']
         nfailed = dsinfo['nfilesfailed']
         nfinished = dsinfo['nfilesfinished']
@@ -4313,6 +4324,10 @@ def buildGoogleTaskFlow(tasks):
         if req not in reqd: reqd[req] = {}
         if stat not in reqd[req]: reqd[req][stat] = 0
         reqd[req][stat] += nfiles
+
+        if trf not in trfd: trfd[trf] = {}
+        if stat not in trfd[trf]: trfd[trf][stat] = 0
+        trfd[trf][stat] += nfiles
 
         if stat not in statd: statd[stat] = {}
         if substat not in statd[stat]: statd[stat][substat] = 0
@@ -4336,15 +4351,22 @@ def buildGoogleTaskFlow(tasks):
 
     flowrows = []
 
-    for ptype in ptyped:
-        for req in ptyped[ptype]:
-            n = ptyped[ptype][req]
-            flowrows.append( [ ptype, 'Request %s' % req, n ] )
+    if analysis:
+        ## Don't include request, task for analysis
+        for trf in trfd:
+            for stat in trfd[trf]:
+                n = trfd[trf][stat]
+                flowrows.append( [ trf, 'Task %s' % stat, n ] )
+    else:        
+        for ptype in ptyped:
+            for req in ptyped[ptype]:
+                n = ptyped[ptype][req]
+                flowrows.append( [ ptype, 'Request %s' % req, n ] )
 
-    for req in reqd:
-        for stat in reqd[req]:
-            n = reqd[req][stat]
-            flowrows.append( [ 'Request %s' % req, 'Task %s' % stat, n ] )
+        for req in reqd:
+            for stat in reqd[req]:
+                n = reqd[req][stat]
+                flowrows.append( [ 'Request %s' % req, 'Task %s' % stat, n ] )
 
     for stat in statd:
         for substat in statd[stat]:
