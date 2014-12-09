@@ -13,13 +13,14 @@
 	<!-- Included CSS Files -->
 
 
+{% comment %}
 	<link rel="stylesheet" href="http://hepsoftware.org/static/css/normalize.css" %}">
 	<link rel="stylesheet" href="http://hepsoftware.org/static/css/foundation.css" %}">
-
-{% comment %}
-	<link rel="stylesheet" href="{% static "css/normalize.css" %}">
-	<link rel="stylesheet" href="{% static "css/foundation.css" %}">
 {% endcomment %}
+
+  <link rel="stylesheet" href="{% static "css/foundation/normalize.css" %}">
+  <link rel="stylesheet" href="{% static "css/foundation_5.3.1.css" %}">
+
 	{% comment %} <link rel="stylesheet" href="{% static "css/bigpandamon.css" %}"> {% endcomment %}
 
 
@@ -454,12 +455,15 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
 
 {% endblock %}
 
-{% if request.GET.debug %}
-<p><font size=-2>
-<b>Debug info:<br></b>
-{{ viewParams.debug|safe }}
-{{ viewParams.debuginfo|safe }}
-Session: {{ request.session }}
+{% if debuginfo %}
+<p>********** DEBUG:<br>
+<font size=-2>
+{{ debuginfo|safe }}
+<br><br>********** Request:<br>{{ request }}
+<br><br>********** Session:<br>
+{% for key, val in request.session.items %}
+{{ key }} = {{ val }} <br>
+{% endfor %}
 </font></p>
 {% endif %}
 
@@ -488,10 +492,19 @@ Session: {{ request.session }}
 {% endcomment %}
 
 {% block extra_js_hepsw %}
+
+  <script src="{% static 'js/vendor/modernizr.js' %}"></script>
+  <script src="{% static 'js/vendor/jquery.js' %}"></script>
+  <script src="{% static 'js/foundation/foundation.js' %}"></script>
+  <script src="{% static 'js/foundation/foundation.topbar.js' %}"></script>
+
+{% comment %}
   <script src="http://hepsoftware.org/static/js/vendor/modernizr.js"></script>
   <script src="http://hepsoftware.org/static/js/vendor/jquery.js"></script>
   <script src="http://hepsoftware.org/static/js/foundation/foundation.js"></script>
   <script src="http://hepsoftware.org/static/js/foundation/foundation.topbar.js"></script>
+{% endcomment %}
+
 {% endblock %}
 
   <script>

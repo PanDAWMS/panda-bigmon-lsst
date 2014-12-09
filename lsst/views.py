@@ -78,8 +78,6 @@ errorcodelist = [
 
 _logger = logging.getLogger('bigpandamon')
 viewParams = {}
-viewParams['debug'] = ''
-viewParams['session'] = ''
 requestParams = {}
 
 LAST_N_HOURS_MAX = 0
@@ -120,22 +118,13 @@ def setupSiteInfo():
 
 def initRequest(request):
     global VOMODE, ENV, viewParams
-    if 'AI_SESSION' in request:
-        if request['AI_SESSION'] != viewParams['session']:
-            viewParams['debug'] = ''
-            viewParams['session'] = request['AI_SESSION']
-    if 'debug' in request.GET:
-        #request.session['debug'] = True
-        from django.conf import settings
-        viewParams['debuginfo'] = "******* Settings<br>"
-        for name in dir(settings):
-            viewParams['debuginfo'] += "%s = %s<br>" % ( name, getattr(settings, name) )
-        viewParams['debuginfo'] = "******* Environment<br>"
-        for env in os.environ:
-            viewParams['debuginfo'] += "%s = %s<br>" % ( env, os.environ[env] )
-        #request.session['debuginfo'] = viewParams['debuginfo']
-    viewParams['debug'] = ''
-    viewParams['debug'] += '<br>******* initRequest *******<br>'
+    if 'USER' in os.environ and os.environ['USER'] != 'apache':
+        request.session['debug'] = True
+    elif 'debug' in request.GET and request.GET['debug'] == 'insider':
+        request.session['debug'] = True
+    else:
+        request.session['debug'] = False
+
     ENV['MON_VO'] = ''
     viewParams['MON_VO'] = ''
     VOMODE = ''
@@ -151,19 +140,14 @@ def initRequest(request):
     global errorFields, errorCodes, errorStages
     requestParams = {}
 
-    viewParams['debug'] +=  "request: %s<br>" % request
-    viewParams['debug'] +=  "request.method: %s<br>" % request.method
     if request.method == 'POST':
-        viewParams['debug'] +=  "request.POST: %s<br>" % len(request.POST)
         for p in request.POST:
             if p in ( 'csrfmiddlewaretoken', ): continue
             pval = request.POST[p]
             pval = pval.replace('+',' ')
             requestParams[p.lower()] = pval
     else:
-        viewParams['debug'] +=  "request.GET: %s <br>" % len(request.GET)
         for p in request.GET:
-            viewParams['debug'] +=  "request.GET['%s']: %s<br>" % ( p, request.GET[p] )
             pval = request.GET[p]
             pval = pval.replace('+',' ')
             pval = pval.replace('#','')
@@ -190,7 +174,6 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     global LAST_N_HOURS_MAX, JOB_LIMIT
     deepquery = False
     fields = standard_fields
-    viewParams['debug'] += 'requestParams: %s<br>' % requestParams
     if 'limit' in requestParams:
         JOB_LIMIT = int(requestParams['limit'])
     elif limit != -99 and limit > 0:
@@ -993,12 +976,23 @@ def mainPage(request):
     valid, response = initRequest(request)
     if not valid: return response
     setupView(request)
+    debuginfo = None
+    if request.session['debug']:
+        debuginfo = "<h2>Debug info</h2>"
+        from django.conf import settings
+        for name in dir(settings):
+            debuginfo += "%s = %s<br>" % ( name, getattr(settings, name) )
+        debuginfo += "<br>******* Environment<br>"
+        for env in os.environ:
+            debuginfo += "%s = %s<br>" % ( env, os.environ[env] )
+
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'prefix': getPrefix(request),
             'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
+            'debuginfo' : debuginfo
         }
         data.update(getContextVariables(request))
         return render_to_response('lsst-mainPage.html', data, RequestContext(request))
