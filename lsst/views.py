@@ -125,6 +125,10 @@ def initRequest(request):
     else:
         request.session['debug'] = False
 
+    hostname = request.get_host()
+    if hostname.find('.') > 0: hostname = hostname[:hostname.find('.')]
+    request.session['hostname'] = hostname
+
     ENV['MON_VO'] = ''
     viewParams['MON_VO'] = ''
     VOMODE = ''
