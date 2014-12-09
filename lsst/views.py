@@ -45,6 +45,12 @@ errorFields = []
 errorCodes = {}
 errorStages = {}
 
+try:
+    hostname = commands.getoutput('hostname')
+    if hostname.find('.') > 0: hostname = hostname[:hostname.find('.')]
+except:
+    hostname = ''
+
 callCount = 0
 homeCloud = {}
 objectStores = {}
@@ -125,9 +131,7 @@ def initRequest(request):
     else:
         request.session['debug'] = False
 
-    hostname = request.get_host()
-    if hostname.find('.') > 0: hostname = hostname[:hostname.find('.')]
-    request.session['hostname'] = hostname
+    if len('hostname') > 0: request.session['hostname'] = hostname
 
     ENV['MON_VO'] = ''
     viewParams['MON_VO'] = ''
