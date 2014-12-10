@@ -92,7 +92,7 @@ This is attempt number {{ job.attemptnr }} for this job. To see a history of job
 </table>
 
 {% if job.metastruct %}
-<table width=1000 style="width: 1000px"><tr><td bgcolor="#FFABA2"> <b>Error information from transformation </td></tr>
+<table width=1000 style="width: 1000px"><tr><td bgcolor="#FFABA2"> <b>Error information from the {{ job.metastruct.name }}  transformation, report version {{ job.metastruct.reportVersion }} </td></tr>
 <tr><td>
 {% for exec in job.metastruct.executor %}
 <br><b>Executor error message: {{ exec.errMsg }}</b>
