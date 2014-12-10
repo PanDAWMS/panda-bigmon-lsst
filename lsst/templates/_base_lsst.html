@@ -369,12 +369,6 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
 
             {% endif %}
 
-            {% if request.session.username %}
-            <li>
-            <a href="{% url 'userInfo' request.session.username %}?display_limit=200">{{request.session.username}}</a>
-            </li>
-            {% endif %}
-
             <li class="has-dropdown">
             <a href="#">VO</a>
             <ul class="dropdown">
@@ -386,6 +380,12 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
                 <li><a href="http://pandawms.org/dev">All</a></li>
             </ul>
             </li>
+
+            {% if request.session.username %}
+            <li>
+            <a href="{% url 'userInfo' request.session.username %}?display_limit=200">{{request.session.username}}</a>
+            </li>
+            {% endif %}
 
             <li class="has-dropdown">
             <a href="#"><span class='help'>Help</span></a>
