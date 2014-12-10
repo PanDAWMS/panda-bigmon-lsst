@@ -101,7 +101,7 @@ This is attempt number {{ job.attemptnr }} for this job. To see a history of job
     <ul>
     {% for dkey, dval in exec.logfileReport.details.items %}
       {% for err in dval %}
-        <li> <b>{{ dkey }}</b>: line {{ err.firstLine }}: {{ err.message }}
+        <li> <b>{{ dkey }}</b>: line {{ err.firstLine }}: <br><pre>{{ err.message }}</pre>
       {% endfor %}
     {% endfor %}
     </ul>
