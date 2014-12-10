@@ -94,8 +94,9 @@ This is attempt number {{ job.attemptnr }} for this job. To see a history of job
 {% if job.metastruct %}
 <table width=1000 style="width: 1000px"><tr><td bgcolor="#FFABA2"> <b>Error information from the {{ job.metastruct.name }}  transformation, report version {{ job.metastruct.reportVersion }} </td></tr>
 <tr><td>
+<b>Error {{ job.metastruct.exitAcronym }}, exit code {{ job.metastruct.exitCode }}:</b> {{ job.metastruct.exitMsg }} 
 {% for exec in job.metastruct.executor %}
-<br><b>Executor error message: {{ exec.errMsg }}</b>
+<br><br><b>Executor error: {{ exec.errMsg }}</b>
 <br>Error details:
     <ul>
     {% for dkey, dval in exec.logfileReport.details.items %}
