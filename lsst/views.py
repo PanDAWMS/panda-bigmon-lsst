@@ -442,8 +442,9 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
     print 'Query:', query
     return query
 
-def cleanJobList(jobs, mode='drop'):
+def cleanJobList(jobl, mode='drop'):
     if 'mode' in requestParams and requestParams['mode'] == 'nodrop': mode='nodrop'
+    jobs = addJobMetadata(jobl)
     for job in jobs:
         if isEventService(job):
             if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 111:
@@ -565,7 +566,9 @@ def cleanJobList(jobs, mode='drop'):
             newjobs.append(job)
     jobs = newjobs
 
-    if mode == 'nodrop': return jobs
+    if mode == 'nodrop':
+        print 'job list cleaned'
+        return jobs
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
     taskids = {}
     for job in jobs:
@@ -607,6 +610,8 @@ def cleanJobList(jobs, mode='drop'):
         if job['currentpriority'] > PHIGH: PHIGH = job['currentpriority']
         if job['currentpriority'] < PLOW: PLOW = job['currentpriority']
     jobs = sorted(jobs, key=lambda x:-x['pandaid'])
+
+    print 'job list cleaned'
     return jobs
 
 def cleanTaskList(tasks):
@@ -1411,6 +1416,9 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     if 'transformation' in job and job['transformation'] is not None and job['transformation'].startswith('http'):
         job['transformation'] = "<a href='%s'>%s</a>" % ( job['transformation'], job['transformation'].split('/')[-1] )
 
+    if 'metastruct' in job:
+        job['metadata'] = json.dumps(job['metastruct'], sort_keys=True, indent=4, separators=(',', ': '))
+
     ## Get job parameters
     jobparamrec = Jobparamstable.objects.filter(pandaid=pandaid)
     jobparams = None
@@ -1421,17 +1429,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     #    if len(jobparamrec) > 0:
     #        jobparams = jobparamrec[0].jobparameters
 
-    ## Get job metadata
-    metadatarec = Metatable.objects.filter(pandaid=pandaid)
-    metadata = None
-    if len(metadatarec) > 0:
-        metadata = metadatarec[0].metadata
-    else:
-        metadatarec = MetatableArch.objects.filter(pandaid=pandaid)
-        if len(metadatarec) > 0:
-            metadata = metadatarec[0].metadata
-
-    dsfiles = []
+        dsfiles = []
     ## If this is a JEDI job, look for job retries
     if 'jeditaskid' in job and job['jeditaskid'] > 0:
         ## Look for retries of this job
@@ -1543,7 +1541,6 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             'stderr' : stderr,
             'stdlog' : stdlog,
             'jobparams' : jobparams,
-            'metadata' : metadata,
             'jobid' : jobid,
             'lsstData' : lsstData,
             'logextract' : logextract,
@@ -4060,11 +4057,16 @@ def taskNotUpdated(request, query, state='submitted', hoursSinceUpdate=36, value
 
 def getErrorDescription(job, mode='html'):
     txt = ''
+    if 'metastruct' in job and job['metastruct']['exitCode'] != 0:
+        meta = job['metastruct']
+        txt += "%s: %s" % (meta['exitAcronym'], meta['exitMsg'])
+        return txt
+
     for errcode in errorCodes.keys():
         errval = 0
         if job.has_key(errcode):
             errval = job[errcode]
-            if errval != 0 and errval != '0' and errval != None:
+            if errval != 0 and errval != '0' and errval != None and errval != '':
                 try:
                     errval = int(errval)                                                                                                                                                      
                 except:
@@ -4427,3 +4429,33 @@ def buildGoogleTaskFlow(tasks):
             flowrows.append( [ 'File status %s' % filestat, cloud, n ] )
 
     return flowrows
+
+def addJobMetadata(jobs):
+    print 'adding metadata'
+    pids = []
+    for job in jobs:
+        if job['jobstatus'] == 'failed': pids.append(job['pandaid'])
+    query = {}
+    query['pandaid__in'] = pids
+
+    mdict = {}
+    ## Get job metadata
+    mrecs = Metatable.objects.filter(**query).values()
+    print 'got metadata'
+    for m in mrecs:
+        try:
+            mdict[m['pandaid']] = m['metadata']
+        except:
+            pass
+
+    for job in jobs:
+        if job['pandaid'] in mdict:
+            try:
+                job['metastruct'] = json.loads(mdict[job['pandaid']])
+            except:
+                pass
+                #job['metadata'] = mdict[job['pandaid']]
+    print 'added metadata'
+
+    return jobs
+
