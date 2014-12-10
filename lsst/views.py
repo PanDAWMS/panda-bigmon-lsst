@@ -137,6 +137,13 @@ def initRequest(request):
     ## Set default page lifetime in the http header, for the use of the front end cache
     request.session['max_age_minutes'] = 3
 
+    ## Is it an https connection with a legit cert presented by the user?
+    if 'SSL_CLIENT_S_DN' in os.environ:
+        request.session['userdn'] = os.environ['SSL_CLIENT_S_DN']
+        userrec = Users.objects.filter(dn=request.session['userdn']).values()
+        if len(userrec) > 0:
+            request.session['username'] = userrec[0]['name']
+
     ENV['MON_VO'] = ''
     viewParams['MON_VO'] = ''
     VOMODE = ''
@@ -3374,6 +3381,7 @@ def errorSummary(request):
 
     flowstruct = buildGoogleFlowDiagram(jobs=jobs)
 
+    request.session['max_age_minutes'] = 6
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         nosorturl = removeParam(request.get_full_path(), 'sortby')
         xurl = extensibleURL(request)
@@ -3403,7 +3411,9 @@ def errorSummary(request):
             'flowstruct' : flowstruct,
         }
         data.update(getContextVariables(request))
-        return render_to_response('errorSummary.html', data, RequestContext(request))
+        response = render_to_response('errorSummary.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
         for job in jobs:

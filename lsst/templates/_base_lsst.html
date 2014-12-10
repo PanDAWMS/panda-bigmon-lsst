@@ -224,7 +224,7 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
 
     <ul class="title-area">
         <li class="name">
-        <h1><a href="{% url 'index' %}">{% block title %}{% if viewParams.MON_VO %} {{ viewParams.MON_VO }} {% endif %} {{ APP_NAME }}{% endblock %}</a></h1>
+        <h1><a href="{% url 'index' %}">{% block title %}{% if viewParams.MON_VO %} {{ viewParams.MON_VO }} {% endif %}  PanDA {% endblock %}</a></h1>
         </li>
         <!-- Remove the class "menu-icon" to get rid of menu icon. Take out "Menu" to just have icon alone -->
         <li class="toggle-topbar menu-icon"><a href="#"><span></span></a></li>
@@ -235,7 +235,7 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
         <ul class="left">
 
             <li class="has-dropdown">
-            <a href="#">Dashboards</a>
+            <a href="#">Dash</a>
             <ul class="dropdown">
                 {% if viewParams.MON_VO == 'ATLAS' %}
                     <li><a href="{% url 'dashboard' %}">All jobs</a></li>
