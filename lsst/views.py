@@ -138,8 +138,8 @@ def initRequest(request):
     request.session['max_age_minutes'] = 3
 
     ## Is it an https connection with a legit cert presented by the user?
-    if 'SSL_CLIENT_S_DN' in os.environ:
-        request.session['userdn'] = os.environ['SSL_CLIENT_S_DN']
+    if 'SSL_CLIENT_S_DN' in request.META:
+        request.session['userdn'] = request.META['SSL_CLIENT_S_DN']
         userrec = Users.objects.filter(dn=request.session['userdn']).values()
         if len(userrec) > 0:
             request.session['username'] = userrec[0]['name']
