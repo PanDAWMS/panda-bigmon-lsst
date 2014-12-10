@@ -140,7 +140,7 @@ def initRequest(request):
     ## Is it an https connection with a legit cert presented by the user?
     if 'SSL_CLIENT_S_DN' in request.META:
         request.session['userdn'] = request.META['SSL_CLIENT_S_DN']
-        userrec = Users.objects.filter(dn=request.session['userdn']).values()
+        userrec = Users.objects.filter(dn__startswith=request.session['userdn']).values()
         if len(userrec) > 0:
             request.session['username'] = userrec[0]['name']
 
