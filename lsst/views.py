@@ -1,4 +1,4 @@
-import logging, re, json, commands, os
+import logging, re, json, commands, os, copy
 from datetime import datetime, timedelta
 import time
 import json
@@ -2022,7 +2022,7 @@ def siteInfo(request, site=''):
 
 def siteSummary(query, notime=True):
     summary = []
-    querynotime = query
+    querynotime = copy.deepcopy(query)
     if notime: del querynotime['modificationtime__range']
     summary.extend(Jobsactive4.objects.filter(**querynotime).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))     
     summary.extend(Jobsdefined4.objects.filter(**querynotime).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))

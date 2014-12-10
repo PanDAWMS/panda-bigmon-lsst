@@ -178,6 +178,7 @@
 <table>
 <tr class='tablesection'><th colspan=20> Recent job attributes </th></tr>
 {% for fdict in jobsumd %}
+{% if fdict.field %}
 <tr><th> {{ fdict.field }} ({{ fdict.list|length }}) </th><td>
 
 {% if fdict.list|length > 300 %}
@@ -189,6 +190,7 @@
 {% endfor %}
 {% endif %}
 </td></tr>
+{% endif %}
 {% endfor %}
 </table>
 
