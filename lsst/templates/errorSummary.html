@@ -14,7 +14,7 @@
 {% if sumd %}
 
 <b>{{ njobs }} jobs found. Show jobs: </b>
-&nbsp;  <a href="{% url 'jobList' %}?{{ requestString }}&jobstatus=failed|holding&hours={{hours}}&limit={{limit}}&mode=nodrop"><b>Failed and holding only</b></a>
+&nbsp;  <a href="{% url 'jobList' %}?{{ requestString }}&jobstatus=failed&hours={{hours}}&limit={{limit}}&mode=nodrop"><b>Failed</b></a>
 &nbsp; &nbsp;  <a href="{% url 'jobList' %}?{{ requestString }}&hours={{hours}}&limit={{limit}}&mode=nodrop"><b>All</b></a>
 
 {% if sortby == "count" %}
@@ -95,9 +95,9 @@
 <a name="summary"></a>
 <table>
 <tr class='tablesection'><th colspan=20> Overall error summary </th></tr>
-<tr><th>Category:code</th><th>Nerrors</th><th>Sample error description</th></tr>
+<tr><th>Category:code</th><th>Job list</th<th>Nerrors</th><th>Sample error description</th></tr>
 {% for errval in errsByCount %}
-<tr><th> <a href="{{xurl}}jobstatus=failed|holding&{{errval.codename}}={{errval.codeval}}&hours={{hours}}&display_limit=100"> {{ errval.error }} </a> </th> <td> {{ errval.count }} </td> <td> {{ errval.diag }} </td>  </tr>
+<tr><th> <a href="{{xurl}}jobstatus=failed&{{errval.codename}}={{errval.codeval}}&hours={{hours}}&display_limit=100"> {{ errval.error }} </a> </td><td> <a href="{{jobsurl}}jobstatus=failed&{{errval.codename}}={{errval.codeval}}&hours={{hours}}&display_limit=100"> jobs </a> </th> <td> {{ errval.count }} </td> <td> {{ errval.diag }} </td>  </tr>
 {% endfor %}
 </table>
 {% endif %}

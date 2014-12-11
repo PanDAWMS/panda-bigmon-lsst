@@ -492,8 +492,6 @@ def cleanJobList(jobl, mode='drop'):
             else:
                 job['outputfiletype'] = '?'
             #print job['destinationdblock'], job['outputfiletype']
-        else:
-            print 'no destinationdblock'
 
         try:
             job['homecloud'] = homeCloud[job['computingsite']]
