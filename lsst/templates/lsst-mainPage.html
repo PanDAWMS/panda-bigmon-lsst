@@ -87,6 +87,12 @@ Task ID </td><td><font size=-1><input id="jeditaskid" name="jeditaskid" size="25
 <tr><td><form action="{% url 'taskList' %}" method='get'>
 Task name </td><td><font size=-1><input id="taskname" name="taskname" size="25" maxlength="400" class="inputW" /><input type='hidden' name="display_limit" readonly="readonly" value=200 />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
 
+<tr><td><form action="{% url 'taskList' %}" method='get'>
+Request ID </td><td><font size=-1><input id="reqid" name="reqid" size="6" maxlength="10" class="inputW" /><input type='hidden' name="display_limit" readonly="readonly" value=200 />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
+
+<tr><td><form action="{% url 'taskList' %}" method='get'>
+Request ID range </td><td><font size=-1> from <input id="reqid_from" name="reqid_from" size="6" maxlength="10" class="input4" /> to <input id="reqid_to" name="reqid_to" size="6" maxlength="10" class="input4" /><input type='hidden' name="display_limit" readonly="readonly" value=200 />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
+
 <tr><td><form action="{% url 'taskList' %}" method='post'>
 {% csrf_token %}
 Tasks for campaign </td><td><font size=-1><input id="campaign" name="campaign" size="25" maxlength="400" class="inputW" /><input type='hidden' name="display_limit" readonly="readonly" value=200 /><input type='hidden' name="tasktype" readonly="readonly" value="prod" />&nbsp;<input type='submit' value='Submit' /></form></font></td></tr>
@@ -150,6 +156,7 @@ for over <font size=-1><input id="statenotupdated" name="statenotupdated" class=
 <div style="width:500px;height:100%;overflow:auto;word-wrap: break-word">
 <ul style="font-size:small">
 <!-- most recent at the top -->
+<li class="news">20141211: RequestID, requestID range added to search
 <li class="news">20141210: Use transformation json metadata for error info
 <li class="news">20141209: https with auto-login if browser presents cert known to PanDA
 <li class="news">20141209: User sessions to manage state and customizations
