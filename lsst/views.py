@@ -3382,6 +3382,7 @@ def errorSummary(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         nosorturl = removeParam(request.get_full_path(), 'sortby')
         xurl = extensibleURL(request)
+        jobsurl = xurl.replace('/errors/','/jobs/')
         data = {
             'prefix': getPrefix(request),
             'request' : request,
@@ -3394,6 +3395,7 @@ def errorSummary(request):
             'limit' : JOB_LIMIT,
             'user' : None,
             'xurl' : xurl,
+            'jobsurl' : jobsurl,
             'nosorturl' : nosorturl,
             'errsByCount' : errsByCount,
             'errsBySite' : errsBySite,
