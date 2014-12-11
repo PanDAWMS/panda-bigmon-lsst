@@ -1429,7 +1429,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     #    if len(jobparamrec) > 0:
     #        jobparams = jobparamrec[0].jobparameters
 
-        dsfiles = []
+    dsfiles = []
     ## If this is a JEDI job, look for job retries
     if 'jeditaskid' in job and job['jeditaskid'] > 0:
         ## Look for retries of this job
