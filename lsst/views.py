@@ -4119,11 +4119,11 @@ def taskNameDict(jobs):
         jeditasks = JediTasks.objects.filter(**tq).values('taskname', 'jeditaskid')
         for t in jeditasks:
             tasknamedict[t['jeditaskid']] = t['taskname']
-    if len(taskidl) > 0:
-        tq = { 'taskid__in' : taskidl }
-        oldtasks = Etask.objects.filter(**tq).values('taskname', 'taskid')
-        for t in oldtasks:
-            tasknamedict[t['taskid']] = t['taskname']
+    #if len(taskidl) > 0:
+    #    tq = { 'taskid__in' : taskidl }
+    #    oldtasks = Etask.objects.filter(**tq).values('taskname', 'taskid')
+    #    for t in oldtasks:
+    #        tasknamedict[t['taskid']] = t['taskname']
     return tasknamedict
 
 class DateEncoder(json.JSONEncoder):
