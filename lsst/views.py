@@ -3297,6 +3297,10 @@ def errorSummary(request):
     valid, response = initRequest(request)
     if not valid: return response
 
+    testjobs = False
+    if 'prodsourcelabel' in requestParams and requestParams['prodsourcelabel'].lower().find('test') >= 0:
+        testjobs = True
+
     jobtype = ''
     if 'jobtype' in requestParams:
         jobtype = requestParams['jobtype']
@@ -3315,9 +3319,6 @@ def errorSummary(request):
         limit = 50000
     query = setupView(request, hours=hours, limit=limit)
 
-    testjobs = False
-    if 'prodsourcelabel' in requestParams and requestParams['prodsourcelabel'].lower().find('test') >= 0:
-        testjobs = True
     if not testjobs: query['jobstatus__in'] = [ 'failed', 'holding' ]
 
     jobs = []
