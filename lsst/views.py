@@ -3311,7 +3311,10 @@ def errorSummary(request):
     elif testjobs:
         jobtype = 'rc_test'
 
-    if jobtype.startswith('anal'):
+    if jobtype == '':
+        hours = 3
+        limit = 50000
+    elif jobtype.startswith('anal'):
         hours = 6
         limit = 50000
     else:
