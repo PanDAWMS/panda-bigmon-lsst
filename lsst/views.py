@@ -2237,9 +2237,9 @@ def wnInfo(request,site,wnname='all'):
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
-def dashSummary(request, hours, view='all', cloudview='region', notime=True):
+def dashSummary(request, hours, limit=999999, view='all', cloudview='region', notime=True):
     pilots = getPilotCounts(view)
-    query = setupView(request,hours=hours,limit=999999,opmode=view)
+    query = setupView(request,hours=hours,limit=limit,opmode=view)
     if VOMODE == 'atlas' and len(requestParams) == 0:
         cloudinfol = Cloudconfig.objects.filter().exclude(name='CMS').exclude(name='OSG').values('name','status')
     else:
@@ -2400,8 +2400,8 @@ def dashSummary(request, hours, view='all', cloudview='region', notime=True):
                 clouds[cloud]['summary'] = sorted(clouds[cloud]['summary'], key=lambda x:x['pctfail'],reverse=True)
     return fullsummary
 
-def dashTaskSummary(request, hours, view='all'):
-    query = setupView(request,hours=hours,limit=999999,opmode=view) 
+def dashTaskSummary(request, hours, limit=999999, view='all'):
+    query = setupView(request,hours=hours,limit=limit,opmode=view) 
 
     tasksummarydata = taskSummaryData(query)
     tasks = {}
@@ -3296,16 +3296,7 @@ def getTaskName(tasktype,taskid):
 def errorSummary(request):
     valid, response = initRequest(request)
     if not valid: return response
-    hours = 12
-    query = setupView(request, hours=hours, limit=50000)
-    if 'sortby' in requestParams:
-        sortby = requestParams['sortby']
-    else:
-        sortby = 'alpha'
-    testjobs = False
-    if 'prodsourcelabel' in requestParams and requestParams['prodsourcelabel'].lower().find('test') >= 0:
-        testjobs = True
-    if not testjobs: query['jobstatus__in'] = [ 'failed', 'holding' ]
+
     jobtype = ''
     if 'jobtype' in requestParams:
         jobtype = requestParams['jobtype']
@@ -3315,6 +3306,20 @@ def errorSummary(request):
         jobtype = 'production'
     elif testjobs:
         jobtype = 'rc_test'
+
+    if jobtype.startswith('anal'):
+        hours = 6
+        limit = 50000
+    else:
+        hours = 12
+        limit = 50000
+    query = setupView(request, hours=hours, limit=limit)
+
+    testjobs = False
+    if 'prodsourcelabel' in requestParams and requestParams['prodsourcelabel'].lower().find('test') >= 0:
+        testjobs = True
+    if not testjobs: query['jobstatus__in'] = [ 'failed', 'holding' ]
+
     jobs = []
     values = 'produsername', 'pandaid', 'cloud','computingsite','cpuconsumptiontime','jobstatus','transformation','prodsourcelabel','specialhandling','vo','modificationtime', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'currentpriority', 'computingelement'
     jobs.extend(Jobsdefined4.objects.filter(**query)[:JOB_LIMIT].values(*values))
@@ -3334,7 +3339,7 @@ def errorSummary(request):
     #notime = True
     #if testjobs: notime = False
     notime = False #### behave as it used to before introducing notime for dashboards. Pull only 12hrs.
-    statesummary = dashSummary(request, hours, view=jobtype, cloudview='region', notime=notime)
+    statesummary = dashSummary(request, hours, limit=limit, view=jobtype, cloudview='region', notime=notime)
     sitestates = {}
     savestates = [ 'finished', 'failed', 'cancelled', 'holding', ]
     for cloud in statesummary:
@@ -3355,7 +3360,7 @@ def errorSummary(request):
     taskname = ''
     if not testjobs:
         ## Build the task state summary and add task state info to task error summary
-        taskstatesummary = dashTaskSummary(request, hours, view=jobtype)
+        taskstatesummary = dashTaskSummary(request, hours, limit=limit, view=jobtype)
         taskstates = {}
         for task in taskstatesummary:
             taskid = task['taskid']
@@ -3373,6 +3378,11 @@ def errorSummary(request):
 
         if 'jeditaskid' in requestParams:
             taskname = getTaskName('jeditaskid',requestParams['jeditaskid'])
+
+    if 'sortby' in requestParams:
+        sortby = requestParams['sortby']
+    else:
+        sortby = 'alpha'
 
     flowstruct = buildGoogleFlowDiagram(jobs=jobs)
 
