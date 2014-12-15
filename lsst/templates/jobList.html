@@ -103,15 +103,17 @@ Sort by
 {% endif %}
 
 {% if sortby == "time-ascending" %}
-<b>ascending mod time</b>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>
+<b>ascending mod time</b>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration">duration</a>
 {% elif sortby == "time-descending" %}
-<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <b>descending mod time</b>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>
+<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <b>descending mod time</b>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration">duration</a>
 {% elif sortby == "priority" %}
-<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <b>priority</b>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>
+<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <b>priority</b>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration">duration</a>
 {% elif sortby == "attemptnr" %}
-<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <b>attemptnr</b>
+<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <b>attemptnr</b>, <a href="{{nosorturl}}sortby=duration">duration</a>
+{% elif sortby == "duration" %}
+<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <b>duration</b>
 {% else %}
-<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>
+<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration">duration</a>
 {% endif %}
 </font>
 </th></tr>

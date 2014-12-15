@@ -516,6 +516,7 @@ def cleanJobList(jobl, mode='drop'):
             else:
                 job['jobinfo'] = 'Event service job'
         job['duration'] = ""
+        job['durationsec'] = 0
         #if job['jobstatus'] in ['finished','failed','holding']:
         if 'endtime' in job and 'starttime' in job and job['starttime']:
             starttime = job['starttime']
@@ -523,10 +524,11 @@ def cleanJobList(jobl, mode='drop'):
                 endtime = job['endtime']
             else:
                 endtime = timezone.now()
-            duration = endtime - starttime
+            duration = max(endtime - starttime, timedelta(seconds=0))
             ndays = duration.days
             strduration = str(timedelta(seconds=duration.seconds))
             job['duration'] = "%s:%s" % ( ndays, strduration )
+            job['durationsec'] = duration.seconds
         job['waittime'] = ""
         #if job['jobstatus'] in ['running','finished','failed','holding','cancelled','transferring']:
         if 'creationtime' in job and 'starttime' in job and job['creationtime']:
@@ -1179,6 +1181,8 @@ def jobList(request, mode=None, param=None):
             jobs = sorted(jobs, key=lambda x:x['currentpriority'], reverse=True)
         elif sortby == 'attemptnr':
             jobs = sorted(jobs, key=lambda x:x['attemptnr'], reverse=True)
+        elif sortby == 'duration':
+            jobs = sorted(jobs, key=lambda x:x['durationsec'], reverse=True)
         elif sortby == 'PandaID':
             pass
     else:
