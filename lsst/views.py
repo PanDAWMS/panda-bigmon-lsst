@@ -2557,10 +2557,12 @@ def dashboard(request, view='production'):
     cloudview = 'cloud'
     if 'cloudview' in requestParams:
         cloudview = requestParams['cloudview']
-    if view == 'analysis': cloudview = 'region'
-    elif view != 'production': cloudview = 'N/A'
+    if view == 'analysis':
+        cloudview = 'region'
+    elif view != 'production':
+        cloudview = 'N/A'
 
-    fullsummary = dashSummary(request, hours, view, cloudview)
+    fullsummary = dashSummary(request, hours=hours, view=view, cloudview=cloudview)
 
     cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view, taskdays=taskdays)
 
