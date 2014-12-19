@@ -1078,9 +1078,28 @@ def errorInfo(job, nchars=300, mode='html'):
     else:
         return err1[:nchars]
 
+def jobParamList(request):
+    idlist = []
+    if 'pandaid' in requestParams:
+        idstring = requestParams['pandaid']
+        idstringl = idstring.split(',')
+        for id in idstringl:
+            idlist.append(int(id))
+    query = {}
+    query['pandaid__in'] = idlist
+    jobparams = Jobparamstable.objects.filter(**query).values()
+    print jobparams
+    if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        return HttpResponse(json.dumps(jobparams, cls=DateEncoder), mimetype='text/html')
+    else:
+        return HttpResponse('not supported', mimetype='text/html')
+
 def jobList(request, mode=None, param=None):
     valid, response = initRequest(request)
     if not valid: return response
+    if 'dump' in requestParams and requestParams['dump'] == 'parameters':
+        return jobParamList(request)
+
     eventservice = False
     if 'mode' in requestParams and requestParams['mode'] == 'eventservice':
         eventservice = True

@@ -26,6 +26,10 @@ Job data can be retrieved in json format with curl so that it can be used progra
 <br><font size=-1><code>
 curl -H 'Accept: application/json' -H 'Content-Type: application/json' "http://bigpanda.cern.ch/jobs/?transfertype=fax&hours=1"
 </code></font>
+If it is job parameters you want, that is maintained in a separate table, and requires a different query:
+<br><font size=-1><code>
+curl -H 'Accept: application/json' -H 'Content-Type: application/json' "http://bigpanda.cern.ch/jobs/?dump=parameters&pandaid=1234,1235,1236"
+</code></font>
 </p>
 
 </td>
