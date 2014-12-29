@@ -10,22 +10,44 @@
 {% if viewParams.MON_VO == 'ATLAS' %}
 
 <table border='0'>
+<tr><td colspan=10>
+<b>Global concurrent running job core counts, all sites, all job types, by cloud, last 1, 7, 30 days</b>
+</td></tr>
 <tr>
-
 <td width='30%' height='365' class="hide-for-small">
 <!-- Day: -->
-<a target='_blank' href='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&activities=Data+Processing&activities=Extra+Production&activities=Group+Production&activities=MC+Reconstruction&activities=MC+Simulation&activities=Others&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=last24&granularity=Hourly&generic=3&sortBy=3&series=All&type=rmulticores'>
-<img width='447' height='363' src='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&activities=Data+Processing&activities=Extra+Production&activities=Group+Production&activities=MC+Reconstruction&activities=MC+Simulation&activities=Others&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=last24&granularity=Hourly&generic=3&sortBy=3&series=All&type=rmulticores' alt='Daily World Production Queues'></a>
+<a target='_blank' href='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=last24&granularity=Hourly&generic=3&sortBy=3&series=All&type=rmulticores'>
+<img width='447' height='363' src='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=last24&granularity=Hourly&generic=3&sortBy=3&series=All&type=rmulticores' alt='Daily World All Queues'></a>
 </td>
 <td width='30%' height='365'>
 <!-- Week -->
-<a target='_blank' href='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&activities=Data+Processing&activities=Extra+Production&activities=Group+Production&activities=MC+Reconstruction&activities=MC+Simulation&activities=Others&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastWeek&granularity=Daily&generic=3&sortBy=3&series=All&type=rmulticores'>
-<img width='447' height='363' src='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&activities=Data+Processing&activities=Extra+Production&activities=Group+Production&activities=MC+Reconstruction&activities=MC+Simulation&activities=Others&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastWeek&granularity=Daily&generic=3&sortBy=3&series=All&type=rmulticores' alt='Weekly World Production Queues'></a>
+<a target='_blank' href='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastWeek&granularity=Daily&generic=3&sortBy=3&series=All&type=rmulticores'>
+<img width='447' height='363' src='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastWeek&granularity=Daily&generic=3&sortBy=3&series=All&type=rmulticores' alt='Weekly World All Queues'></a>
 </td>
 <td width='30%' height='365'  class="hide-for-small">
 <!-- Month -->
-<a target='_blank' href='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&activities=Data+Processing&activities=Extra+Production&activities=Group+Production&activities=MC+Reconstruction&activities=MC+Simulation&activities=Others&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastMonth&granularity=Daily&generic=3&sortBy=3&series=All&type=rmulticores'>
-<img width='447' height='363' src='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&activities=Data+Processing&activities=Extra+Production&activities=Group+Production&activities=MC+Reconstruction&activities=MC+Simulation&activities=Others&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastMonth&granularity=Daily&generic=3&sortBy=3&series=All&type=rmulticores' alt='Monthly World Production Queues'></a>
+<a target='_blank' href='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastMonth&granularity=Daily&generic=3&sortBy=3&series=All&type=rmulticores'>
+<img width='447' height='363' src='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastMonth&granularity=Daily&generic=3&sortBy=3&series=All&type=rmulticores' alt='Monthly World All Queues'></a>
+</td>
+</tr>
+<tr><td colspan=10>
+<b>Global concurrent running job core counts, all sites, all job types, by activity, last 1, 7, 30 days</b>
+</td></tr>
+<tr>
+<td width='30%' height='365' class="hide-for-small">
+<!-- Day: -->
+<a target='_blank' href='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=last24&granularity=Hourly&generic=3&sortBy=10&series=All&type=rmulticores'>
+<img width='447' height='363' src='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=last24&granularity=Hourly&generic=3&sortBy=10&series=All&type=rmulticores' alt='Daily World All Queues'></a>
+</td>
+<td width='30%' height='365'>
+<!-- Week -->
+<a target='_blank' href='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastWeek&granularity=Daily&generic=3&sortBy=10&series=All&type=rmulticores'>
+<img width='447' height='363' src='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastWeek&granularity=Daily&generic=3&sortBy=10&series=All&type=rmulticores' alt='Weekly World All Queues'></a>
+</td>
+<td width='30%' height='365'  class="hide-for-small">
+<!-- Month -->
+<a target='_blank' href='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastMonth&granularity=Daily&generic=3&sortBy=10&series=All&type=rmulticores'>
+<img width='447' height='363' src='http://dashb-atlas-job.cern.ch/dashboard/request.py/jobnumbers_individual?sites=All+Sites&sitesCat=All+Countries&resourcetype=All&sitesSort=0&sitesCatSort=0&start=null&end=null&timeRange=lastMonth&granularity=Daily&generic=3&sortBy=10&series=All&type=rmulticores' alt='Monthly World All Queues'></a>
 </td>
 </tr>
 </table>
@@ -159,6 +181,7 @@ for over <font size=-1><input id="statenotupdated" name="statenotupdated" class=
 <div style="width:500px;height:100%;overflow:auto;word-wrap: break-word">
 <ul style="font-size:small">
 <!-- most recent at the top -->
+<li class="news">20141229: Main page plots show all jobs by cloud and activity
 <li class="news">20141219: curl dumps of job params. See job list page help.
 <li class="news">20141216: Request ID shown for jobs, range search added
 <li class="news">20141215: Sort by duration option for job lists
