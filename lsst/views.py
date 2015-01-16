@@ -2789,6 +2789,7 @@ def taskInfo(request, jeditaskid=0):
         else:
             ## Exclude merge jobs. Can be misleading. Can show failures with no downstream successes.
             exclude = {'processingtype' : 'pmerge' }
+            print 'job query', query
             jobsummary = jobSummary2(query, exclude=exclude)
     elif 'taskname' in requestParams:
         querybyname = {'taskname' : requestParams['taskname'] }
@@ -3037,13 +3038,18 @@ def jobSummaryForTasks(request):
 
 def jobSummary2(query, exclude={}, mode='drop'):
     jobs = []
-    jobs.extend(Jobsdefined4.objects.filter(**query).exclude(**exclude).values('pandaid','jobstatus','jeditaskid','processingtype'))
-    jobs.extend(Jobswaiting4.objects.filter(**query).exclude(**exclude).values('pandaid','jobstatus','jeditaskid','processingtype'))
-    jobs.extend(Jobsactive4.objects.filter(**query).exclude(**exclude).values('pandaid','jobstatus','jeditaskid','processingtype'))
-    jobs.extend(Jobsarchived4.objects.filter(**query).exclude(**exclude).values('pandaid','jobstatus','jeditaskid','processingtype'))
-    jobs.extend(Jobsarchived.objects.filter(**query).exclude(**exclude).values('pandaid','jobstatus','jeditaskid','processingtype'))
-
-    if mode == 'drop':
+    jobs.extend(Jobsdefined4.objects.filter(**query).exclude(**exclude).\
+        values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobswaiting4.objects.filter(**query).exclude(**exclude).\
+        values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobsactive4.objects.filter(**query).exclude(**exclude).\
+        values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobsarchived4.objects.filter(**query).exclude(**exclude).\
+        values('pandaid','jobstatus','jeditaskid','processingtype'))
+    jobs.extend(Jobsarchived.objects.filter(**query).exclude(**exclude).\
+            values('pandaid','jobstatus','jeditaskid','processingtype'))
+    if mode == 'drop' and len(jobs) < 20000:
+        print 'filtering retries'
         ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
         taskids = {}
         for job in jobs:
@@ -3054,6 +3060,7 @@ def jobSummary2(query, exclude={}, mode='drop'):
                 retryquery = {}
                 retryquery['jeditaskid'] = task
                 retries = JediJobRetryHistory.objects.filter(**retryquery).order_by('newpandaid').values()
+            print 'got the retries', len(jobs), len(retries)
             newjobs = []
             for job in jobs:
                 dropJob = 0
@@ -3069,6 +3076,7 @@ def jobSummary2(query, exclude={}, mode='drop'):
                     droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
             droplist = sorted(droplist, key=lambda x:-x['pandaid'])
             jobs = newjobs
+        print 'done filtering'
 
     jobstates = []
     global statelist
