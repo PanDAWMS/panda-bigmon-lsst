@@ -38,6 +38,7 @@ from core.common.models import JediEvents
 from core.common.models import JediDatasets
 from core.common.models import JediDatasetContents
 from core.common.models import JediWorkQueue
+from core.common.models import RequestStat
 from core.common.settings.config import ENV
 
 from settings.local import dbaccess
@@ -131,6 +132,9 @@ def initRequest(request):
         request.session['debug'] = True
     else:
         request.session['debug'] = False
+    
+    ##self monitor
+    initSelfMonitor(request)
 
     if len(hostname) > 0: request.session['hostname'] = hostname
 
@@ -1007,6 +1011,8 @@ def mainPage(request):
             'debuginfo' : debuginfo
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         response = render_to_response('lsst-mainPage.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
@@ -1027,6 +1033,8 @@ def helpPage(request):
             'requestParams' : requestParams,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('completeHelp.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse('json', mimetype='text/html')
@@ -1249,6 +1257,8 @@ def jobList(request, mode=None, param=None):
             'flowstruct' : flowstruct,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         if eventservice:
             return render_to_response('jobListES.html', data, RequestContext(request))
         else:
@@ -1323,6 +1333,8 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             'job': None,
             'jobid' : jobid,
         }
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('jobInfo.html', data, RequestContext(request))
 
     job = {}
@@ -1565,6 +1577,8 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             'esjobstr': esjobstr,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         if isEventService(job):
             return render_to_response('jobInfoES.html', data, RequestContext(request))
         else:
@@ -1693,6 +1707,8 @@ def userList(request):
             'phigh' : PHIGH,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('userList.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = sumd
@@ -1831,6 +1847,8 @@ def userInfo(request, user=''):
             'tasksumd' : tasksumd,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('userInfo.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = sumd
@@ -1933,6 +1951,8 @@ def siteList(request):
         }
         if 'cloud' in requestParams: data['mcpsites'] = mcpsites[requestParams['cloud']]
         #data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('siteList.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = sites
@@ -2019,6 +2039,8 @@ def siteInfo(request, site=''):
             'njobhours' : njobhours,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('siteInfo.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
@@ -2243,6 +2265,8 @@ def wnInfo(request,site,wnname='all'):
             'hours' : LAST_N_HOURS_MAX,
             'errthreshold' : errthreshold,
         }
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('wnInfo.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
@@ -2600,6 +2624,8 @@ def dashboard(request, view='production'):
             'transrclouds' : transrclouds,
             'hoursSinceUpdate' : hoursSinceUpdate,
         }
+        ##self monitor
+        endSelfMonitor(request)
         response = render_to_response('dashboard.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
@@ -2662,6 +2688,8 @@ def dashTasks(request, hours, view='production'):
             'taskJobSummary' : taskJobSummary[:display_limit],
             'display_limit' : display_limit,
         }
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('dashboard.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
@@ -2759,6 +2787,8 @@ def taskList(request):
             'display_limit' : display_limit,
             'flowstruct' : flowstruct,
         }
+        ##self monitor
+        endSelfMonitor(request)
         if 'eventservice' in requestParams:
             return render_to_response('taskListES.html', data, RequestContext(request))
         else:
@@ -2984,6 +3014,8 @@ def taskInfo(request, jeditaskid=0):
             'outctrs' : outctrs,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         if eventservice:
             return render_to_response('taskInfoES.html', data, RequestContext(request))       
         else:
@@ -3443,6 +3475,8 @@ def errorSummary(request):
             'flowstruct' : flowstruct,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         response = render_to_response('errorSummary.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
@@ -3563,6 +3597,8 @@ def incidentList(request):
             'hours' : hours,
             'ninc' : len(incidents),
         }
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('incidents.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = incidents
@@ -3685,6 +3721,8 @@ def pandaLogger(request):
             'hours' : hours,
             'getrecs' : getrecs,
         }
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('pandaLogger.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = incidents
@@ -3760,6 +3798,8 @@ def workingGroups(request):
             'days' : days,
             'errthreshold' : errthreshold,
         }
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('workingGroups.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
@@ -3826,6 +3866,8 @@ def datasetInfo(request):
             'columns' : columns,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('datasetInfo.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(dsrec), mimetype='text/html')
@@ -3851,6 +3893,8 @@ def datasetList(request):
             'datasets' : dsets,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('datasetList.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(dsrec), mimetype='text/html')
@@ -3928,6 +3972,8 @@ def fileInfo(request):
             'columns' : columns,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('fileInfo.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(dsrec), mimetype='text/html')
@@ -3976,6 +4022,8 @@ def fileList(request):
             'nfiles' : nfiles,
         }
         data.update(getContextVariables(request))
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('fileList.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(files), mimetype='text/html')
@@ -4000,6 +4048,8 @@ def workQueues(request):
             'queues': queues,
             'xurl' : extensibleURL(request),
         }
+        ##self monitor
+        endSelfMonitor(request)
         return render_to_response('workQueues.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(queues), mimetype='text/html')
@@ -4493,4 +4543,35 @@ def addJobMetadata(jobs):
     print 'added metadata'
 
     return jobs
+##self monitor
 
+def initSelfMonitor(request):
+    import psutil
+    server=request.META['SERVER_NAME']
+    remote=request.META['REMOTE_ADDR']
+    urls='http://'+request.META['SERVER_NAME']+request.META['REQUEST_URI']
+    qtime =str(timezone.now())
+    load=psutil.cpu_percent(interval=1)
+    mem=psutil.virtual_memory().percent
+
+    request.session["qtime"]   = qtime
+    request.session["load"]    = load
+    request.session["remote"]  = remote
+    request.session["mem"]     = mem
+    request.session["server"]  = server
+    request.session["urls"]  = urls
+
+def endSelfMonitor(request):
+    qduration=str(timezone.now())
+    request.session['qduration'] = qduration
+    reqs = RequestStat(
+            server = request.session['server'],
+            qtime = request.session['qtime'],
+            load = request.session['load'],
+            mem = request.session['mem'],
+            qduration = request.session['qduration'],
+            remote = request.session['remote'],
+            urls = request.session['urls'],
+            description=' '
+    )
+    reqs.save()
