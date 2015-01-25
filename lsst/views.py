@@ -132,11 +132,11 @@ def initRequest(request):
         request.session['debug'] = True
     else:
         request.session['debug'] = False
-    
+
+    if len(hostname) > 0: request.session['hostname'] = hostname  
+ 
     ##self monitor
     initSelfMonitor(request)
-
-    if len(hostname) > 0: request.session['hostname'] = hostname
 
     ## Set default page lifetime in the http header, for the use of the front end cache
     request.session['max_age_minutes'] = 3
@@ -4547,7 +4547,7 @@ def addJobMetadata(jobs):
 
 def initSelfMonitor(request):
     import psutil
-    server=request.META['SERVER_NAME']
+    server=request.session['hostname'],
     remote=request.META['REMOTE_ADDR']
     urls='http://'+request.META['SERVER_NAME']+request.META['REQUEST_URI']
     qtime =str(timezone.now())
@@ -4558,14 +4558,13 @@ def initSelfMonitor(request):
     request.session["load"]    = load
     request.session["remote"]  = remote
     request.session["mem"]     = mem
-    request.session["server"]  = server
     request.session["urls"]  = urls
 
 def endSelfMonitor(request):
     qduration=str(timezone.now())
     request.session['qduration'] = qduration
     reqs = RequestStat(
-            server = request.session['server'],
+            server = request.session['hostname'],
             qtime = request.session['qtime'],
             load = request.session['load'],
             mem = request.session['mem'],
