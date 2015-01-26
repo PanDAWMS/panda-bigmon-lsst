@@ -4549,7 +4549,10 @@ def initSelfMonitor(request):
     import psutil
     server=request.session['hostname'],
     remote=request.META['REMOTE_ADDR']
-    urls='http://'+request.META['SERVER_NAME']+request.META['REQUEST_URI']
+    try:
+        urls='http://'+request.META['SERVER_NAME']+request.META['REQUEST_URI']
+    except:
+        urls='localhost'
     qtime =str(timezone.now())
     load=psutil.cpu_percent(interval=1)
     mem=psutil.virtual_memory().percent
