@@ -133,10 +133,10 @@ def initRequest(request):
     else:
         request.session['debug'] = False
 
-    if len(hostname) > 0: request.session['hostname'] = hostname  
- 
+    if len(hostname) > 0: request.session['hostname'] = hostname
     ##self monitor
     initSelfMonitor(request)
+
 
     ## Set default page lifetime in the http header, for the use of the front end cache
     request.session['max_age_minutes'] = 3
@@ -192,9 +192,35 @@ def initRequest(request):
         errorFields, errorCodes, errorStages = codes.getErrorCodes()
     return True, None
 
-def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
+
+def preprocessWildCardString(strToProcess, fieldToLookAt):
+    if (len(strToProcess)==0):
+        return '(1=1)'
+    cardParametersRaw = strToProcess.split('*')
+    cardParameters = [s for s in cardParametersRaw if len(s) > 1]
+    countParameters = len(cardParameters)
+    if (countParameters==0):
+        return '(1=1)'
+    currentParCount = 1
+    extraQueryString = '('
+    for parameter in cardParameters:
+        extraQueryString += '( UPPER('+fieldToLookAt+')  LIKE UPPER (TRANSLATE(\'%%' + parameter +'%%\' USING NCHAR_CS)))'
+        if currentParCount < countParameters:
+            extraQueryString += ' AND '
+        currentParCount+=1    
+    extraQueryString += ')'
+    return extraQueryString
+
+
+def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardExt=False):
     global viewParams
     global LAST_N_HOURS_MAX, JOB_LIMIT
+    
+    wildSearchFields = []
+    for field in Jobsactive4._meta.get_all_field_names():
+        if (Jobsactive4._meta.get_field(field).get_internal_type() == 'CharField'):
+            wildSearchFields.append(field)
+    
     deepquery = False
     fields = standard_fields
     if 'limit' in requestParams:
@@ -397,25 +423,12 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
                                 query['pandaid'] = int(pid)
                         except:
                             query['jobname'] = requestParams['pandaid']
-                    elif param in ( 'computingsite', ):
-                        ## support wildcarding
-                        if requestParams[param].startswith('*') and requestParams[param].endswith('*'):
-                            query['%s__icontains' % param] = requestParams[param].replace('*','')
-                        elif requestParams[param].endswith('*'):
-                            query['%s__istartswith' % param] = requestParams[param].replace('*','')
-                        elif requestParams[param].startswith('*'):
-                            query['%s__iendswith' % param] = requestParams[param].replace('*','')
-                        elif requestParams[param] == 'None':
-                            query[param] = None
-                        else:
-                            query[param] = requestParams[param]
-                    elif requestParams[param].find('|') > 0:
-                        vals = requestParams[param].split('|')
-                        query[param+"__in"] = vals
                     elif param == 'jobstatus' and requestParams[param] == 'finished' and  ( ('mode' in requestParams and requestParams['mode'] == 'eventservice') or ('jobtype' in requestParams and requestParams['jobtype'] == 'eventservice') ):
                         query['jobstatus__in'] = ( 'finished', 'cancelled' )
                     else:
-                        query[param] = requestParams[param]
+                        if (param not in wildSearchFields):
+                            query[param] = requestParams[param]
+
     if 'jobtype' in requestParams:
         jobtype = requestParams['jobtype']
     else:
@@ -431,8 +444,54 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job'):
         query['specialhandling__in'] = ( 'eventservice', 'esmerge' )
     elif jobtype.find('test') >= 0:
         query['prodsourcelabel__icontains'] = jobtype
-    print 'Query:', query
-    return query
+
+    if (wildCardExt == False):
+        return query
+
+    extraQueryString = ''
+    wildSearchFields = (set(wildSearchFields) & set(requestParams.keys()))
+
+    lenWildSearchFields = len(wildSearchFields)
+    currentField = 1
+
+    for currenfField in wildSearchFields:
+        extraQueryString += '('
+        wildCards = requestParams[currenfField].split('|')
+        countCards = len(wildCards)
+         
+        currentCardCount = 1
+        for card in wildCards:
+            extraQueryString += preprocessWildCardString(card, currenfField)
+            if (currentCardCount < countCards): extraQueryString +=' OR '
+            currentCardCount += 1
+
+        extraQueryString += ')'
+        
+        if (currentField < lenWildSearchFields): extraQueryString +=' AND '
+        currentField += 1
+    
+    if ('jobparam' in requestParams.keys()):
+        jobParWildCards = requestParams['jobparam'].split('|')
+        jobParCountCards = len(jobParWildCards)
+        jobParCurrentCardCount = 1
+        extraJobParCondition = '('
+        for card in jobParWildCards:
+            extraJobParCondition += preprocessWildCardString(card, 'JOBPARAMETERS')
+            if (jobParCurrentCardCount < jobParCountCards): extraJobParCondition +=' OR '
+            jobParCurrentCardCount += 1
+        extraJobParCondition += ')'
+        
+        pandaIDs = []
+        jobParamQuery = { 'modificationtime__range' : [startdate, enddate] }
+        jobs = Jobparamstable.objects.filter(**jobParamQuery).extra(where=[extraJobParCondition]).values('pandaid')
+        for values in jobs:
+            pandaIDs.append(values['pandaid'])
+        
+        query['pandaid__in'] = pandaIDs
+    if (len(extraQueryString) < 2):
+        extraQueryString = '1=1'        
+
+    return (query,extraQueryString)
 
 def cleanJobList(jobl, mode='drop'):
     if 'mode' in requestParams and requestParams['mode'] == 'nodrop': mode='nodrop'
@@ -1101,6 +1160,7 @@ def jobParamList(request):
         return HttpResponse(json.dumps(jobparams, cls=DateEncoder), mimetype='text/html')
     else:
         return HttpResponse('not supported', mimetype='text/html')
+    
 
 def jobList(request, mode=None, param=None):
     valid, response = initRequest(request)
@@ -1113,7 +1173,7 @@ def jobList(request, mode=None, param=None):
         eventservice = True
     if 'jobtype' in requestParams and requestParams['jobtype'] == 'eventservice':
         eventservice = True
-    query = setupView(request)
+    query,wildCardExtension = setupView(request, wildCardExt=True)
     if 'batchid' in requestParams:
         query['batchid'] = requestParams['batchid']
     jobs = []
@@ -1130,14 +1190,18 @@ def jobList(request, mode=None, param=None):
         jobs = stateNotUpdated(request, state='transferring', values=values)
     elif 'statenotupdated' in requestParams:
         jobs = stateNotUpdated(request, values=values)
+#    elif 'searchparams' in requestParams:
+        
     else:
-        jobs.extend(Jobsdefined4.objects.filter(**query)[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobsactive4.objects.filter(**query)[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobswaiting4.objects.filter(**query)[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobsarchived4.objects.filter(**query)[:JOB_LIMIT].values(*values))
-        if 'jobstatus' not in requestParams or requestParams['jobstatus'] in ( 'finished', 'failed', 'cancelled' ):
+        #print Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM < '+ str(JOB_LIMIT)]).query
+        jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM < '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM < '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM < '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM < '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+        
+        if (len(wildCardExtension) < 4) & ('jobstatus' not in requestParams or requestParams['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
             jobs.extend(Jobsarchived.objects.filter(**query)[:JOB_LIMIT].values(*values))
-
+    
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
     taskids = {}
     for job in jobs:
@@ -1219,6 +1283,52 @@ def jobList(request, mode=None, param=None):
     ## set up google flow diagram
     flowstruct = buildGoogleFlowDiagram(jobs=jobs)
 
+    if (('datasets' in requestParams) and (requestParams['datasets'] == 'yes') and (request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json')):
+        for job in jobs:
+            files = []
+            files.extend(JediDatasetContents.objects.filter(pandaid=pandaid).order_by('type').values())
+            ninput = 0
+            if len(files) > 0:
+                for f in files:
+                    if f['type'] == 'input': ninput += 1
+                    f['fsizemb'] = "%0.2f" % (f['fsize']/1000000.)
+                    dsets = JediDatasets.objects.filter(datasetid=f['datasetid']).values()
+                    if len(dsets) > 0:
+                        f['datasetname'] = dsets[0]['datasetname']
+            if True:
+            #if ninput == 0:
+                files.extend(Filestable4.objects.filter(pandaid=pandaid).order_by('type').values())
+                if len(files) == 0:
+                    files.extend(FilestableArch.objects.filter(pandaid=pandaid).order_by('type').values())
+                if len(files) > 0:
+                    for f in files:
+                        if 'creationdate' not in f: f['creationdate'] = f['modificationtime']
+                        if 'fileid' not in f: f['fileid'] = f['row_id']
+                        if 'datasetname' not in f: f['datasetname'] = f['dataset']
+                        if 'modificationtime' in f: f['oldfiletable'] = 1
+                        if 'destinationdblock' in f and f['destinationdblock'] is not None:
+                            f['destinationdblock_vis'] = f['destinationdblock'].split('_')[-1]
+            files = sorted(files, key=lambda x:x['type'])
+            nfiles = len(files) 
+            logfile = {} 
+            for file in files:
+                if file['type'] == 'log': 
+                    logfile['lfn'] = file['lfn'] 
+                    logfile['guid'] = file['guid'] 
+                    if 'destinationse' in file:
+                        logfile['site'] = file['destinationse'] 
+                    else:
+                        logfilerec = Filestable4.objects.filter(pandaid=pandaid, lfn=logfile['lfn']).values()
+                        if len(logfilerec) == 0:
+                            logfilerec = FilestableArch.objects.filter(pandaid=pandaid, lfn=logfile['lfn']).values()
+                        if len(logfilerec) > 0:
+                            logfile['site'] = logfilerec[0]['destinationse']
+                            logfile['guid'] = logfilerec[0]['guid']
+                    logfile['scope'] = file['scope']
+                file['fsize'] = int(file['fsize']/1000000)
+            job['datasets'] = files
+
+
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         sumd, esjobdict = jobSummaryDict(request, jobs)
         if esjobdict and len(esjobdict) > 0:
@@ -1265,6 +1375,8 @@ def jobList(request, mode=None, param=None):
             return render_to_response('jobList.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(jobs, cls=DateEncoder), mimetype='text/html')
+
+
 
 def isEventService(job):
     if 'specialhandling' in job and job['specialhandling'] and ( job['specialhandling'].find('eventservice') >= 0 or job['specialhandling'].find('esmerge') >= 0 ):
@@ -1592,7 +1704,7 @@ def userList(request):
     valid, response = initRequest(request)
     if not valid: return response
     nhours = 90*24
-    query = setupView(request, hours=nhours, limit=-99)
+    query = setupView(request, hours=nhours, limit=-99)    
     if VOMODE == 'atlas':
         view = 'database'
     else:
@@ -2819,7 +2931,6 @@ def taskInfo(request, jeditaskid=0):
         else:
             ## Exclude merge jobs. Can be misleading. Can show failures with no downstream successes.
             exclude = {'processingtype' : 'pmerge' }
-            print 'job query', query
             jobsummary = jobSummary2(query, exclude=exclude)
     elif 'taskname' in requestParams:
         querybyname = {'taskname' : requestParams['taskname'] }
@@ -3092,7 +3203,7 @@ def jobSummary2(query, exclude={}, mode='drop'):
                 retryquery = {}
                 retryquery['jeditaskid'] = task
                 retries = JediJobRetryHistory.objects.filter(**retryquery).order_by('newpandaid').values()
-            print 'got the retries', len(jobs), len(retries)
+                print 'got the retries', len(jobs), len(retries)
             newjobs = []
             for job in jobs:
                 dropJob = 0
@@ -4021,9 +4132,9 @@ def fileList(request):
             'files' : files,
             'nfiles' : nfiles,
         }
-        data.update(getContextVariables(request))
         ##self monitor
         endSelfMonitor(request)
+        data.update(getContextVariables(request))
         return render_to_response('fileList.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(files), mimetype='text/html')
@@ -4543,6 +4654,7 @@ def addJobMetadata(jobs):
     print 'added metadata'
 
     return jobs
+
 ##self monitor
 
 def initSelfMonitor(request):
