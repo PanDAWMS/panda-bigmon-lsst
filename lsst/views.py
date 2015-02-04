@@ -666,6 +666,7 @@ def cleanJobList(jobl, mode='drop'):
     return jobs
 
 def cleanTaskList(tasks):
+    
     for task in tasks:
         if task['transpath']: task['transpath'] = task['transpath'].split('/')[-1]
         if task['statechangetime'] == None: task['statechangetime'] = task['modificationtime']
@@ -686,6 +687,7 @@ def cleanTaskList(tasks):
             if taskid not in dsinfo:
                 dsinfo[taskid] = []
             dsinfo[taskid].append(ds)
+            
     for task in tasks:
         if len(task['errordialog']) > 100: task['errordialog'] = task['errordialog'][:90]+'...'
         if 'reqid' in task and task['reqid'] < 100000 and task['reqid'] > 100 and task['reqid'] != 300 and not task['tasktype'].startswith('anal'):
@@ -1190,14 +1192,12 @@ def jobList(request, mode=None, param=None):
         jobs = stateNotUpdated(request, state='transferring', values=values)
     elif 'statenotupdated' in requestParams:
         jobs = stateNotUpdated(request, values=values)
-#    elif 'searchparams' in requestParams:
         
     else:
-        #print Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM < '+ str(JOB_LIMIT)]).query
-        jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM < '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM < '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM < '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM < '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
         
         if (len(wildCardExtension) < 4) & ('jobstatus' not in requestParams or requestParams['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
             jobs.extend(Jobsarchived.objects.filter(**query)[:JOB_LIMIT].values(*values))
@@ -2810,6 +2810,31 @@ def dashTasks(request, hours, view='production'):
 @csrf_exempt
 def taskList(request):
     valid, response = initRequest(request)
+
+    # to avoid server extra job when both parameters are specified
+    if 'display_limit' in requestParams and 'limit' in requestParams:
+        if int(requestParams['display_limit']) < int(requestParams['limit']):
+            requestParams['limit'] = int(requestParams['display_limit'])
+        else:
+            requestParams['display_limit'] = int(requestParams['limit'])
+
+    display_limit = 3000
+        
+    if ('limit' in requestParams):
+        print 'limit in requestParams'
+        
+        
+    if 'display_limit' in requestParams:
+        display_limit = int(requestParams['display_limit'])
+        nmax = display_limit
+        url_nolimit = removeParam(request.get_full_path(), 'display_limit')
+    else:
+        if 'limit' in requestParams:
+            display_limit = int(requestParams['limit'])
+        nmax = display_limit
+        url_nolimit = request.get_full_path()
+        
+ 
     if not valid: return response
     if 'tasktype' in requestParams and requestParams['tasktype'].startswith('anal'):
         hours = 3*24
@@ -2822,15 +2847,14 @@ def taskList(request):
     if 'statenotupdated' in requestParams:
         tasks = taskNotUpdated(request, query)
     else:
-        tasks = JediTasks.objects.filter(**query).values()
-
+        tasks = JediTasks.objects.filter(**query).extra(where=['ROWNUM <= '+ str(display_limit)]).values()
     tasks = cleanTaskList(tasks)
     ntasks = len(tasks)
     nmax = ntasks
 
     from django.db import connection
     #print 'SQL query:', connection.queries
-
+    
     ## For event service, pull the jobs and event ranges
     if eventservice:
         taskl = []
@@ -2851,6 +2875,7 @@ def taskList(request):
         esquery = {}
         esquery['pandaid__in'] = esjobs
         evtable = JediEvents.objects.filter(**esquery).values('pandaid','status')
+
         for ev in evtable:
             taskid = taskdict[ev['pandaid']]
             if taskid not in estaskdict:
@@ -2868,14 +2893,6 @@ def taskList(request):
                         estaskstr += " %s(%s) " % ( s, estaskdict[taskid][s] )
                 task['estaskstr'] = estaskstr
 
-    if 'display_limit' in requestParams and int(requestParams['display_limit']) < nmax:
-        display_limit = int(requestParams['display_limit'])
-        nmax = display_limit
-        url_nolimit = removeParam(request.get_full_path(), 'display_limit')
-    else:
-        display_limit = 3000
-        nmax = display_limit
-        url_nolimit = request.get_full_path()
 
     ## set up google flow diagram
     flowstruct = buildGoogleFlowDiagram(tasks=tasks)
