@@ -18,6 +18,10 @@ If you know the jobsetid=N or taskid=N, jeditaskid=N of the jobs you're interest
 </p>
 
 <p>
+You can use wild card search over different job descriptors such as schedulerid, pilotid, creationhost, modificationhost, atlasrelease, transformation, homepackage, prodserieslabel, prodsourcelabel, produserid, jobstatus, jobname, maxcpuunit, maxdiskunit, ipconnectivity, commandtopilot, transexitcode, piloterrordiag, exeerrordiag, superrordiag, ddmerrordiag, brokerageerrordiag, jobdispatchererrordiag, taskbuffererrordiag, computingsite, computingelement, jobparameters, metadata, proddblock, dispatchdblock, destinationdblock, destinationse, grid, cloud, sourcesite, destinationsite, transfertype, cmtconfig, lockedby, vo, pilottiming, workinggroup, processingtype, produsername, countrygroup, batchid, specialhandling, inputfiletype, inputfileproject, jobmetrics, jobsubstatus (<a target=new href="https://its.cern.ch/jira/browse/ATLASPANDA-40">ATLASPANDA-40</a>) and jobs parameters (<a target=new href="https://its.cern.ch/jira/browse/ATLASPANDA-133">ATLASPANDA-133</a>).
+</p>
+
+<p>
 URL tricks: you can include hours=N or days=N on the URL to specify the time depth. And you can use earlierthan=Nhours or earlierthandays=Ndays to look only at old jobs. You can also use date_from=2014-10-01&amp;date_to=2014-10-03
 </p>
 
@@ -30,6 +34,9 @@ If it is job parameters you want, that is maintained in a separate table, and re
 <br><font size=-1><code>
 curl -H 'Accept: application/json' -H 'Content-Type: application/json' "http://bigpanda.cern.ch/jobs/?dump=parameters&pandaid=1234,1235,1236"
 </code></font>
+<br>By default the JSON response does not contain dataset information. If you need it, add <br><font size=-1><code>&datasets=true</code></font> to the URI (<a target=new href="https://its.cern.ch/jira/browse/ATLASPANDA-109">ATLASPANDA-109</a>).
+
+
 </p>
 
 </td>
