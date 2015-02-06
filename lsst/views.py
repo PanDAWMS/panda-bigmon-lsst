@@ -3501,17 +3501,18 @@ def errorSummary(request):
     else:
         hours = 12
         limit = 50000
-    query = setupView(request, hours=hours, limit=limit)
+        
+    query,wildCardExtension  = setupView(request, hours=hours, limit=limit, wildCardExt=True)
 
     if not testjobs: query['jobstatus__in'] = [ 'failed', 'holding' ]
 
     jobs = []
     values = 'produsername', 'pandaid', 'cloud','computingsite','cpuconsumptiontime','jobstatus','transformation','prodsourcelabel','specialhandling','vo','modificationtime', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'currentpriority', 'computingelement'
-    jobs.extend(Jobsdefined4.objects.filter(**query)[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobsactive4.objects.filter(**query)[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobswaiting4.objects.filter(**query)[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobsarchived4.objects.filter(**query)[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobsarchived.objects.filter(**query)[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
     jobs = cleanJobList(jobs, mode='nodrop')
     njobs = len(jobs)
 
