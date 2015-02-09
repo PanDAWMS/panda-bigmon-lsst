@@ -1188,6 +1188,11 @@ def jobList(request, mode=None, param=None):
     global JOB_LIMIT
     if 'limit' in requestParams:
         JOB_LIMIT = int(requestParams['limit'])
+        showTop = 0
+    else:
+        JOB_LIMIT = 2000
+        showTop = 1
+
     if 'transferringnotupdated' in requestParams:
         jobs = stateNotUpdated(request, state='transferring', values=values)
     elif 'statenotupdated' in requestParams:
@@ -1359,6 +1364,8 @@ def jobList(request, mode=None, param=None):
             'tlast' : TLAST,
             'plow' : PLOW,
             'phigh' : PHIGH,
+            'limit' : JOB_LIMIT,
+            'showTop' : showTop,
             'url_nolimit' : url_nolimit,
             'display_limit' : display_limit,
             'sortby' : sortby,

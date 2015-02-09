@@ -3,7 +3,7 @@
 
 {% block page_title %} {{ viewParams.MON_VO }} PanDA jobs{% endblock %}
 {% block subtitle %}PanDA jobs<font size=-1>{{ viewParams.selection|safe }}
-</font>
+</font> {% if showTop %}&nbsp; <font style="color:#FF8040; size=-1"><b>limit: {{limit}}</b> </font>{% endif %}
 {% endblock %}
 {% block body %}
 
