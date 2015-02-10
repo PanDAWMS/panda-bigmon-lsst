@@ -1198,16 +1198,17 @@ def jobList(request, mode=None, param=None):
         jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
         jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
         jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+
+        JOB_LIMITS=JOB_LIMIT
+        totalJobs = 0
+        showTop = 0
         
         if (len(wildCardExtension) < 4) & ('jobstatus' not in requestParams or requestParams['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
            ##hard limit is set to 2K
-           JOB_LIMITS=JOB_LIMIT
            totalJobs = Jobsarchived.objects.filter(**query).count()
            if ('limit' not in requestParams) & (int(totalJobs)>2000):
               JOB_LIMITS = 2000
               showTop = 1
-           else:
-              showTop =0
            jobs.extend(Jobsarchived.objects.filter(**query)[:JOB_LIMITS].values(*values))
     
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
