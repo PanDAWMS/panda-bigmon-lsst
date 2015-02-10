@@ -1201,14 +1201,14 @@ def jobList(request, mode=None, param=None):
         
         if (len(wildCardExtension) < 4) & ('jobstatus' not in requestParams or requestParams['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
            ##hard limit is set to 2K
+           JOB_LIMITS=JOB_LIMIT
            totalJobs = Jobsarchived.objects.filter(**query).count()
            if ('limit' not in requestParams) & (int(totalJobs)>2000):
-              JOB_LIMIT = 2000
+              JOB_LIMITS = 2000
               showTop = 1
            else:
               showTop =0
-
-           jobs.extend(Jobsarchived.objects.filter(**query)[:JOB_LIMIT].values(*values))
+           jobs.extend(Jobsarchived.objects.filter(**query)[:JOB_LIMITS].values(*values))
     
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
     taskids = {}
@@ -1367,7 +1367,7 @@ def jobList(request, mode=None, param=None):
             'tlast' : TLAST,
             'plow' : PLOW,
             'phigh' : PHIGH,
-            'limit' : JOB_LIMIT,
+            'limit' : JOB_LIMITS,
             'totalJobs': totalJobs,
             'showTop' : showTop,
             'url_nolimit' : url_nolimit,
