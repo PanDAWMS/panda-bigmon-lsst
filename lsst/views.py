@@ -40,6 +40,7 @@ from core.common.models import JediDatasetContents
 from core.common.models import JediWorkQueue
 from core.common.models import RequestStat
 from core.common.settings.config import ENV
+from time import gmtime, strftime
 
 from settings.local import dbaccess
 import ErrorCodes
@@ -314,6 +315,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         enddate = enddate.strftime(defaultDatetimeFormat)
     if enddate == None:
         enddate = timezone.now().strftime(defaultDatetimeFormat)
+    
     query = { 'modificationtime__range' : [startdate, enddate] }
     ### Add any extensions to the query determined from the URL
     for vo in [ 'atlas', 'lsst' ]:
@@ -1175,7 +1177,9 @@ def jobList(request, mode=None, param=None):
         eventservice = True
     if 'jobtype' in requestParams and requestParams['jobtype'] == 'eventservice':
         eventservice = True
+        
     query,wildCardExtension = setupView(request, wildCardExt=True)
+    
     if 'batchid' in requestParams:
         query['batchid'] = requestParams['batchid']
     jobs = []
@@ -1188,6 +1192,7 @@ def jobList(request, mode=None, param=None):
     global JOB_LIMIT
     if 'limit' in requestParams:
         JOB_LIMIT = int(requestParams['limit'])
+        
     if 'transferringnotupdated' in requestParams:
         jobs = stateNotUpdated(request, state='transferring', values=values)
     elif 'statenotupdated' in requestParams:
@@ -1203,16 +1208,28 @@ def jobList(request, mode=None, param=None):
         totalJobs = 0
         showTop = 0
         
-        if (len(wildCardExtension) < 4) & ('jobstatus' not in requestParams or requestParams['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
-           ##hard limit is set to 2K
-           totalJobs = Jobsarchived.objects.filter(**query).count()
-           if ('limit' not in requestParams) & (int(totalJobs)>2000):
-              JOB_LIMITS = 2000
-              showTop = 1
-           jobs.extend(Jobsarchived.objects.filter(**query)[:JOB_LIMITS].values(*values))
-    
+        ##hard limit is set to 2K
+
+        if (len(wildCardExtension) < 4):
+            if ('jobstatus' not in requestParams):
+                totalJobs = Jobsarchived.objects.filter(**query).count()
+                if ('limit' not in requestParams) & (int(totalJobs)>2000):
+                    JOB_LIMITS = 2000
+                    showTop = 1
+                jobs.extend(Jobsarchived.objects.filter(**query)[:JOB_LIMITS].values(*values))
+
+        if ('jobstatus' in requestParams):
+            if (requestParams['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
+                totalJobs = Jobsarchived.objects.filter(**query).count()
+                if ('limit' not in requestParams) & (int(totalJobs)>2000):
+                    JOB_LIMITS = 2000
+                    showTop = 1
+                jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMITS)])[:JOB_LIMITS].values(*values))
+                
+                    
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
     taskids = {}
+    
     for job in jobs:
         if 'jeditaskid' in job: taskids[job['jeditaskid']] = 1
     dropmode = True
@@ -1238,7 +1255,7 @@ def jobList(request, mode=None, param=None):
                 droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
         droplist = sorted(droplist, key=lambda x:-x['pandaid'])
         jobs = newjobs
-
+    
     jobs = cleanJobList(jobs)
     njobs = len(jobs)
     jobtype = ''
@@ -2868,7 +2885,7 @@ def taskList(request):
     #print 'SQL query:', connection.queries
     
     ## For event service, pull the jobs and event ranges
-    if eventservice:
+    if eventservice:        
         taskl = []
         for task in tasks:
             taskl.append(task['jeditaskid'])
@@ -2983,7 +3000,7 @@ def taskInfo(request, jeditaskid=0):
     except IndexError:
         taskrec = None
 
-    taskpars = JediTaskparams.objects.filter(**query).values()
+    taskpars = JediTaskparams.objects.filter(**query).extra(where=['ROWNUM <= 1000']).values()
     jobparams = None
     taskparams = None
     taskparaml = None
