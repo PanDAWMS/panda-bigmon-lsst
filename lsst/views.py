@@ -198,18 +198,60 @@ def preprocessWildCardString(strToProcess, fieldToLookAt):
     if (len(strToProcess)==0):
         return '(1=1)'
     cardParametersRaw = strToProcess.split('*')
-    cardParameters = [s for s in cardParametersRaw if len(s) > 1]
-    countParameters = len(cardParameters)
+   
+    cardRealParameters = [s for s in cardParametersRaw if len(s) > 1]
+    countRealParameters = len(cardRealParameters)
+    countParameters = len(cardParametersRaw)
+
     if (countParameters==0):
         return '(1=1)'
-    currentParCount = 1
+    currentRealParCount = 0
+    currentParCount = 0
     extraQueryString = '('
-    for parameter in cardParameters:
-        extraQueryString += '( UPPER('+fieldToLookAt+')  LIKE UPPER (TRANSLATE(\'%%' + parameter +'%%\' USING NCHAR_CS)))'
-        if currentParCount < countParameters:
-            extraQueryString += ' AND '
-        currentParCount+=1    
+    
+    for parameter in cardParametersRaw:
+        leadStar = False
+        trailStar = False
+        if len(parameter) > 1:
+            
+            if (currentParCount-1 >= 0):
+                if len(cardParametersRaw[currentParCount-1]) == 0:
+                    leadStar = True
+
+            if (currentParCount+1 < countParameters):
+                if len(cardParametersRaw[currentParCount+1]) == 0:
+                    trailStar = True
+
+            if fieldToLookAt.lower() == 'PRODUSERID':
+                leadStar = True
+                trailStar = True
+
+
+            if (leadStar and trailStar):
+                extraQueryString += '( UPPER('+fieldToLookAt+')  LIKE UPPER (TRANSLATE(\'%%' + parameter +'%%\' USING NCHAR_CS)))'
+
+            elif ( not leadStar and not trailStar):
+                extraQueryString += '( UPPER('+fieldToLookAt+')  LIKE UPPER (TRANSLATE(\'' + parameter +'\' USING NCHAR_CS)))'
+
+            elif (leadStar and not trailStar):
+                extraQueryString += '( UPPER('+fieldToLookAt+')  LIKE UPPER (TRANSLATE(\'%%' + parameter +'\' USING NCHAR_CS)))'
+                
+            elif (not leadStar and trailStar):
+                extraQueryString += '( UPPER('+fieldToLookAt+')  LIKE UPPER (TRANSLATE(\'' + parameter +'%%\' USING NCHAR_CS)))'
+
+            print "currentRealParCount"    
+            print currentRealParCount    
+            currentRealParCount+=1
+            if currentRealParCount < countRealParameters:
+                extraQueryString += ' AND '
+    
+    
+    
+        currentParCount+=1
+        
     extraQueryString += ')'
+    
+    print extraQueryString
     return extraQueryString
 
 
