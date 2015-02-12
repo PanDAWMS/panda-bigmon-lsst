@@ -1190,6 +1190,10 @@ def jobList(request, mode=None, param=None):
     else:
         values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'computingelement', 'proddblock', 'destinationdblock', 'reqid'
     global JOB_LIMIT
+    JOB_LIMITS=JOB_LIMIT
+    totalJobs = 0
+    showTop = 0
+
     if 'limit' in requestParams:
         JOB_LIMIT = int(requestParams['limit'])
         
@@ -1204,10 +1208,6 @@ def jobList(request, mode=None, param=None):
         jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
         jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
 
-        JOB_LIMITS=JOB_LIMIT
-        totalJobs = 0
-        showTop = 0
-        
         ##hard limit is set to 2K
 
         if (len(wildCardExtension) < 4):
