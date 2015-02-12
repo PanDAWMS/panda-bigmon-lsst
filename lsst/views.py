@@ -534,7 +534,8 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         query['pandaid__in'] = pandaIDs
     if (len(extraQueryString) < 2):
         extraQueryString = '1=1'        
-
+    
+   
     return (query,extraQueryString)
 
 def cleanJobList(jobl, mode='drop'):
@@ -1240,9 +1241,9 @@ def jobList(request, mode=None, param=None):
         JOB_LIMIT = int(requestParams['limit'])
         
     if 'transferringnotupdated' in requestParams:
-        jobs = stateNotUpdated(request, state='transferring', values=values)
+        jobs = stateNotUpdated(request, state='transferring', values=values, wildCardExtension=wildCardExtension)
     elif 'statenotupdated' in requestParams:
-        jobs = stateNotUpdated(request, values=values)
+        jobs = stateNotUpdated(request, values=values, wildCardExtension=wildCardExtension)
         
     else:
         jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
@@ -4254,7 +4255,7 @@ def workQueues(request):
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(queues), mimetype='text/html')
 
-def stateNotUpdated(request, state='transferring', hoursSinceUpdate=36, values = standard_fields, count = False):
+def stateNotUpdated(request, state='transferring', hoursSinceUpdate=36, values = standard_fields, count = False, wildCardExtension='(1=1)'):
     valid, response = initRequest(request)
     if not valid: return response
     query = setupView(request, opmode='notime', limit=99999999)
@@ -4270,9 +4271,9 @@ def stateNotUpdated(request, state='transferring', hoursSinceUpdate=36, values =
     query['jobstatus'] = state
     if count:
         jobs = []
-        jobs.extend(Jobsactive4.objects.filter(**query).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')))
-        jobs.extend(Jobsdefined4.objects.filter(**query).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')))
-        jobs.extend(Jobswaiting4.objects.filter(**query).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')))
+        jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension]).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')))
+        jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension]).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')))
+        jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension]).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')))
         ncount = 0
         perCloud = {}
         perRCloud = {}
@@ -4304,9 +4305,9 @@ def stateNotUpdated(request, state='transferring', hoursSinceUpdate=36, values =
         return ncount, perCloudl, perRCloudl
     else:
         jobs = []
-        jobs.extend(Jobsactive4.objects.filter(**query).values(*values))
-        jobs.extend(Jobsdefined4.objects.filter(**query).values(*values))
-        jobs.extend(Jobswaiting4.objects.filter(**query).values(*values))
+        jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension]).values(*values))
+        jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension]).values(*values))
+        jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension]).values(*values))
         return jobs
 
 def taskNotUpdated(request, query, state='submitted', hoursSinceUpdate=36, values = [], count = False):
