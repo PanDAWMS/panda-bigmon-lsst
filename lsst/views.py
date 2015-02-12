@@ -116,7 +116,7 @@ def setupSiteInfo():
         for f in ( 'siteid', 'status', 'tier', 'comment_field', 'cloud' ):
             pandaSites[site['siteid']][f] = site[f]
         homeCloud[site['siteid']] = site['cloud']
-        if site['catchall'].find('log_to_objectstore') >= 0 or site['objectstore'] != '':
+        if site['catchall'] and (site['catchall'].find('log_to_objectstore') >= 0 or site['objectstore'] != ''):
             #print 'object store site', site['siteid'], site['catchall'], site['objectstore']
             try:
                 fpath = getFilePathForObjectStore(site['objectstore'],filetype="logs")
