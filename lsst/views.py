@@ -1292,8 +1292,6 @@ def jobList(request, mode=None, param=None):
                 if not pandaid in droppedIDs:
                     droppedIDs.add(pandaid)
                     droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
-
-                droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
         droplist = sorted(droplist, key=lambda x:-x['pandaid'])
         jobs = newjobs
     
