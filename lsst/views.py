@@ -3,6 +3,8 @@ import logging, re, json, commands, os, copy
 from datetime import datetime, timedelta
 import time
 import json
+from sets import Set
+
 
 from django.http import HttpResponse
 from django.shortcuts import render_to_response, render, redirect
@@ -116,7 +118,7 @@ def setupSiteInfo():
         for f in ( 'siteid', 'status', 'tier', 'comment_field', 'cloud' ):
             pandaSites[site['siteid']][f] = site[f]
         homeCloud[site['siteid']] = site['cloud']
-        if site['catchall'] and (site['catchall'].find('log_to_objectstore') >= 0 or site['objectstore'] != ''):
+        if site['catchall'].find('log_to_objectstore') >= 0 or site['objectstore'] != '':
             #print 'object store site', site['siteid'], site['catchall'], site['objectstore']
             try:
                 fpath = getFilePathForObjectStore(site['objectstore'],filetype="logs")
@@ -1253,22 +1255,12 @@ def jobList(request, mode=None, param=None):
         jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
 
         ##hard limit is set to 2K
-
-        if (len(wildCardExtension) < 4):
-            if ('jobstatus' not in requestParams):
-                totalJobs = Jobsarchived.objects.filter(**query).count()
-                if ('limit' not in requestParams) & (int(totalJobs)>2000):
-                    JOB_LIMITS = 2000
-                    showTop = 1
-                jobs.extend(Jobsarchived.objects.filter(**query)[:JOB_LIMITS].values(*values))
-
-        if ('jobstatus' in requestParams):
-            if (requestParams['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
-                totalJobs = Jobsarchived.objects.filter(**query).count()
-                if ('limit' not in requestParams) & (int(totalJobs)>2000):
-                    JOB_LIMITS = 2000
-                    showTop = 1
-                jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMITS)])[:JOB_LIMITS].values(*values))
+        if ('jobstatus' not in requestParams or requestParams['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
+            totalJobs = Jobsarchived.objects.filter(**query).count()
+            if ('limit' not in requestParams) & (int(totalJobs)>6000):
+               JOB_LIMITS = 6000
+               showTop = 1
+            jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMITS)])[:JOB_LIMITS].values(*values))
                 
                     
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
@@ -1279,6 +1271,7 @@ def jobList(request, mode=None, param=None):
     dropmode = True
     if 'mode' in requestParams and requestParams['mode'] == 'nodrop': dropmode = False
     droplist = []
+    droppedIDs = Set()
     if dropmode and (len(taskids) == 1):
         print 'doing the drop'
         for task in taskids:
@@ -1296,6 +1289,10 @@ def jobList(request, mode=None, param=None):
             if dropJob == 0 or isEventService(job):
                 newjobs.append(job)
             else:
+                if not pandaid in droppedIDs:
+                    droppedIDs.add(pandaid)
+                    droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
+
                 droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
         droplist = sorted(droplist, key=lambda x:-x['pandaid'])
         jobs = newjobs
