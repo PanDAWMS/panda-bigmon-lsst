@@ -3283,6 +3283,8 @@ def jobSummary2(query, exclude={}, mode='drop'):
         for job in jobs:
             if 'jeditaskid' in job: taskids[job['jeditaskid']] = 1
         droplist = []
+        droppedIDs = Set()
+        alreadyAdded = Set()
         if len(taskids) == 1:
             for task in taskids:
                 retryquery = {}
@@ -3298,14 +3300,19 @@ def jobSummary2(query, exclude={}, mode='drop'):
                         ## there is a retry for this job. Drop it.
                         #print 'dropping job', pandaid, ' for retry ', retry['newpandaid']
                         dropJob = retry['newpandaid']
-                if dropJob == 0:
+                if (dropJob == 0) and ( not pandaid in alreadyAdded):
                     newjobs.append(job)
+                    alreadyAdded.add(pandaid)
                 else:
-                    droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
+                    if not pandaid in droppedIDs:
+                        droppedIDs.add(pandaid)
+                        droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
             droplist = sorted(droplist, key=lambda x:-x['pandaid'])
             jobs = newjobs
         print 'done filtering'
-
+    
+    
+    
     jobstates = []
     global statelist
     for state in statelist:
