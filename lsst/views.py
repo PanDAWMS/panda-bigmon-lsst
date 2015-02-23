@@ -215,7 +215,7 @@ def preprocessWildCardString(strToProcess, fieldToLookAt):
     for parameter in cardParametersRaw:
         leadStar = False
         trailStar = False
-        if len(parameter) > 1:
+        if len(parameter) > 0:
             
             if (currentParCount-1 >= 0):
                 if len(cardParametersRaw[currentParCount-1]) == 0:
@@ -242,8 +242,6 @@ def preprocessWildCardString(strToProcess, fieldToLookAt):
             elif (not leadStar and trailStar):
                 extraQueryString += '( UPPER('+fieldToLookAt+')  LIKE UPPER (TRANSLATE(\'' + parameter +'%%\' USING NCHAR_CS)))'
 
-            print "currentRealParCount"    
-            print currentRealParCount    
             currentRealParCount+=1
             if currentRealParCount < countRealParameters:
                 extraQueryString += ' AND '
@@ -502,6 +500,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
     currentField = 1
 
     for currenfField in wildSearchFields:
+        
         extraQueryString += '('
         wildCards = requestParams[currenfField].split('|')
         countCards = len(wildCards)
