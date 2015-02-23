@@ -3154,7 +3154,7 @@ def taskInfo(request, jeditaskid=0):
         for job in jobs:
             taskdict[job['pandaid']] = job['jeditaskid']
         estaskdict = {}
-        esjobs = []
+        esjobs = Set()
         for job in jobs:
             esjobs.append(job['pandaid'])
         esquery = {}
@@ -3276,6 +3276,15 @@ def jobSummary2(query, exclude={}, mode='drop'):
         values('pandaid','jobstatus','jeditaskid','processingtype'))
     jobs.extend(Jobsarchived.objects.filter(**query).exclude(**exclude).\
             values('pandaid','jobstatus','jeditaskid','processingtype'))
+    
+    jobsSet = Set()
+    newjobs = []
+    for job in jobs:
+        if not job['pandaid'] in jobsSet:
+            jobsSet.add(job['pandaid'])
+            newjobs.append(job)
+    jobs = newjobs
+    
     if mode == 'drop' and len(jobs) < 20000:
         print 'filtering retries'
         ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
@@ -3284,7 +3293,6 @@ def jobSummary2(query, exclude={}, mode='drop'):
             if 'jeditaskid' in job: taskids[job['jeditaskid']] = 1
         droplist = []
         droppedIDs = Set()
-        alreadyAdded = Set()
         if len(taskids) == 1:
             for task in taskids:
                 retryquery = {}
@@ -3300,9 +3308,8 @@ def jobSummary2(query, exclude={}, mode='drop'):
                         ## there is a retry for this job. Drop it.
                         #print 'dropping job', pandaid, ' for retry ', retry['newpandaid']
                         dropJob = retry['newpandaid']
-                if (dropJob == 0) and ( not pandaid in alreadyAdded):
+                if (dropJob == 0):
                     newjobs.append(job)
-                    alreadyAdded.add(pandaid)
                 else:
                     if not pandaid in droppedIDs:
                         droppedIDs.add(pandaid)
