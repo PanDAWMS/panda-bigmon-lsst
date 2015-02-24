@@ -245,14 +245,8 @@ def preprocessWildCardString(strToProcess, fieldToLookAt):
             currentRealParCount+=1
             if currentRealParCount < countRealParameters:
                 extraQueryString += ' AND '
-    
-    
-    
         currentParCount+=1
-        
     extraQueryString += ')'
-    
-    print extraQueryString
     return extraQueryString
 
 
@@ -1241,6 +1235,8 @@ def jobList(request, mode=None, param=None):
 
     if 'limit' in requestParams:
         JOB_LIMIT = int(requestParams['limit'])
+
+
         
     if 'transferringnotupdated' in requestParams:
         jobs = stateNotUpdated(request, state='transferring', values=values, wildCardExtension=wildCardExtension)
@@ -1248,10 +1244,10 @@ def jobList(request, mode=None, param=None):
         jobs = stateNotUpdated(request, values=values, wildCardExtension=wildCardExtension)
         
     else:
-        jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
 
         ##hard limit is set to 2K
         if ('jobstatus' not in requestParams or requestParams['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
@@ -1259,9 +1255,8 @@ def jobList(request, mode=None, param=None):
             if ('limit' not in requestParams) & (int(totalJobs)>6000):
                JOB_LIMITS = 6000
                showTop = 1
-            jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMITS)])[:JOB_LIMITS].values(*values))
+            jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMITS].values(*values))
                 
-                    
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
     taskids = {}
     
@@ -1344,6 +1339,7 @@ def jobList(request, mode=None, param=None):
     else:
         user = None
 
+    
     ## set up google flow diagram
     flowstruct = buildGoogleFlowDiagram(jobs=jobs)
 
@@ -1441,6 +1437,16 @@ def jobList(request, mode=None, param=None):
         else:
             return render_to_response('jobList.html', data, RequestContext(request))
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        if (('fields' in requestParams) and (len(jobs) > 0)):
+            fields = requestParams['fields'].split(',')
+            fields= (set(fields) & set(jobs[0].keys()))
+            
+            for job in jobs:
+                for field in list(job.keys()):
+                    if field in fields:
+                        pass
+                    else:
+                        del job[field]
         return  HttpResponse(json.dumps(jobs, cls=DateEncoder), mimetype='text/html')
 
 
