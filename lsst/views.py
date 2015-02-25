@@ -315,8 +315,8 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
             viewParams['selection'] = ", last %s hours" % LAST_N_HOURS_MAX
         else:
             viewParams['selection'] = ", last %d days" % (float(LAST_N_HOURS_MAX)/24.)
-        if JOB_LIMIT < 999999 and JOB_LIMIT > 0:
-            viewParams['selection'] += ", limit %s per table" % JOB_LIMIT
+        #if JOB_LIMIT < 999999 and JOB_LIMIT > 0:
+        #    viewParams['selection'] += ", <font style='color:#FF8040; size=-1'>Warning: limit %s per job table</font>" % JOB_LIMIT
         viewParams['selection'] += ". &nbsp; <b>Params:</b> "
         #if 'days' not in requestParams:
         #    viewParams['selection'] += "hours=%s" % LAST_N_HOURS_MAX
@@ -331,6 +331,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         if requestParams[param] == '': continue
         if param == 'display_limit': continue
         if param == 'sortby': continue
+        if param == 'limit' and JOB_LIMIT>0: continue
         viewParams['selection'] += "  &nbsp; <b>%s=</b>%s " % ( param, requestParams[param] )
 
     startdate = None
@@ -1235,8 +1236,6 @@ def jobList(request, mode=None, param=None):
 
     if 'limit' in requestParams:
         JOB_LIMIT = int(requestParams['limit'])
-
-
         
     if 'transferringnotupdated' in requestParams:
         jobs = stateNotUpdated(request, state='transferring', values=values, wildCardExtension=wildCardExtension)
@@ -1419,6 +1418,7 @@ def jobList(request, mode=None, param=None):
             'tlast' : TLAST,
             'plow' : PLOW,
             'phigh' : PHIGH,
+            'joblimit': JOB_LIMIT,
             'limit' : JOB_LIMITS,
             'totalJobs': totalJobs,
             'showTop' : showTop,
