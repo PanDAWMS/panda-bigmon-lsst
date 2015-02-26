@@ -1387,6 +1387,11 @@ def jobList(request, mode=None, param=None):
                 file['fsize'] = int(file['fsize']/1000000)
             job['datasets'] = files
 
+    #show warning or not
+    if njobs<=JOB_LIMIT:
+        showwarn=0
+    else:
+        showwarn=1
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         sumd, esjobdict = jobSummaryDict(request, jobs)
@@ -1418,6 +1423,7 @@ def jobList(request, mode=None, param=None):
             'tlast' : TLAST,
             'plow' : PLOW,
             'phigh' : PHIGH,
+            'showwarn': showwarn,
             'joblimit': JOB_LIMIT,
             'limit' : JOB_LIMITS,
             'totalJobs': totalJobs,
