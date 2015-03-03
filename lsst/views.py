@@ -3165,7 +3165,8 @@ def taskInfo(request, jeditaskid=0):
         for job in jobs:
             taskdict[job['pandaid']] = job['jeditaskid']
         estaskdict = {}
-        esjobs = Set()
+        #esjobs = Set()
+        esjobs = []
         for job in jobs:
             esjobs.append(job['pandaid'])
         esquery = {}
