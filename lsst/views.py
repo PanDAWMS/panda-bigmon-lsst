@@ -535,8 +535,8 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
    
     return (query,extraQueryString)
 
-def cleanJobList(jobl, mode='drop'):
-    if 'mode' in requestParams and requestParams['mode'] == 'nodrop': mode='nodrop'
+def cleanJobList(jobl, mode='nodrop'):
+    if 'mode' in requestParams and requestParams['mode'] == 'drop': mode='drop'
     jobs = addJobMetadata(jobl)
     for job in jobs:
         if isEventService(job):
@@ -1261,8 +1261,8 @@ def jobList(request, mode=None, param=None):
     
     for job in jobs:
         if 'jeditaskid' in job: taskids[job['jeditaskid']] = 1
-    dropmode = True
-    if 'mode' in requestParams and requestParams['mode'] == 'nodrop': dropmode = False
+    dropmode = False
+    if 'mode' in requestParams and requestParams['mode'] == 'drop': dropmode = True
     droplist = []
     droppedIDs = Set()
     if dropmode and (len(taskids) == 1):
@@ -1395,6 +1395,12 @@ def jobList(request, mode=None, param=None):
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         sumd, esjobdict = jobSummaryDict(request, jobs)
+        testjobs = False
+        if 'prodsourcelabel' in requestParams and requestParams['prodsourcelabel'].lower().find('test') >= 0:
+            testjobs = True
+        tasknamedict = taskNameDict(jobs)
+        errsByCount, errsBySite, errsByUser, errsByTask, sumd, errHist = errorSummaryDict(request,jobs, tasknamedict, testjobs)
+
         if esjobdict and len(esjobdict) > 0:
             for job in jobs:
                 if job['pandaid'] in esjobdict and job['specialhandling'].find('esmerge') < 0:
@@ -1404,10 +1410,12 @@ def jobList(request, mode=None, param=None):
                             esjobstr += " %s(%s) " % ( s, esjobdict[job['pandaid']][s] )
                     job['esjobstr'] = esjobstr
         xurl = extensibleURL(request)
+        print xurl
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
         nosorturl = removeParam(nosorturl, 'display_limit', mode='extensible')
         data = {
             'prefix': getPrefix(request),
+            'errsByCount' : errsByCount,
             'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
