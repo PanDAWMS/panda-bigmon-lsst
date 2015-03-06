@@ -1632,7 +1632,8 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         if 'showdebug' in requestParams:
             debugstdoutrec = Jobsdebug.objects.filter(pandaid=pandaid).values()
             if len(debugstdoutrec) > 0:
-                if 'stdout' in debugstdoutrec: debugstdout = debugstdoutrec['stdout']
+                if 'stdout' in debugstdoutrec[0]: debugstdout = debugstdoutrec[0]['stdout']
+
 
     if 'transformation' in job and job['transformation'] is not None and job['transformation'].startswith('http'):
         job['transformation'] = "<a href='%s'>%s</a>" % ( job['transformation'], job['transformation'].split('/')[-1] )
