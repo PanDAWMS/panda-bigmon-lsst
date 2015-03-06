@@ -1396,10 +1396,11 @@ def jobList(request, mode=None, param=None):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         sumd, esjobdict = jobSummaryDict(request, jobs)
         testjobs = False
+
         if 'prodsourcelabel' in requestParams and requestParams['prodsourcelabel'].lower().find('test') >= 0:
             testjobs = True
         tasknamedict = taskNameDict(jobs)
-        errsByCount, errsBySite, errsByUser, errsByTask, sumd, errHist = errorSummaryDict(request,jobs, tasknamedict, testjobs)
+        errsByCount, errsBySite, errsByUser, errsByTask, sumd1, errHist = errorSummaryDict(request,jobs, tasknamedict, testjobs)
 
         if esjobdict and len(esjobdict) > 0:
             for job in jobs:
