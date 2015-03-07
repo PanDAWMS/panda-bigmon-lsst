@@ -1890,7 +1890,9 @@ def userList(request):
             sumparams.append('atlasrelease')
         else:
             sumparams.append('vo')
-        jobsumd = jobSummaryDict(request, jobs, sumparams)
+            
+        jobsumd = jobSummaryDict(request, jobs, sumparams)[0]
+        
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'request' : request,
@@ -2017,7 +2019,7 @@ def userInfo(request, user=''):
             flist.append('vo')
         else:
             flist.append('atlasrelease')
-        jobsumd = jobSummaryDict(request, jobs, flist)
+        jobsumd = jobSummaryDict(request, jobs, flist)[0]        
         njobsetmax = 200
         xurl = extensibleURL(request)
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
@@ -2900,29 +2902,10 @@ def dashTasks(request, hours, view='production'):
 def taskList(request):
     valid, response = initRequest(request)
 
-    # to avoid server extra job when both parameters are specified
-    if 'display_limit' in requestParams and 'limit' in requestParams:
-        if int(requestParams['display_limit']) < int(requestParams['limit']):
-            requestParams['limit'] = int(requestParams['display_limit'])
-        else:
-            requestParams['display_limit'] = int(requestParams['limit'])
-
-    display_limit = 3000
-        
-    if ('limit' in requestParams):
-        print 'limit in requestParams'
-        
-        
-    if 'display_limit' in requestParams:
-        display_limit = int(requestParams['display_limit'])
-        nmax = display_limit
-        url_nolimit = removeParam(request.get_full_path(), 'display_limit')
+    if 'limit' in requestParams:            
+        limit = int(requestParams['limit'])
     else:
-        if 'limit' in requestParams:
-            display_limit = int(requestParams['limit'])
-        nmax = display_limit
-        url_nolimit = request.get_full_path()
-        
+        limit = 5000
  
     if not valid: return response
     if 'tasktype' in requestParams and requestParams['tasktype'].startswith('anal'):
@@ -2936,10 +2919,19 @@ def taskList(request):
     if 'statenotupdated' in requestParams:
         tasks = taskNotUpdated(request, query)
     else:
-        tasks = JediTasks.objects.filter(**query).extra(where=['ROWNUM <= '+ str(display_limit)]).values()
+        tasks = JediTasks.objects.filter(**query)[:limit].values()
     tasks = cleanTaskList(tasks)
     ntasks = len(tasks)
     nmax = ntasks
+
+    if 'display_limit' in requestParams and int(requestParams['display_limit']) < nmax:
+        display_limit = int(requestParams['display_limit'])
+        nmax = display_limit
+        url_nolimit = removeParam(request.get_full_path(), 'display_limit')
+    else:
+        display_limit = 300
+        nmax = display_limit
+        url_nolimit = request.get_full_path()
 
     from django.db import connection
     #print 'SQL query:', connection.queries
@@ -2981,7 +2973,6 @@ def taskList(request):
                     if estaskdict[taskid][s] > 0:
                         estaskstr += " %s(%s) " % ( s, estaskdict[taskid][s] )
                 task['estaskstr'] = estaskstr
-
 
     ## set up google flow diagram
     flowstruct = buildGoogleFlowDiagram(tasks=tasks)
