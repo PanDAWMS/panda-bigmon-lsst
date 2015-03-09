@@ -3,9 +3,6 @@ import logging, re, json, commands, os, copy
 from datetime import datetime, timedelta
 import time
 import json
-from sets import Set
-
-
 from django.http import HttpResponse
 from django.shortcuts import render_to_response, render, redirect
 from django.template import RequestContext, loader
@@ -617,11 +614,13 @@ def cleanJobList(jobl, mode='nodrop'):
                 endtime = job['endtime']
             else:
                 endtime = timezone.now()
+                
             duration = max(endtime - starttime, timedelta(seconds=0))
             ndays = duration.days
             strduration = str(timedelta(seconds=duration.seconds))
             job['duration'] = "%s:%s" % ( ndays, strduration )
-            job['durationsec'] = duration.seconds
+            job['durationsec'] = ndays*24*3600+duration.seconds
+            
         job['waittime'] = ""
         #if job['jobstatus'] in ['running','finished','failed','holding','cancelled','transferring']:
         if 'creationtime' in job and 'starttime' in job and job['creationtime']:
@@ -1264,7 +1263,7 @@ def jobList(request, mode=None, param=None):
     dropmode = False
     if 'mode' in requestParams and requestParams['mode'] == 'drop': dropmode = True
     droplist = []
-    droppedIDs = Set()
+    droppedIDs = set()
     if dropmode and (len(taskids) == 1):
         print 'doing the drop'
         for task in taskids:
@@ -2019,10 +2018,22 @@ def userInfo(request, user=''):
             flist.append('vo')
         else:
             flist.append('atlasrelease')
-        jobsumd = jobSummaryDict(request, jobs, flist)[0]        
+        jobsumd = jobSummaryDict(request, jobs, flist)       
         njobsetmax = 200
         xurl = extensibleURL(request)
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
+        
+        #print len(tasks)
+        #print tasks[0].jeditaskid
+
+        
+        #for task in tasks:
+        #    print task['reqid']
+        #    if 'reqid' in task:
+        #        print task.reqid
+        #        
+        #
+        
         data = {
             'request' : request,
             'viewParams' : viewParams,
@@ -3290,7 +3301,7 @@ def jobSummary2(query, exclude={}, mode='drop'):
     jobs.extend(Jobsarchived.objects.filter(**query).exclude(**exclude).\
             values('pandaid','jobstatus','jeditaskid','processingtype'))
     
-    jobsSet = Set()
+    jobsSet = set()
     newjobs = []
     for job in jobs:
         if not job['pandaid'] in jobsSet:
@@ -3305,7 +3316,7 @@ def jobSummary2(query, exclude={}, mode='drop'):
         for job in jobs:
             if 'jeditaskid' in job: taskids[job['jeditaskid']] = 1
         droplist = []
-        droppedIDs = Set()
+        droppedIDs = set()
         if len(taskids) == 1:
             for task in taskids:
                 retryquery = {}
