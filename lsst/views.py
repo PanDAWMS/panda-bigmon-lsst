@@ -621,6 +621,8 @@ def cleanJobList(jobl, mode='nodrop'):
             job['duration'] = "%s:%s" % ( ndays, strduration )
             job['durationsec'] = ndays*24*3600+duration.seconds
             
+            
+            
         job['waittime'] = ""
         #if job['jobstatus'] in ['running','finished','failed','holding','cancelled','transferring']:
         if 'creationtime' in job and 'starttime' in job and job['creationtime']:
@@ -689,7 +691,8 @@ def cleanJobList(jobl, mode='nodrop'):
             newjobs.append(job)
         else:
             droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
-    droplist = sorted(droplist, key=lambda x:-x['pandaid'])
+            
+    droplist = sorted(droplist, key=lambda x:-x['modificationtime'], reverse=True)
     jobs = newjobs
     global TFIRST, TLAST, PLOW, PHIGH
     TFIRST = timezone.now()
@@ -701,7 +704,7 @@ def cleanJobList(jobl, mode='nodrop'):
         if job['modificationtime'] < TFIRST: TFIRST = job['modificationtime']
         if job['currentpriority'] > PHIGH: PHIGH = job['currentpriority']
         if job['currentpriority'] < PLOW: PLOW = job['currentpriority']
-    jobs = sorted(jobs, key=lambda x:-x['pandaid'])
+    jobs = sorted(jobs, key=lambda x:-x['modificationtime'], reverse=True)
 
     print 'job list cleaned'
     return jobs
@@ -1320,9 +1323,11 @@ def jobList(request, mode=None, param=None):
         elif sortby == 'duration':
             jobs = sorted(jobs, key=lambda x:x['durationsec'], reverse=True)
         elif sortby == 'PandaID':
-            pass
+            jobs = sorted(jobs, key=lambda x:x['PandaID'], reverse=True)
     else:
-        sortby = "PandaID"
+        sortby = "time-descending"
+        jobs = sorted(jobs, key=lambda x:x['modificationtime'], reverse=True)
+
 
     taskname = ''
     if 'jeditaskid' in requestParams:
@@ -2944,7 +2949,7 @@ def taskList(request):
         nmax = display_limit
         url_nolimit = request.get_full_path()
 
-    from django.db import connection
+    #from django.db import connection
     #print 'SQL query:', connection.queries
     
     ## For event service, pull the jobs and event ranges
