@@ -1140,7 +1140,10 @@ def helpPage(request):
         data.update(getContextVariables(request))
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('completeHelp.html', data, RequestContext(request))
+        response = render_to_response('completeHelp.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+        
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse('json', mimetype='text/html')
     else:
@@ -1452,9 +1455,12 @@ def jobList(request, mode=None, param=None):
         ##self monitor
         endSelfMonitor(request)
         if eventservice:
-            return render_to_response('jobListES.html', data, RequestContext(request))
+            response = render_to_response('jobListES.html', data, RequestContext(request))
         else:
-            return render_to_response('jobList.html', data, RequestContext(request))
+            response = render_to_response('jobList.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         if (('fields' in requestParams) and (len(jobs) > 0)):
             fields = requestParams['fields'].split(',')
@@ -1539,7 +1545,9 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         }
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('jobInfo.html', data, RequestContext(request))
+        response = render_to_response('jobInfo.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
 
     job = {}
     colnames = []
@@ -1785,9 +1793,12 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         ##self monitor
         endSelfMonitor(request)
         if isEventService(job):
-            return render_to_response('jobInfoES.html', data, RequestContext(request))
+            response = render_to_response('jobInfoES.html', data, RequestContext(request))
         else:
-            return render_to_response('jobInfo.html', data, RequestContext(request))
+            response = render_to_response('jobInfo.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse('json', mimetype='text/html')
     else:
@@ -1916,7 +1927,10 @@ def userList(request):
         data.update(getContextVariables(request))
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('userList.html', data, RequestContext(request))
+        response = render_to_response('userList.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+        
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = sumd
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -2068,7 +2082,10 @@ def userInfo(request, user=''):
         data.update(getContextVariables(request))
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('userInfo.html', data, RequestContext(request))
+        response = render_to_response('userInfo.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = sumd
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -2172,7 +2189,10 @@ def siteList(request):
         #data.update(getContextVariables(request))
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('siteList.html', data, RequestContext(request))
+        response = render_to_response('siteList.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = sites
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -2260,7 +2280,10 @@ def siteInfo(request, site=''):
         data.update(getContextVariables(request))
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('siteInfo.html', data, RequestContext(request))
+        response = render_to_response('siteInfo.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
         for job in jobList:
@@ -2486,7 +2509,10 @@ def wnInfo(request,site,wnname='all'):
         }
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('wnInfo.html', data, RequestContext(request))
+        response = render_to_response('wnInfo.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -2909,7 +2935,10 @@ def dashTasks(request, hours, view='production'):
         }
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('dashboard.html', data, RequestContext(request))
+        response = render_to_response('dashboard.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -3015,9 +3044,11 @@ def taskList(request):
         ##self monitor
         endSelfMonitor(request)
         if 'eventservice' in requestParams:
-            return render_to_response('taskListES.html', data, RequestContext(request))
+            response = render_to_response('taskListES.html', data, RequestContext(request))
         else:
-            return render_to_response('taskList.html', data, RequestContext(request))
+            response = render_to_response('taskList.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
 
 def taskInfo(request, jeditaskid=0):
     jeditaskid = int(jeditaskid)
@@ -3242,9 +3273,11 @@ def taskInfo(request, jeditaskid=0):
         ##self monitor
         endSelfMonitor(request)
         if eventservice:
-            return render_to_response('taskInfoES.html', data, RequestContext(request))       
+            response = render_to_response('taskInfoES.html', data, RequestContext(request))       
         else:
-            return render_to_response('taskInfo.html', data, RequestContext(request))       
+            response = render_to_response('taskInfo.html', data, RequestContext(request))       
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
 
 def jobSummaryForTasks(request):
     valid, response = initRequest(request)
@@ -3839,7 +3872,10 @@ def incidentList(request):
         }
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('incidents.html', data, RequestContext(request))
+        response = render_to_response('incidents.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = incidents
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -3963,7 +3999,10 @@ def pandaLogger(request):
         }
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('pandaLogger.html', data, RequestContext(request))
+        response = render_to_response('pandaLogger.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = incidents
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -4040,7 +4079,10 @@ def workingGroups(request):
         }
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('workingGroups.html', data, RequestContext(request))
+        response = render_to_response('workingGroups.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -4108,7 +4150,10 @@ def datasetInfo(request):
         data.update(getContextVariables(request))
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('datasetInfo.html', data, RequestContext(request))
+        response = render_to_response('datasetInfo.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(dsrec), mimetype='text/html')
 
@@ -4135,7 +4180,10 @@ def datasetList(request):
         data.update(getContextVariables(request))
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('datasetList.html', data, RequestContext(request))
+        response = render_to_response('datasetList.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(dsrec), mimetype='text/html')
 
@@ -4214,7 +4262,10 @@ def fileInfo(request):
         data.update(getContextVariables(request))
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('fileInfo.html', data, RequestContext(request))
+        response = render_to_response('fileInfo.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(dsrec), mimetype='text/html')
 
@@ -4264,7 +4315,10 @@ def fileList(request):
         ##self monitor
         endSelfMonitor(request)
         data.update(getContextVariables(request))
-        return render_to_response('fileList.html', data, RequestContext(request))
+        response = render_to_response('fileList.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+      
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(files), mimetype='text/html')
 
@@ -4290,7 +4344,10 @@ def workQueues(request):
         }
         ##self monitor
         endSelfMonitor(request)
-        return render_to_response('workQueues.html', data, RequestContext(request))
+        response = render_to_response('workQueues.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
+
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(queues), mimetype='text/html')
 
