@@ -3650,13 +3650,13 @@ def errorSummary(request):
 
     if jobtype == '':
         hours = 3
-        limit = 10000
+        limit = 6000
     elif jobtype.startswith('anal'):
         hours = 6
-        limit = 10000
+        limit = 6000
     else:
         hours = 12
-        limit = 10000
+        limit = 6000
         
     query,wildCardExtension  = setupView(request, hours=hours, limit=limit, wildCardExt=True)
 
