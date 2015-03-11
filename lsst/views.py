@@ -644,6 +644,7 @@ def cleanJobList(jobl, mode='nodrop'):
             phi = plo+99
             job['jobsetrange'] = "%d:%d" % ( plo, phi )
 
+
     ## drop duplicate jobs
     droplist = []
     job1 = {}
@@ -782,6 +783,9 @@ def cleanTaskList(tasks):
             tasks = sorted(tasks, key=lambda x:x['taskname'])
         elif sortby == 'jeditaskid' or sortby == 'taskid':
             tasks = sorted(tasks, key=lambda x:-x['jeditaskid'])
+        elif sortby == 'cloud':
+            tasks = sorted(tasks, key=lambda x:x['cloud'], reverse=True)
+            
     else:
         sortby = "jeditaskid"
         tasks = sorted(tasks, key=lambda x:-x['jeditaskid'])
@@ -1143,7 +1147,6 @@ def helpPage(request):
         response = render_to_response('completeHelp.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-        
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse('json', mimetype='text/html')
     else:
@@ -1260,6 +1263,10 @@ def jobList(request, mode=None, param=None):
                JOB_LIMITS = 6000
                showTop = 1
             jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMITS].values(*values))
+             
+             
+    
+    print Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].query
                 
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
     taskids = {}
@@ -1407,7 +1414,7 @@ def jobList(request, mode=None, param=None):
         if 'prodsourcelabel' in requestParams and requestParams['prodsourcelabel'].lower().find('test') >= 0:
             testjobs = True
         tasknamedict = taskNameDict(jobs)
-        errsByCount, errsBySite, errsByUser, errsByTask, sumd1, errHist = errorSummaryDict(request,jobs, tasknamedict, testjobs)
+        errsByCount, errsBySite, errsByUser, errsByTask, errdSumd, errHist = errorSummaryDict(request,jobs, tasknamedict, testjobs)
 
         if esjobdict and len(esjobdict) > 0:
             for job in jobs:
@@ -1424,6 +1431,7 @@ def jobList(request, mode=None, param=None):
         data = {
             'prefix': getPrefix(request),
             'errsByCount' : errsByCount,
+            'errdSumd' : errdSumd,
             'request' : request,
             'viewParams' : viewParams,
             'requestParams' : requestParams,
@@ -1460,7 +1468,6 @@ def jobList(request, mode=None, param=None):
             response = render_to_response('jobList.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         if (('fields' in requestParams) and (len(jobs) > 0)):
             fields = requestParams['fields'].split(',')
@@ -1798,7 +1805,6 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             response = render_to_response('jobInfo.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse('json', mimetype='text/html')
     else:
@@ -1930,7 +1936,6 @@ def userList(request):
         response = render_to_response('userList.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-        
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = sumd
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -2085,7 +2090,6 @@ def userInfo(request, user=''):
         response = render_to_response('userInfo.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = sumd
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -2192,7 +2196,6 @@ def siteList(request):
         response = render_to_response('siteList.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = sites
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -2283,7 +2286,6 @@ def siteInfo(request, site=''):
         response = render_to_response('siteInfo.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
         for job in jobList:
@@ -2305,15 +2307,14 @@ def taskSummaryData(query):
     querynotime = query
     del querynotime['modificationtime__range']
     print "Task summary query", query
-    summary.extend(Jobsactive4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
-    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
-    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
-    summary.extend(Jobsarchived4.objects.filter(**query).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus'))
-    summary.extend(Jobsactive4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus'))
-    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus'))
-    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus'))
-    summary.extend(Jobsarchived4.objects.filter(**query).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus'))
-
+    summary.extend(Jobsactive4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:JOB_LIMIT])
+    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:JOB_LIMIT])
+    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:JOB_LIMIT])
+    summary.extend(Jobsarchived4.objects.filter(**query).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:JOB_LIMIT])
+    summary.extend(Jobsactive4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:JOB_LIMIT])
+    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:JOB_LIMIT])
+    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:JOB_LIMIT])
+    summary.extend(Jobsarchived4.objects.filter(**query).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:JOB_LIMIT])
     return summary
 
 def voSummary(query):
@@ -2512,7 +2513,6 @@ def wnInfo(request,site,wnname='all'):
         response = render_to_response('wnInfo.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -2682,7 +2682,6 @@ def dashSummary(request, hours, limit=999999, view='all', cloudview='region', no
 
 def dashTaskSummary(request, hours, limit=999999, view='all'):
     query = setupView(request,hours=hours,limit=limit,opmode=view) 
-
     tasksummarydata = taskSummaryData(query)
     tasks = {}
     totstates = {}
@@ -2697,7 +2696,6 @@ def dashTaskSummary(request, hours, limit=999999, view='all'):
         elif 'taskid' in rec and rec['taskid'] and rec['taskid'] > 0 :
             taskids.append( { 'taskid' : rec['taskid'] } )
     tasknamedict = taskNameDict(taskids)
-
     for rec in tasksummarydata:
         if 'jeditaskid' in rec and rec['jeditaskid'] and rec['jeditaskid'] > 0:
             taskid = rec['jeditaskid']
@@ -2728,13 +2726,11 @@ def dashTaskSummary(request, hours, limit=999999, view='all'):
                 tasks[taskid]['states'][state]['count'] = 0
         tasks[taskid]['count'] += count
         tasks[taskid]['states'][jobstatus]['count'] += count
-
     if view == 'analysis':
         ## Show only tasks starting with 'user.'
         kys = tasks.keys()
         for t in kys:
             if not str(tasks[t]['name'].encode('ascii','ignore')).startswith('user.'): del tasks[t]
-
     ## Convert dict to summary list
     taskkeys = tasks.keys()
     taskkeys.sort()
@@ -2746,7 +2742,6 @@ def dashTaskSummary(request, hours, limit=999999, view='all'):
             tasks[taskid]['pctfail'] =  int(100.*float(tasks[taskid]['states']['failed']['count'])/(tasks[taskid]['states']['finished']['count']+tasks[taskid]['states']['failed']['count']))
 
         fullsummary.append(tasks[taskid])
-
     if 'sortby' in requestParams:
         if requestParams['sortby'] in sitestatelist:
             fullsummary = sorted(fullsummary, key=lambda x:x['states'][requestParams['sortby']],reverse=True)
@@ -2841,7 +2836,16 @@ def dashboard(request, view='production'):
     fullsummary = dashSummary(request, hours=hours, view=view, cloudview=cloudview)
 
     cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view, taskdays=taskdays)
-
+    jobsLeft = {}
+    
+    for cloud in fullsummary:
+        leftCount = 0
+        for state in cloud['statelist']:
+            if state['name'] in ['waiting', 'assigned', 'activated', 'starting', 'running', 'transferring', 'holding', 'defined', 'sent', 'throttled','merging']:
+                leftCount += state['count']
+        jobsLeft[cloud['name']] = leftCount
+                
+            
     request.session['max_age_minutes'] = 6
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
@@ -2868,6 +2872,7 @@ def dashboard(request, view='production'):
             'transclouds' : transclouds,
             'transrclouds' : transrclouds,
             'hoursSinceUpdate' : hoursSinceUpdate,
+            'jobsLeft' : jobsLeft
         }
         ##self monitor
         endSelfMonitor(request)
@@ -2877,6 +2882,12 @@ def dashboard(request, view='production'):
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
+
+from django.template.defaulttags import register
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
+
 
 def dashAnalysis(request):
     return dashboard(request,view='analysis')
@@ -2938,7 +2949,6 @@ def dashTasks(request, hours, view='production'):
         response = render_to_response('dashboard.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -2965,6 +2975,7 @@ def taskList(request):
         tasks = taskNotUpdated(request, query)
     else:
         tasks = JediTasks.objects.filter(**query)[:limit].values()
+            
     tasks = cleanTaskList(tasks)
     ntasks = len(tasks)
     nmax = ntasks
@@ -3417,6 +3428,7 @@ def errorSummaryDict(request,jobs, tasknamedict, testjobs):
     errHist = {}
     flist = [ 'cloud', 'computingsite', 'produsername', 'taskid', 'jeditaskid', 'processingtype', 'prodsourcelabel', 'transformation', 'workinggroup', 'specialhandling', 'jobstatus' ]
 
+    print len(jobs)
     for job in jobs:
         if not testjobs:
             if job['jobstatus'] not in [ 'failed', 'holding' ]: continue
@@ -3638,13 +3650,13 @@ def errorSummary(request):
 
     if jobtype == '':
         hours = 3
-        limit = 50000
+        limit = 10000
     elif jobtype.startswith('anal'):
         hours = 6
-        limit = 50000
+        limit = 10000
     else:
         hours = 12
-        limit = 50000
+        limit = 10000
         
     query,wildCardExtension  = setupView(request, hours=hours, limit=limit, wildCardExt=True)
 
@@ -3652,19 +3664,17 @@ def errorSummary(request):
 
     jobs = []
     values = 'produsername', 'pandaid', 'cloud','computingsite','cpuconsumptiontime','jobstatus','transformation','prodsourcelabel','specialhandling','vo','modificationtime', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'currentpriority', 'computingelement'
-    jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM <= '+ str(JOB_LIMIT)])[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
+    
     jobs = cleanJobList(jobs, mode='nodrop')
     njobs = len(jobs)
-
     tasknamedict = taskNameDict(jobs)
-
     ## Build the error summary.
     errsByCount, errsBySite, errsByUser, errsByTask, sumd, errHist = errorSummaryDict(request,jobs, tasknamedict, testjobs)
-
     ## Build the state summary and add state info to site error summary
     #notime = True
     #if testjobs: notime = False
@@ -3686,7 +3696,6 @@ def errorSummary(request):
             for s in savestates:
                 if s in sitestates[sitename]: site[s] = sitestates[sitename][s]
             if 'pctfail' in sitestates[sitename]: site['pctfail'] = sitestates[sitename]['pctfail']
-
     taskname = ''
     if not testjobs:
         ## Build the task state summary and add task state info to task error summary
@@ -3698,14 +3707,12 @@ def errorSummary(request):
             for s in savestates:
                 taskstates[taskid][s] = task['states'][s]['count']
             if 'pctfail' in task: taskstates[taskid]['pctfail'] = task['pctfail']
-
         for task in errsByTask:
             taskid = task['name']
             if taskid in taskstates:
                 for s in savestates:
                     if s in taskstates[taskid]: task[s] = taskstates[taskid][s]
                 if 'pctfail' in taskstates[taskid]: task['pctfail'] = taskstates[taskid]['pctfail']
-
         if 'jeditaskid' in requestParams:
             taskname = getTaskName('jeditaskid',requestParams['jeditaskid'])
 
@@ -3713,7 +3720,6 @@ def errorSummary(request):
         sortby = requestParams['sortby']
     else:
         sortby = 'alpha'
-
     flowstruct = buildGoogleFlowDiagram(jobs=jobs)
 
     request.session['max_age_minutes'] = 6
@@ -3875,7 +3881,6 @@ def incidentList(request):
         response = render_to_response('incidents.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = incidents
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -4002,7 +4007,6 @@ def pandaLogger(request):
         response = render_to_response('pandaLogger.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = incidents
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -4082,7 +4086,6 @@ def workingGroups(request):
         response = render_to_response('workingGroups.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
@@ -4153,7 +4156,6 @@ def datasetInfo(request):
         response = render_to_response('datasetInfo.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(dsrec), mimetype='text/html')
 
@@ -4183,7 +4185,6 @@ def datasetList(request):
         response = render_to_response('datasetList.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(dsrec), mimetype='text/html')
 
@@ -4265,7 +4266,6 @@ def fileInfo(request):
         response = render_to_response('fileInfo.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(dsrec), mimetype='text/html')
 
@@ -4318,7 +4318,6 @@ def fileList(request):
         response = render_to_response('fileList.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-      
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(files), mimetype='text/html')
 
@@ -4347,7 +4346,6 @@ def workQueues(request):
         response = render_to_response('workQueues.html', data, RequestContext(request))
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
-
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(queues), mimetype='text/html')
 
@@ -4501,6 +4499,7 @@ def taskNameDict(jobs):
         jeditasks = JediTasks.objects.filter(**tq).values('taskname', 'jeditaskid')
         for t in jeditasks:
             tasknamedict[t['jeditaskid']] = t['taskname']
+
     #if len(taskidl) > 0:
     #    tq = { 'taskid__in' : taskidl }
     #    oldtasks = Etask.objects.filter(**tq).values('taskname', 'taskid')

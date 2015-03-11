@@ -60,6 +60,7 @@ Click on column titles to sort.
 <tr class='tablesection'><th colspan=30> {{ view }} task summary by cloud, last {{ taskdays }} days</span> &nbsp; &nbsp; <font size=-1>Hover over state name to see full name. <a href="https://twiki.cern.ch/twiki/bin/view/PanDA/PandaJEDI#Transition_of_task_status">Task state documentation</a></font> </th></tr>
 <tr class='tablesection'>
 <th>Cloud</th>
+<th>nJobs left</th>
 <th><font size=-1>nTask</font></th>
 {% for state in taskstates %}
 <th><div title="{{state.state}}"><font size=-1><span class="{{ state.state }}"> {{ state.short }} </span></font></div></th>
@@ -68,7 +69,11 @@ Click on column titles to sort.
 
 {% for fdict in cloudTaskSummary %}
 <tr><td> <b>{{ fdict.field }}</b> </td>
+
+<td bgcolor=whitesmoke align='right'> <a href="{% url 'jobList' %}?cloud={{ fdict.field }}&hours={{hours}}&jobstatus=waiting|assigned|activated|starting|running|transferring|holding|defined|sent|throttled|merging&jobtype={{ view }}&display_limit=100">{{ jobsLeft|get_item:fdict.field }}</a> </td>
 <td> <a href="{% url 'taskList' %}?cloud={{fdict.field}}&jobtype={{view}}&days={{taskdays}}">{{ fdict.count }}</a></td>
+
+
 {% for item in fdict.list %}
 <td {% if item.kvalue > 0 %} class='{{item.kname}}_fill' {% endif %}> <a href="{% url 'taskList' %}?cloud={{fdict.field}}&status={{item.kname}}&jobtype={{view}}&days={{taskdays}}"><span {% if item.kvalue == 0 %}class='{{item.kname}}'{% else %}class='{{item.kname}}_fill'{% endif %}>{{ item.kvalue }}</span></a></td>
 {% endfor %}
