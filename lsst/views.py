@@ -352,6 +352,13 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         enddate = timezone.now().strftime(defaultDatetimeFormat)
     
     query = { 'modificationtime__range' : [startdate, enddate] }
+
+    
+    global TFIRST
+    TFIRST = datetime.strptime(startdate, '%Y-%m-%d %H:%M:%S')
+    global TLAST
+    TLAST = datetime.strptime(enddate, '%Y-%m-%d %H:%M:%S')
+
     ### Add any extensions to the query determined from the URL
     for vo in [ 'atlas', 'lsst' ]:
         if request.META['HTTP_HOST'].startswith(vo):
@@ -1207,7 +1214,6 @@ def jobParamList(request):
     query = {}
     query['pandaid__in'] = idlist
     jobparams = Jobparamstable.objects.filter(**query).values()
-    print jobparams
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return HttpResponse(json.dumps(jobparams, cls=DateEncoder), mimetype='text/html')
     else:
@@ -1264,10 +1270,6 @@ def jobList(request, mode=None, param=None):
                showTop = 1
             jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMITS].values(*values))
              
-             
-    
-    print Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].query
-                
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
     taskids = {}
     
@@ -2306,7 +2308,6 @@ def taskSummaryData(query):
     summary = []
     querynotime = query
     del querynotime['modificationtime__range']
-    print "Task summary query", query
     summary.extend(Jobsactive4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:JOB_LIMIT])
     summary.extend(Jobsdefined4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:JOB_LIMIT])
     summary.extend(Jobswaiting4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:JOB_LIMIT])
