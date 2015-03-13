@@ -7,6 +7,7 @@ from django.views.generic import TemplateView
 from django.conf import settings
 
 from lsst import views as lsstmon_views
+from lsst import dpviews as dpviews
 #import lsst.views as lsstmon_views
 import core.pandajob.views_support as core_lsstmon_support_views
 #import core.pandajob.views as core_lsstmon_views
@@ -47,6 +48,8 @@ urlpatterns = patterns('',
     url(r'^datasetList/$', lsstmon_views.datasetList, name='datasetList'),
     url(r'^workQueues/$', lsstmon_views.workQueues, name='workQueues'),
 
+    ### data product catalog prototyping                                                                                                                                                         
+    url(r'^dp/$', dpviews.doRequest, name='doRequest'),
 
     ### filebrowser
     url(r'^filebrowser/', include('filebrowser.urls'), name='filebrowser'),
