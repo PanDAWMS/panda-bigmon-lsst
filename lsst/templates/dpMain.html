@@ -1,0 +1,376 @@
+{% extends "_base_lsst.html" %}{% load url from future %}
+
+{% block page_title %} DPC {% endblock %}
+{% block subtitle %} Data Product Browser 
+&nbsp; &nbsp; <a href="/dp/">Main</a>
+&nbsp; &nbsp; <a href="/dp/?mode=dataset">Datasets</a>
+&nbsp; &nbsp; <a href="/dp/?mode=request">Requests</a>
+{% endblock %}
+
+{% block body %}
+
+{% if messages %}
+<div class="messages">
+<table>
+    {% for message in messages %}
+   <tr><td><b><span {% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message|safe }}</span></b></td></tr>
+    {% endfor %}
+</table>
+</div>
+{% endif %}
+
+<script language=javascript type='text/javascript'>
+function toggle_details(id) {
+var el = document.getElementById(id); 
+if ( el.style.display != 'none' ) { 
+ el.style.display = 'none' } 
+else { el.style.display = ''; } 
+ } </script>
+
+<script language=javascript type='text/javascript'>
+function toggle_class_details(classname) {
+var els = document.getElementsByClassName(classname); 
+for (var i = 0; i < els.length; i++) {
+    if ( els[i].style.display != 'none' ) { 
+     els[i].style.display = 'none' } 
+    else { els[i].style.display = ''; } 
+    }
+}
+ </script>
+
+{% if mode == 'intro' %}
+
+<table width=600> 
+
+<tr><td>
+<p width=300>
+This Data Product Browser component of the bigpanda monitor is a collection of prototype
+ideas and elements for a Data Product Catalog and surrounding services, as sketched out by
+Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC development meeting</a>.
+</p>
+</td></tr>
+
+<tr><td>
+<a href="/dp/?mode=request"><b>Production request browser</b></a>
+</td></tr>
+
+<tr><td>
+<a href="/dp/?mode=dataset"><b>Dataset search</b></a>
+</td></tr>
+
+</table>
+
+{% endif %}
+
+{% if mode == 'dataset' %}
+
+<table width=600> 
+
+
+<tr><td>
+<b>Dataset and container lookup</b>
+
+<form action="/dp/" method="post">
+
+{{ dataset_form.non_field_errors }}
+
+<table width=900 class='formtable'>
+    {% csrf_token %}
+
+{{ xform.as_table }}
+
+{% for field in dataset_form %}
+{% if field.is_hidden %}
+{{ field }}
+{% elif field.field.label == 'Date' %}
+<tr><td> Date &nbsp; 
+
+<input type="text" id="id_date_year" name="date_year" value=2014 style="width:50px; margin:0px; display: inline-block;">-<input type="text" id="id_date_month" name="date_month" value=12 style="width:40px; margin:0px; display: inline-block;">-<input type="text" id="id_date_day" name="date_day" value=31 style="width:40px; margin:0px; display: inline-block;">
+
+</td></tr>
+{% else %}
+    <tr class="fieldWrapper"><td>
+        {% for error in field.errors %}
+            {% if error != "This field is required." %}
+                <p>{{ error }}</p>
+            {% endif %}
+        {% endfor %}
+{% if field.field.required %}
+<b>{{ field.field.label }} *</b>
+{% else %}
+{{ field.field.label }}
+{% endif %}
+<br><font color=grey> {{ field.help_text|safe }} </font>
+         {{ field }}
+    </td></tr>
+
+{% endif %}
+
+{% endfor %}
+
+{% if not emptyform %}
+{% comment %} Only need to show the submit button if there's more to the form than the type selection {% endcomment %}
+<tr><td>
+<input type="submit" name="save" class="subButton" value="Submit" />
+</td></tr>
+{% endif %}
+
+</table>
+</form>
+
+</td></tr>
+
+</table>
+
+{% endif %}
+
+{% if dataset %}
+<h3>Search for dataset</h3>
+<p>
+<b>{{ dataset }}*</b>
+</p>
+{% endif %}
+
+{% if reqid %}
+<h3>Production request {{ reqid }}</h3>
+{% if thisProject %}
+<p>
+&nbsp; Project: <b>{{ thisProject.project }}</b> &nbsp; &nbsp; {{ thisProject.description }}
+</p>
+{% endif %}
+
+<table>
+<tr class='tablesection'><th colspan=20> PanDA JEDI task attribute summary 
+&nbsp; <a href="{% url 'taskList' %}?reqid={{ reqid }}&tasktype=prod&days=360">Task list</a>
+
+</th></tr>
+{% for fdict in jtasksuml %}
+<tr><th> {{ fdict.field }} ({{ fdict.list|length }})</th><td>
+{% for item in fdict.list %}
+<span {% if fdict.field == 'status' or fdict.field == 'superstatus' %} class='{{item.kname}}' {% endif %}> {{ item.kname }} </span>
+<a href="{% url 'taskList' %}?reqid={{reqid}}&{{fdict.field}}={{item.kname}}&tasktype=prod&days=360">({{ item.kvalue }})</a> &nbsp; 
+{% endfor %}
+</td></tr>
+{% endfor %}
+</table>
+
+{% elif requests %}
+
+<h3>Production requests</h3>
+
+<table>
+<tr class='tablesection'><th colspan=20> Request attribute summary  &nbsp; Sort by {% if request.GET.sortby == 'count' %} count, <a href="{{nosorturl}}">alpha</a> {% else %} <a href="{{nosorturl}}sortby=count">count</a>, alpha {% endif %} </th></tr>
+{% for fdict in reqsuml %}
+<tr><th> {{ fdict.field }} ({{ fdict.list|length }})</th><td>
+{% for item in fdict.list %}
+<span> {{ item.kname }} </span>
+<a href="{{xurl}}{{fdict.field}}={{item.kname}}">({{ item.kvalue }})</a> &nbsp; 
+{% endfor %}
+</td></tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if requests %}
+<table>
+<tr class='tablesection'>
+<th> reqid </th>
+<th> group </th>
+<th> description <br> reference link</th>
+<th> project
+<br> campaign </th>
+<th> manager </th>
+<th> provenance
+<br> type </th>
+<th> status </th>
+<th> GeV </th>
+<th> fast </th>
+</tr>
+{% for request in requests %}
+<tr>
+<td> <a href="{{ xurl }}reqid={{ request.reqid }}">{{ request.reqid }}</a> </td>
+<td> <a href="{{ xurl }}phys_group={{ request.phys_group }}">{{ request.phys_group }}</a> </td>
+<td> {{ request.description }} 
+{% if request.ref_link %}
+<br><a href="{{ request.ref_link }}">{{ request.ref_link_path }}</a>
+{% endif %}
+</td>
+<td> <a href="{{ xurl }}project_id={{ request.project_id }}">{{ request.project_id }}</a>
+{% if request.campaign != request.project_id %}
+<br> <a href="{{ xurl }}campaign={{ request.campaign }}">{{ request.campaign|slice:":15" }}</a> {{ request.sub_campaign }}
+{% endif %}
+</td>
+<td> <a href="{{ xurl }}manager={{ request.manager }}">{{ request.manager|slice:":14" }}</a> </td>
+<td> <a href="{{ xurl }}provenance={{ request.provenance }}">{{ request.provenance }}</a>
+<br> <a href="{{ xurl }}request_type={{ request.request_type }}">{{ request.request_type|slice:":6" }}</a> </td>
+<td class='{{request.status}}_fill' > {{ request.status }} </td>
+<td> {{ request.energy_gev }} </td>
+<td> {% if request.is_fast == True %} <a href="{{ xurl }}is_fast=True">Fast</a> {% endif %} </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if containers %}
+<table>
+<tr class='tablesection'><th colspan=20> {{ containers|length }} containers </th></tr>
+{% for e in containers %}
+<tr>
+<td> {{ e.name }}
+<br> status={{ e.status }} &nbsp; parent task=<a href="{% url 'taskInfo' %}?jeditaskid={{ e.parent_task_id }}">{{ e.parent_task_id }}</a> &nbsp; request={{ e.rid }} &nbsp; phys_group={{ e.phys_group }}
+</td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if datasets %}
+<table>
+<tr class='tablesection'><th colspan=20> {{ datasets|length }} tasks with this dataset </th></tr>
+{% for e in datasets %}
+<tr>
+<td> <a style="cursor:pointer;" onClick=toggle_class_details('{{e.name}}')><font size=-1>{{ e.name }} </font></a>
+<span class={{e.name}}>
+{% if e.task_id %}
+<br>Task <a href="{% url 'taskInfo' %}?jeditaskid={{ e.task_id }}">{{ e.task_id }}</a>
+{% endif %}
+{% if e.parent_task_id and e.parent_task_id != e.task_id%}
+<br>Parent task <a href="{% url 'taskInfo' %}?jeditaskid={{ e.parent_task_id }}">{{ e.parent_task_id }}</a>
+{% endif %}
+<br>events={{ e.events }} &nbsp; files={{ e.files }} &nbsp; status=<span class='{{ e.status }}'>{{ e.status }}</span> &nbsp; campaign={{ e.campaign }} &nbsp; timestamp={{ e.timestamp }}
+</span>
+</td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+
+{% if jedidatasets %}
+<table>
+<tr class='tablesection'><th colspan=20> {{ datasets|length }} JEDI datasets </th></tr>
+{% for e in jedidatasets %}
+<tr>
+<td> <a href="{% url 'datasetInfo' %}?datasetname={{ e.datasetname }}">{{ e.datasetname }}</a> </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if files %}
+<table>
+<tr class='tablesection'><th colspan=20> {{ datasets|length }} files into dataset </th></tr>
+{% for e in files %}
+<tr>
+<td> {{ e.lfn }} </td>
+<td> PandaID <a href="{% url 'jobInfo' %}?pandaid={{ e.pandaid }}">{{ e.pandaid }}</a> </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if tasks and not reqid %}
+<table>
+<tr class='tablesection'><th colspan=20> {{ tasks|length }} tasks </th></tr>
+{% for e in tasks %}
+<tr>
+<td> <a href="{% url 'taskInfo' %}?taskname={{ e.name }}">{{ e.name }}</a> </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if steps and not reqid %}
+<table>
+<tr class='tablesection'><th colspan=20> {{ steps|length }} steps </th></tr>
+{% for e in steps %}
+<tr>
+<td> {{ e.id }} </td>
+<td> {{ e.status }} </td>
+<td> {{ e.input_events }} </td>
+<td> {{ e.priority }} </td>
+<td> {{ e.task_config }} </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if slices %}
+<table>
+<tr class='tablesection'><th colspan=20> {{ slices|length }} slices &nbsp; &nbsp; Click on step status, dataset name, task name to toggle details </th></tr>
+{% for e in slices %}
+<tr>
+<td rowspan=2> {{ e.slice }} </td>
+<td> {{ e.input_data }}
+<br> {{ e.comment }} </td>
+<td> <a style="cursor:pointer;" onClick=toggle_class_details('{{e.dataset_id}}')><font size=-1>{{ e.dataset_id_html|safe }} </font></a>
+<span class={{e.dataset_id}} style="display: none">
+{% if e.dataset_data %}
+{% if e.dataset_data.task_id %}
+<br>Task <a href="{% url 'taskInfo' %}?jeditaskid={{ e.dataset_data.task_id }}">{{ e.dataset_data.task_id }}</a>
+{% endif %}
+{% if e.dataset_data.parent_task_id and e.dataset_data.parent_task_id != e.dataset_data.task_id%}
+<br>Parent task <a href="{% url 'taskInfo' %}?jeditaskid={{ e.dataset_data.parent_task_id }}">{{ e.dataset_data.parent_task_id }}</a>
+{% endif %}
+<br>events={{ e.dataset_data.events }} &nbsp; files={{ e.dataset_data.files }} &nbsp; status=<span class='{{ e.dataset_data.status }}'>{{ e.dataset_data.status }}</span> &nbsp; campaign={{ e.dataset_data.campaign }} &nbsp; timestamp={{ e.dataset_data.timestamp }}
+{% else %}
+<br> No dataset details found
+{% endif %}
+</span>
+</td>
+<td> evts <br> {{ e.input_events }} </td>
+<td> prio <br> {{ e.priority }} </td>
+</tr>
+<tr> 
+<td colspan=20>
+<font size=-1>
+{% for step in e.steps %}
+<a style="cursor:pointer;" onClick=toggle_class_details('slice_{{e.slice}}')> <b>{{ step.ctag.step }}</b> {{ step.ctag.ctag }} <span class='{{ step.status|lower }}'> {{ step.status }} </span></a> <br>
+<span class='slice_{{e.slice}}'  style="display: none">
+ &nbsp; &nbsp; ctag created {{ step.ctag.def_time }}   status=<span class='{{ step.ctag.status|lower }}'>{{ step.ctag.status }} </span> format={{ step.ctag.output_formats }} cpu={{ step.ctag.cpu_per_event }}  mem={{ step.ctag.memory }}  trf={{ step.ctag.trf_name }} release={{ step.ctag.swrelease }}<br>
+ &nbsp;  &nbsp; task_config: {{ step.task_config }} <br>
+{% if step.ctag.lparams %} &nbsp;  &nbsp; ctag lparams: {{ step.ctag.lparams }} <br> {% endif %}
+{% if step.ctag.vparams %} &nbsp;  &nbsp; ctag vparams: {{ step.ctag.vparams }} <br> {% endif %} </span>
+
+{% for task in step.tasks %}
+    &nbsp; &nbsp; task <a style="cursor:pointer;" onClick=toggle_class_details('slice_{{e.slice}}_tasks')><span class='{{ task.status }}'> <b>{{ task.id }}: {{ task.name }}</b> {{ task.status }} </span></a>
+    {% if task.total_req_jobs > 0 or task.total_done_jobs > 0 %}
+    &nbsp; jobs={{ task.total_done_jobs }}/{{ task.total_req_jobs }}
+    {% endif %}
+    <br>
+    <span class='slice_{{e.slice}}_tasks' style="display: none">
+    &nbsp; &nbsp; &nbsp; &nbsp; <a href="{% url 'taskInfo' %}?jeditaskid={{ task.id }}"> PanDA task {{ task.id }} page </a><br>
+    &nbsp; &nbsp; &nbsp; &nbsp; id={{ task.id }} &nbsp; chain_tid={{ task.chain_tid }} &nbsp; parent_id={{ task.parent_id }} &nbsp; dsn={{ task.dsn }} &nbsp; tag={{ task.physics_tag }} &nbsp; events={{ task.total_events }} <br>
+    &nbsp; &nbsp; &nbsp; &nbsp; submitted {{ task.submit_time }} &nbsp; started {{ task.start_time }} &nbsp; timestamp {{ task.timestamp }} 
+    {% if task.update_time %}
+    &nbsp; updated {{ task.update_time }} by {{ task.update_owner }}
+    {% endif %}
+    <br>
+    &nbsp; &nbsp; &nbsp; &nbsp; Input dataset {{ task.inputdataset }} <br>
+    {% if task.postproduction %}
+    &nbsp; &nbsp; &nbsp; &nbsp; Postproduction: {{ task.postproduction }} <br>
+    {% endif %}
+    {% if task.comments %}
+    &nbsp; &nbsp; &nbsp; &nbsp; Comments: {{ task.comments }} <br>
+    {% endif %}
+    {% if task.jedi_info %}
+    &nbsp; &nbsp; &nbsp; &nbsp; JEDI info: {{ task.jedi_info }} <br>
+    {% endif %}
+    </span>
+{% endfor %}
+
+{% endfor %}
+</font>
+</td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% endblock %}
+
+{% block helptext %}
+
+
+
+{% endblock %}
