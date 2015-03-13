@@ -29,7 +29,11 @@ from boto.dynamodb2.types import STRING_SET
 
 #from settings.local import aws
 
-from atlas.prodtask.models import TRequest, TProject, RequestStatus, ProductionTask, StepTemplate, StepExecution, InputRequestList, ProductionContainer, ProductionDataset
+# A crapshoot whether they're available because of the branch mess
+try:
+    from atlas.prodtask.models import TRequest, TProject, RequestStatus, ProductionTask, StepTemplate, StepExecution, InputRequestList, ProductionContainer, ProductionDataset
+except:
+    pass
 from core.common.models import JediTasks
 from core.common.models import Filestable4 
 from core.common.models import FilestableArch
