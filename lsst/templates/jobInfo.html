@@ -205,7 +205,11 @@ job <a href="http://pandawms.org/pandajobslogstmp/lsst/data/jschovan/pandajobs/{
 {% endif %}
 
 <td>
-<a href="{% url 'pandaLogger' %}?category=panda.mon.prod&type=pilotLog&pandaid={{ pandaid }}">logger records</a>
+<a href="{% url 'pandaLogger' %}?category=panda.mon.prod&type=pilotLog&pandaid={{ pandaid }}">pilot records</a>
+</td>
+
+<td>
+<a href="{% url 'pandaLogger' %}?category=panda.mon.jedi&jeditaskid={{ job.jeditaskid }}">JEDI action logger</a>
 </td>
 
 <td>
