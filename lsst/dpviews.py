@@ -120,14 +120,16 @@ def doRequest(request):
         projectd[p['project']] = p
 
     reqs = []
+    thisProject = None
     if mode == 'request':
         reqs = TRequest.objects.using('deft_adcr').filter(**query).order_by('reqid').reverse().values()
     for r in reqs:
-        if r['project_id']: r['projectdata'] = projectd[r['project_id']]
-    if len(reqs) > 0 and reqid:
-        thisProject = reqs[0]['projectdata']
-    else:
-        thisProject = None
+        if 'project_id' in r and r['project_id']:
+            r['projectdata'] = projectd[r['project_id']]
+        else:
+            r['projectdata'] = None
+    if reqid: print reqs
+    if len(reqs) > 0 and reqid: thisProject = reqs[0]['projectdata']
 
     reqstatd = {}
     query = {}
