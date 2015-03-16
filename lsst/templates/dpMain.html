@@ -158,6 +158,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endif %}
 
 {% if requests %}
+{% comment %} CStatus is the cstatus field in the TRequest record. Status is the status field in the RequestStatus record. {% endcomment %}
 <table>
 <tr class='tablesection'>
 <th> <a href="{{ nosorturl }}sortby=reqid">Request</a> </th>
@@ -197,7 +198,8 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <td> <a href="{{ xurl }}manager={{ request.manager }}">{{ request.manager|slice:":14" }}</a> </td>
 <td> <a href="{{ xurl }}provenance={{ request.provenance }}">{{ request.provenance }}</a>
 <br> <a href="{{ xurl }}request_type={{ request.request_type }}">{{ request.request_type|slice:":6" }}</a> </td>
-<td class='{{request.status}}_fill' > {{ request.status }} </td>
+ <td class='{{request.cstatus}}_fill' > {{ request.cstatus }}
+ {% comment %} {% if request.status !=  request.cstatus %} <br> {{ request.status }} {% endif %} {% endcomment %} </td>
 <td> {{ request.timestamp|date:"Y-m-d H:i" }} </td>
 <td> {% if request.is_fast == True %} <a href="{{ xurl }}is_fast=True">Fast</a> {% endif %} </td>
 </tr>
@@ -390,6 +392,15 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 </font>
 </td>
 </tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if reqid %}
+<table>
+<tr><th colspan=20 bgcolor='lightcyan'> All request parameters </th></tr>
+{% for col in request_columns %}
+<tr><th>{{ col.name }}</th><td> {{ col.value }} </td></tr>
 {% endfor %}
 </table>
 {% endif %}

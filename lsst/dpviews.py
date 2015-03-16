@@ -155,6 +155,7 @@ def doRequest(request):
 
     datasets = containers = tasks = jeditasks = jedidatasets = steps = slices = files = []
     events_processed = None
+    request_columns = None
     if reqid:
         events_processed = {}
         ## Prepare information for the particular request
@@ -214,6 +215,24 @@ def doRequest(request):
             sl['steps'] = []
             for st in steps:
                 if st['slice_id'] == sl['id']: sl['steps'].append(st)
+
+            ## prepare dump of all fields
+            reqd = {}
+            colnames = []
+            request_columns = []
+            try:
+                req = reqs[0]
+                colnames = req.keys()
+                colnames.sort()
+                for k in colnames:
+                    val = req[k]
+                    if req[k] == None:
+                        val = ''
+                        continue
+                    pair = { 'name' : k, 'value' : val }
+                    request_columns.append(pair)
+            except IndexError:
+                reqd = {}
 
     if dataset:
         print 'dataset', dataset
@@ -280,6 +299,7 @@ def doRequest(request):
         'files' : files,
         'dataset_form' : dataset_form,
         'events_processed' : events_processed,
+        'request_columns' : request_columns,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
     return response
