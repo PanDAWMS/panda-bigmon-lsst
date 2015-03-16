@@ -13,7 +13,7 @@ from urlparse import urlparse
 from django.http import HttpResponse
 from django.shortcuts import render_to_response, render, redirect
 from django.template import RequestContext, loader
-from django.db.models import Count
+from django.db.models import Count, Sum
 from django import forms
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
@@ -233,8 +233,10 @@ def doRequest(request):
                     request_columns.append(pair)
             except IndexError:
                 reqd = {}
-    elif mode == 'request':
-        slicecounts = InputRequestList.objects.using('deft_adcr').all().values('request').annotate(Count('request'))   
+    if reqid or (mode == 'request'):
+        query = {}
+        if reqid: query = { 'request' : reqid }
+        slicecounts = InputRequestList.objects.using('deft_adcr').filter(**query).values('request').annotate(Count('request'))   
         nsliced = {}
         for s in slicecounts:
             nsliced[s['request']] = s['request__count']
@@ -243,20 +245,64 @@ def doRequest(request):
                 r['nslices'] = nsliced[r['reqid']]
             else:
                 r['nslices'] = None
-        taskcounts = ProductionTask.objects.using('deft_adcr').all().values('request__reqid','status').annotate(Count('status')).order_by('request__reqid','status')
+
+        reqevents = InputRequestList.objects.using('deft_adcr').filter(**query).values('request').annotate(Sum('input_events'))
+        print 'reqevents',reqevents
+        nreqevd = {}
+        for t in reqevents:
+            if t['input_events__sum'] > 0:
+                nreqevd[t['request']] = t['input_events__sum']
+        for r in reqs:
+            if r['reqid'] in nreqevd:
+                nEvents = float(nreqevd[r['reqid']])/1000.
+                r['nrequestedevents'] = nEvents
+            else:
+                r['nrequestedevents'] = None
+
+        taskcounts = ProductionTask.objects.using('deft_adcr').filter(**query).values('request','step__step_template__step','status').annotate(Count('status')).order_by('request','step__step_template__step','status')
         ntaskd = {}
         for t in taskcounts:
-            if t['request__reqid'] not in ntaskd: ntaskd[t['request__reqid']] = {}
-            ntaskd[t['request__reqid']][t['status']] = t['status__count']
+            if t['request'] not in ntaskd: ntaskd[t['request']] = {}
+            if t['step__step_template__step'] not in ntaskd[t['request']]: ntaskd[t['request']][t['step__step_template__step']] = {}
+            ntaskd[t['request']][t['step__step_template__step']][t['status']] = t['status__count']
         for r in reqs:
             if r['reqid'] in ntaskd:
-                sl = []
-                for s in ntaskd[r['reqid']]:
-                    sl.append([s, ntaskd[r['reqid']][s]])
-                sl.sort()
-                r['ntasks'] = sl
+                stepl = []
+                for istep in ntaskd[r['reqid']]:
+                    statel = []
+                    for istate in ntaskd[r['reqid']][istep]:
+                        statel.append([istate, ntaskd[r['reqid']][istep][istate]])
+                    statel.sort()
+                    stepl.append([istep, statel])
+                stepl.sort()
+                r['ntasks'] = stepl
             else:
                 r['ntasks'] = None
+
+        eventcounts = ProductionTask.objects.using('deft_adcr').filter(**query).exclude(status__in=['aborted','broken']).values('request','step__step_template__step','total_events').annotate(Sum('total_events')).order_by('request','step__step_template__step','total_events')
+        ntaskd = {}
+        for t in eventcounts:
+            if t['request'] not in ntaskd: ntaskd[t['request']] = {}
+            ntaskd[t['request']][t['step__step_template__step']] = t['total_events__sum']
+        for r in reqs:
+            if r['reqid'] in ntaskd:
+                stepl = []
+                for istep in ntaskd[r['reqid']]:
+                    nEvents = float(ntaskd[r['reqid']][istep])/1000.
+                    stepl.append([istep, nEvents ])
+                stepl.sort()
+                r['nprocessedevents'] = stepl
+                if r['nrequestedevents'] and r['nrequestedevents'] > 0:
+                    if 'completedevpct' not in r: r['completedevpct'] = []
+                    for istep in ntaskd[r['reqid']]:
+                        ndone = float(ntaskd[r['reqid']][istep])/1000.
+                        nreq = r['nrequestedevents']
+                        pct = ndone / nreq * 100 
+                        pct = int(pct*10)/10.
+                        r['completedevpct'].append([ istep, pct ])
+                    r['completedevpct'].sort()
+            else:
+                r['nprocessedevents'] = None
 
     if dataset:
         print 'dataset', dataset
@@ -289,7 +335,7 @@ def doRequest(request):
         evkeys.sort()
         evpl = []
         for e in evkeys:
-            evpl.append([e, float(events_processed[e])/1000000.])
+            evpl.append([e, float(events_processed[e])/1000.])
         events_processed = evpl
     print events_processed
 
