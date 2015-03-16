@@ -121,7 +121,7 @@ def doRequest(request):
 
     reqs = []
     thisProject = None
-    if mode == 'request':
+    if mode in ('request', 'reqid'):
         reqs = TRequest.objects.using('deft_adcr').filter(**query).order_by('reqid').reverse().values()
     for r in reqs:
         if 'project_id' in r and r['project_id']:
@@ -149,7 +149,9 @@ def doRequest(request):
             r['owner'] = reqstatd[rid]['owner']
 
     datasets = containers = tasks = jeditasks = jedidatasets = steps = slices = files = []
+    events_processed = None
     if reqid:
+        events_processed = {}
         ## Prepare information for the particular request
         datasets = ProductionDataset.objects.using('deft_adcr').filter(rid=reqid).order_by('name').values()
         containers = ProductionContainer.objects.using('deft_adcr').filter(rid=reqid).order_by('name').values()
@@ -190,13 +192,16 @@ def doRequest(request):
             for ct in ctags:
                 if st['step_template_id'] == ct['id']:
                     st['ctag'] = ct
+            evtag = "%s %s" % (st['ctag']['step'],st['ctag']['ctag'])
             ## add tasks to steps
             st['tasks'] = []
             for t in tasks:
                 if t['step_id'] == st['id']:
                     st['tasks'].append(t)
                     tasklist.append(t['name'])
-            
+                    if t['status'] not in ( 'aborted', 'broken' ):
+                        if evtag not in events_processed: events_processed[evtag] = 0
+                        events_processed[evtag] += t['total_events']            
         ## get the needed task records
 
         ## for each slice, add its steps
@@ -230,6 +235,16 @@ def doRequest(request):
     reqsuml = attSummaryDict(request, reqs, req_fields)
     jtasksuml = attSummaryDict(request, jeditasks, jeditask_fields)
 
+    if events_processed:
+        # Convert from dict to ordered list
+        evkeys = events_processed.keys()
+        evkeys.sort()
+        evpl = []
+        for e in evkeys:
+            evpl.append([e, float(events_processed[e])/1000000.])
+        events_processed = evpl
+    print events_processed
+
     data = {
         'viewParams' : viewParams,
         'xurl' : views.extensibleURL(request),
@@ -249,6 +264,7 @@ def doRequest(request):
         'slices' : slices,
         'files' : files,
         'dataset_form' : dataset_form,
+        'events_processed' : events_processed,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
     return response

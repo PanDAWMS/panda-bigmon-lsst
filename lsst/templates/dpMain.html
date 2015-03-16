@@ -139,21 +139,6 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 </p>
 {% endif %}
 
-<table>
-<tr class='tablesection'><th colspan=20> PanDA JEDI task attribute summary 
-&nbsp; <a href="{% url 'taskList' %}?reqid={{ reqid }}&tasktype=prod&days=360">Task list</a>
-
-</th></tr>
-{% for fdict in jtasksuml %}
-<tr><th> {{ fdict.field }} ({{ fdict.list|length }})</th><td>
-{% for item in fdict.list %}
-<span {% if fdict.field == 'status' or fdict.field == 'superstatus' %} class='{{item.kname}}' {% endif %}> {{ item.kname }} </span>
-<a href="{% url 'taskList' %}?reqid={{reqid}}&{{fdict.field}}={{item.kname}}&tasktype=prod&days=360">({{ item.kvalue }})</a> &nbsp; 
-{% endfor %}
-</td></tr>
-{% endfor %}
-</table>
-
 {% elif requests %}
 
 <h3>Production requests</h3>
@@ -169,6 +154,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 </td></tr>
 {% endfor %}
 </table>
+
 {% endif %}
 
 {% if requests %}
@@ -211,6 +197,37 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 </table>
 {% endif %}
 
+{% if reqid %}
+
+{% if events_processed %}
+<table>
+<tr class='tablesection'><th colspan=99> Events Processed</th></tr>
+<tr class='tablesection'><th> Step ctag </th><th> Events processed (Millions) in healthy tasks (not aborted or broken) </th></tr>
+{% for evts in events_processed %}
+<tr><td> {{ evts.0 }}  </td><td> {{ evts.1 }} </td></tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if tasks %}
+<table>
+<tr class='tablesection'><th colspan=20> PanDA JEDI task attribute summary 
+&nbsp; <a href="{% url 'taskList' %}?reqid={{ reqid }}&tasktype=prod&days=360">Task list</a>
+
+</th></tr>
+{% for fdict in jtasksuml %}
+<tr><th> {{ fdict.field }} ({{ fdict.list|length }})</th><td>
+{% for item in fdict.list %}
+<span {% if fdict.field == 'status' or fdict.field == 'superstatus' %} class='{{item.kname}}' {% endif %}> {{ item.kname }} </span>
+<a href="{% url 'taskList' %}?reqid={{reqid}}&{{fdict.field}}={{item.kname}}&tasktype=prod&days=360">({{ item.kvalue }})</a> &nbsp; 
+{% endfor %}
+</td></tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% endif %}
+
 {% if containers %}
 <table>
 <tr class='tablesection'><th colspan=20> {{ containers|length }} containers </th></tr>
@@ -224,6 +241,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 </table>
 {% endif %}
 
+{% comment %}
 {% if datasets %}
 <table>
 <tr class='tablesection'><th colspan=20> {{ datasets|length }} tasks with this dataset </th></tr>
@@ -244,6 +262,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endfor %}
 </table>
 {% endif %}
+{% endcomment %}
 
 
 {% if jedidatasets %}
@@ -340,7 +359,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
     <br>
     <span class='slice_{{e.slice}}_tasks' style="display: none">
     &nbsp; &nbsp; &nbsp; &nbsp; <a href="{% url 'taskInfo' %}?jeditaskid={{ task.id }}"> PanDA task {{ task.id }} page </a><br>
-    &nbsp; &nbsp; &nbsp; &nbsp; id={{ task.id }} &nbsp; chain_tid={{ task.chain_tid }} &nbsp; parent_id={{ task.parent_id }} &nbsp; dsn={{ task.dsn }} &nbsp; tag={{ task.physics_tag }} &nbsp; events={{ task.total_events }} <br>
+    &nbsp; &nbsp; &nbsp; &nbsp; id={{ task.id }} &nbsp; chain_tid={{ task.chain_tid }} &nbsp; parent_id={{ task.parent_id }} &nbsp; dsn={{ task.dsn }} &nbsp; tag={{ task.physics_tag }} &nbsp; total_events={{ task.total_events }} <br>
     &nbsp; &nbsp; &nbsp; &nbsp; submitted {{ task.submit_time }} &nbsp; started {{ task.start_time }} &nbsp; timestamp {{ task.timestamp }} 
     {% if task.update_time %}
     &nbsp; updated {{ task.update_time }} by {{ task.update_owner }}
