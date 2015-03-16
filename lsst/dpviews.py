@@ -233,6 +233,30 @@ def doRequest(request):
                     request_columns.append(pair)
             except IndexError:
                 reqd = {}
+    elif mode == 'request':
+        slicecounts = InputRequestList.objects.using('deft_adcr').all().values('request').annotate(Count('request'))   
+        nsliced = {}
+        for s in slicecounts:
+            nsliced[s['request']] = s['request__count']
+        for r in reqs:
+            if r['reqid'] in nsliced:
+                r['nslices'] = nsliced[r['reqid']]
+            else:
+                r['nslices'] = None
+        taskcounts = ProductionTask.objects.using('deft_adcr').all().values('request__reqid','status').annotate(Count('status')).order_by('request__reqid','status')
+        ntaskd = {}
+        for t in taskcounts:
+            if t['request__reqid'] not in ntaskd: ntaskd[t['request__reqid']] = {}
+            ntaskd[t['request__reqid']][t['status']] = t['status__count']
+        for r in reqs:
+            if r['reqid'] in ntaskd:
+                sl = []
+                for s in ntaskd[r['reqid']]:
+                    sl.append([s, ntaskd[r['reqid']][s]])
+                sl.sort()
+                r['ntasks'] = sl
+            else:
+                r['ntasks'] = None
 
     if dataset:
         print 'dataset', dataset

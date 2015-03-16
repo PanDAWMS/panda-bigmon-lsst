@@ -163,7 +163,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <tr class='tablesection'>
 <th> <a href="{{ nosorturl }}sortby=reqid">Request</a> </th>
 <th> Group </th>
-<th> Description <br>GeV &nbsp;  Reference link
+<th> Description <br>Slices &nbsp; GeV &nbsp;  Reference link
 <br><font color='brown'>Comment</font>
 </th>
 <th> Project
@@ -181,14 +181,25 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <td> <a href="{{ xurl }}phys_group={{ request.phys_group }}">{{ request.phys_group }}</a> </td>
 <td> {{ request.description }} 
 <br>
+{% if request.nslices %} {{ request.nslices }} slices &nbsp; {% endif %}
 {{ request.energy_gev }} GeV
 {% if request.ref_link %}
 &nbsp; <a href="{{ request.ref_link }}">{{ request.ref_link_path }}</a>
 {% endif %}
+
 {% if request.comment %}
 <br>
 <font color='brown'>{{ request.comment }}</font>
 {% endif %}
+
+{% if request.ntasks %}
+<br> Tasks:
+{% for s in request.ntasks %}
+&nbsp; <span class='{{ s.0 }}'><b>{{ s.0 }}</b></span>:<a href="{% url 'taskList' %}?tasktype=prod&reqid={{ request.reqid }}&superstatus={{ s.0 }}">{{ s.1 }}</a>
+{% endfor %}
+{% endif %}
+
+
 </td>
 <td> <a href="{{ xurl }}project_id={{ request.project_id }}">{{ request.project_id }}</a>
 {% if request.campaign != request.project_id %}
