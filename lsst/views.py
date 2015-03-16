@@ -14,7 +14,7 @@ from django.utils.cache import patch_cache_control, patch_response_headers
 
 from core.common.utils import getPrefix, getContextVariables, QuerySetChain
 from core.common.settings import STATIC_URL, FILTER_UI_ENV, defaultDatetimeFormat
-from core.pandajob.models import PandaJob, Jobsactive4, Jobsdefined4, Jobswaiting4, Jobsarchived4, Jobsarchived
+from core.pandajob.models import PandaJob, Jobsactive4, Jobsdefined4, Jobswaiting4, Jobsarchived4, Jobsarchived, GetRWWithPrioJedi3DAYS
 from core.resource.models import Schedconfig
 from core.common.models import Filestable4 
 from core.common.models import Datasets
@@ -355,9 +355,9 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
 
     
     global TFIRST
-    TFIRST = datetime.strptime(startdate, '%Y-%m-%d %H:%M:%S')
+    TFIRST = datetime.strptime(startdate[:18], '%Y-%m-%d %H:%M:%S')
     global TLAST
-    TLAST = datetime.strptime(enddate, '%Y-%m-%d %H:%M:%S')
+    TLAST = datetime.strptime(enddate[:18], '%Y-%m-%d %H:%M:%S')
 
     ### Add any extensions to the query determined from the URL
     for vo in [ 'atlas', 'lsst' ]:
@@ -2751,6 +2751,162 @@ def dashTaskSummary(request, hours, limit=999999, view='all'):
 
     return fullsummary
 
+
+
+
+
+#https://github.com/PanDAWMS/panda-jedi/blob/master/pandajedi/jedicore/JediCoreUtils.py
+def getEffectiveFileSize(fsize,startEvent,endEvent,nEvents):
+    inMB = 1024 * 1024
+    if fsize in [None,0]:
+        # use dummy size for pseudo input
+        effectiveFsize = inMB
+    elif nEvents != None and startEvent != None and endEvent != None:
+        # take event range into account 
+        effectiveFsize = long(float(fsize)*float(endEvent-startEvent+1)/float(nEvents))
+    else:
+        effectiveFsize = fsize
+    # use dummy size if input is too small
+    if effectiveFsize == 0:
+        effectiveFsize = inMB
+    # in MB
+    effectiveFsize = float(effectiveFsize) / inMB 
+    # return
+    return effectiveFsize
+
+
+
+### Taken (with minor modifications) from
+### https://github.com/PanDAWMS/panda-jedi/blob/master/pandajedi/jedicore/JediDBProxy.py#L4691
+def calculateRWwithPrio_JEDI(vo, cloud, prodSourceLabel, workQueue, priority):
+    comment = ' /* JediDBProxy.calculateRWwithPrio_JEDI */'
+    methodName = self.getMethodName(comment)
+    if workQueue == None:
+        methodName += ' <vo={0} label={1} queue={2} prio={3}>'.format(vo,prodSourceLabel,None,priority)
+    else:
+        methodName += ' <vo={0} label={1} queue={2} prio={3}>'.format(vo,prodSourceLabel,workQueue.queue_name,priority)
+    tmpLog = MsgWrapper(logger,methodName)
+    tmpLog.debug('start')
+    try:
+        # sql to get RW
+        varMap = {}
+
+        sql  = "SELECT tabT.jediTaskID,tabT.cloud,tabD.datasetID,nFiles-nFilesFinished-nFilesFailed,walltime "
+        sql += "FROM {0}.JEDI_Tasks tabT,{0}.JEDI_Datasets tabD,{0}.JEDI_AUX_Status_MinTaskID tabA ".format(jedi_config.db.schemaJEDI)
+        sql += "WHERE tabT.status=tabA.status AND tabT.jediTaskID>=tabA.min_jediTaskID "
+        sql += "AND tabT.jediTaskID=tabD.jediTaskID AND masterID IS NULL "
+        sql += "AND (nFiles-nFilesFinished-nFilesFailed)>0 "
+        
+        if prodSourceLabel!=None:
+            varMap[':prodSourceLabel'] = prodSourceLabel
+            sql += "AND prodSourceLabel=:prodSourceLabel "
+
+        if priority != None:
+            varMap[':priority'] = priority
+        
+        if vo!=None:
+            sql += "AND tabT.vo=:vo "
+            varMap[':vo'] = vo
+        if cloud!=None:
+            sql += "AND tabT.CLOUD=:CLOUD "
+            varMap[':CLOUD'] = cloud
+        if priority != None:
+            sql += "AND currentPriority>=:priority "
+        if workQueue != None:
+            sql += "AND workQueue_ID IN (" 
+            for tmpQueue_ID in workQueue.getIDs():
+                tmpKey = ':queueID_{0}'.format(tmpQueue_ID)
+                varMap[tmpKey] = tmpQueue_ID
+                sql += '{0},'.format(tmpKey)
+            sql  = sql[:-1]    
+            sql += ") "
+        sql += "AND tabT.status IN (:status1,:status2,:status3,:status4) "
+        sql += "AND tabD.type IN ("
+        for tmpType in ['input','pseudo_input']:
+            mapKey = ':type_'+tmpType
+            sql += '{0},'.format(mapKey)
+            varMap[mapKey] = tmpType
+        sql  = sql[:-1]
+        sql += ") "
+        varMap[':status1'] = 'ready'
+        varMap[':status2'] = 'scouting'
+        varMap[':status3'] = 'running'
+        varMap[':status4'] = 'pending'
+        sql += "AND tabT.cloud IS NOT NULL "
+        # begin transaction
+        
+        print sql;
+        
+        #self.conn.begin()
+        ## set cloud
+        #self.cur.execute(sql+comment,varMap)
+        #resList = self.cur.fetchall()
+        ## commit
+        #if not self._commit():
+        #    raise RuntimeError, 'Commit error'
+        ## loop over all tasks
+        #retMap = {}
+        #sqlF  = "SELECT fsize,startEvent,endEvent,nEvents "
+        #sqlF += "FROM {0}.JEDI_Dataset_Contents ".format(jedi_config.db.schemaJEDI)
+        #sqlF += "WHERE jediTaskID=:jediTaskID AND datasetID=:datasetID AND rownum<=1"
+        #for jediTaskID,cloud,datasetID,nRem,walltime in resList:
+        #    # get effective size
+        #    varMap = {}
+        #    varMap[':jediTaskID'] = jediTaskID
+        #    varMap[':datasetID'] = datasetID
+        #    # begin transaction
+        #    self.conn.begin()
+        #    # get file
+        #    self.cur.execute(sqlF+comment,varMap)
+        #    resFile = self.cur.fetchone()
+        #    # commit
+        #    if not self._commit():
+        #        raise RuntimeError, 'Commit error'
+        #    if resFile != None:
+        #        # calculate RW using effective size
+        #        fsize,startEvent,endEvent,nEvents = resFile
+        #        effectiveFsize = getEffectiveFileSize(fsize,startEvent,endEvent,nEvents)
+        #        tmpRW = nRem * effectiveFsize * walltime
+        #        if not cloud in retMap:
+        #            retMap[cloud] = 0
+        #        retMap[cloud] += tmpRW    
+        #for cloudName,rwValue in retMap.iteritems():
+        #    retMap[cloudName] = int(rwValue/24/3600)
+        #tmpLog.debug('RW={0}'.format(str(retMap)))
+        ## return    
+        #tmpLog.debug('done')
+        #return retMap
+    except:
+        # roll back
+        self._rollback()
+        # error
+        self.dumpErrorMessage(tmpLog)
+        return None
+
+
+def calculateRWwithPrio_JEDI():
+    query = {}
+    retMap = {}
+    values = [ 'jeditaskid', 'datasetid', 'modificationtime', 'cloud', 'nrem', 'walltime', 'fsize', 'startevent', 'endevent', 'nevents' ]
+    progressEntries = []
+    progressEntries.extend(GetRWWithPrioJedi3DAYS.objects.filter(**query).values(*values))
+    allCloudsRW = 0;
+    if len(progressEntries) > 0:
+        for progrEntry in progressEntries:
+            if progrEntry['fsize'] != None:
+                effectiveFsize = getEffectiveFileSize(progrEntry['fsize'], progrEntry['startevent'], progrEntry['endevent'], progrEntry['nevents'])
+                tmpRW = progrEntry['nrem'] * effectiveFsize * progrEntry['walltime']
+                if not progrEntry['cloud'] in retMap:
+                    retMap[progrEntry['cloud']] = 0
+                retMap[progrEntry['cloud']] += tmpRW
+                allCloudsRW += tmpRW
+    retMap['All'] = allCloudsRW
+    for cloudName,rwValue in retMap.iteritems():
+        retMap[cloudName] = int(rwValue/24/3600)
+    return retMap
+        
+        
+        
 def dashboard(request, view='production'):
     valid, response = initRequest(request)
     if not valid: return response
@@ -2838,15 +2994,18 @@ def dashboard(request, view='production'):
 
     cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view, taskdays=taskdays)
     jobsLeft = {}
-    
+    rw = {}
+    rwData = calculateRWwithPrio_JEDI()
     for cloud in fullsummary:
         leftCount = 0
         for state in cloud['statelist']:
             if state['name'] in ['waiting', 'assigned', 'activated', 'starting', 'running', 'transferring', 'holding', 'defined', 'sent', 'throttled','merging']:
                 leftCount += state['count']
         jobsLeft[cloud['name']] = leftCount
-                
-            
+
+        if cloud['name'] in rwData.keys():
+            rw[cloud['name']] = rwData[cloud['name']]
+    
     request.session['max_age_minutes'] = 6
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
@@ -2873,7 +3032,8 @@ def dashboard(request, view='production'):
             'transclouds' : transclouds,
             'transrclouds' : transrclouds,
             'hoursSinceUpdate' : hoursSinceUpdate,
-            'jobsLeft' : jobsLeft
+            'jobsLeft' : jobsLeft,
+            'rw': rw
         }
         ##self monitor
         endSelfMonitor(request)
