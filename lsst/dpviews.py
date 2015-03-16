@@ -5,6 +5,7 @@
 #
 import logging, re, json, commands, os, copy
 from datetime import datetime, timedelta
+from datetime import tzinfo
 import time
 import json
 from urlparse import urlparse
@@ -17,6 +18,7 @@ from django import forms
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.utils.cache import patch_cache_control, patch_response_headers
+from django.utils import timezone
 from django.contrib import messages
 
 import boto.dynamodb2
@@ -147,6 +149,9 @@ def doRequest(request):
             r['status'] = reqstatd[rid]['status']
             r['timestamp'] = reqstatd[rid]['timestamp']
             r['owner'] = reqstatd[rid]['owner']
+        else:
+            r['timestamp'] = timezone.now() - timedelta(days=365*20)
+            r['status'] = '?'
 
     datasets = containers = tasks = jeditasks = jedidatasets = steps = slices = files = []
     events_processed = None
@@ -245,9 +250,19 @@ def doRequest(request):
         events_processed = evpl
     print events_processed
 
+    if 'sortby' in requestParams:
+        if reqs:
+            if requestParams['sortby'] == 'reqid':
+                reqs = sorted(reqs, key=lambda x:x['reqid'], reverse=True)
+            if requestParams['sortby'] == 'timestamp':
+                reqs = sorted(reqs, key=lambda x:x['timestamp'], reverse=True)
+
+    xurl = views.extensibleURL(request)
+    nosorturl = views.removeParam(xurl, 'sortby',mode='extensible')
     data = {
         'viewParams' : viewParams,
-        'xurl' : views.extensibleURL(request),
+        'xurl' : xurl,
+        'nosorturl' : nosorturl,
         'mode' : mode,
         'reqid' : reqid,
         'dataset' : dataset,

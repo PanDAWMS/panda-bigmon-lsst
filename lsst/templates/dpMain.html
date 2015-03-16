@@ -160,25 +160,33 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% if requests %}
 <table>
 <tr class='tablesection'>
-<th> reqid </th>
-<th> group </th>
-<th> description <br> reference link</th>
-<th> project
-<br> campaign </th>
-<th> manager </th>
-<th> provenance
-<br> type </th>
-<th> status </th>
-<th> GeV </th>
-<th> fast </th>
+<th> <a href="{{ nosorturl }}sortby=reqid">Request</a> </th>
+<th> Group </th>
+<th> Description <br>GeV &nbsp;  Reference link
+<br><font color='brown'>Comment</font>
+</th>
+<th> Project
+<br> Campaign </th>
+<th> Manager </th>
+<th> Provenance
+<br> Type </th>
+<th> Status </th>
+<th> <a href="{{ nosorturl }}sortby=timestamp">Timestamp</a> </th>
+<th> Fast </th>
 </tr>
 {% for request in requests %}
 <tr>
 <td> <a href="{{ xurl }}reqid={{ request.reqid }}">{{ request.reqid }}</a> </td>
 <td> <a href="{{ xurl }}phys_group={{ request.phys_group }}">{{ request.phys_group }}</a> </td>
 <td> {{ request.description }} 
+<br>
+{{ request.energy_gev }} GeV
 {% if request.ref_link %}
-<br><a href="{{ request.ref_link }}">{{ request.ref_link_path }}</a>
+&nbsp; <a href="{{ request.ref_link }}">{{ request.ref_link_path }}</a>
+{% endif %}
+{% if request.comment %}
+<br>
+<font color='brown'>{{ request.comment }}</font>
 {% endif %}
 </td>
 <td> <a href="{{ xurl }}project_id={{ request.project_id }}">{{ request.project_id }}</a>
@@ -190,7 +198,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <td> <a href="{{ xurl }}provenance={{ request.provenance }}">{{ request.provenance }}</a>
 <br> <a href="{{ xurl }}request_type={{ request.request_type }}">{{ request.request_type|slice:":6" }}</a> </td>
 <td class='{{request.status}}_fill' > {{ request.status }} </td>
-<td> {{ request.energy_gev }} </td>
+<td> {{ request.timestamp|date:"Y-m-d H:i" }} </td>
 <td> {% if request.is_fast == True %} <a href="{{ xurl }}is_fast=True">Fast</a> {% endif %} </td>
 </tr>
 {% endfor %}
