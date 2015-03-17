@@ -287,9 +287,9 @@ def doRequest(request):
         ## cloud and core count info from JEDI tasks
         tcquery = { 'prodsourcelabel' : 'managed' }
         if reqid: tcquery['reqid'] = reqid
-        startdate = timezone.now() - timedelta(hours=30*24)
-        startdate = startdate.strftime(defaultDatetimeFormat)
-        tcquery['modificationtime__gte'] = startdate
+        #startdate = timezone.now() - timedelta(hours=30*24)
+        #startdate = startdate.strftime(defaultDatetimeFormat)
+        #tcquery['modificationtime__gte'] = startdate
         taskcounts = JediTasks.objects.filter(**tcquery).values('reqid','processingtype','cloud','corecount','superstatus').annotate(Count('superstatus')).order_by('reqid','processingtype','cloud','corecount','superstatus')
         ntaskd = {}
         for t in taskcounts:
