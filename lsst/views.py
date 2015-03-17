@@ -87,12 +87,12 @@ errorcodelist = [
 
 _logger = logging.getLogger('bigpandamon')
 #viewParams = {}
-requestParams = {}
+#requestParams = {}
 
 LAST_N_HOURS_MAX = 0
-JOB_LIMIT = 0
-TFIRST = timezone.now()
-TLAST = timezone.now() - timedelta(hours=2400)
+#JOB_LIMIT = 0
+#TFIRST = timezone.now()
+#TLAST = timezone.now() - timedelta(hours=2400)
 PLOW = 1000000
 PHIGH = -1000000
 
@@ -104,10 +104,16 @@ VOLIST = [ 'atlas', 'bigpanda', 'htcondor', 'lsst', ]
 VONAME = { 'atlas' : 'ATLAS', 'bigpanda' : 'BigPanDA', 'htcondor' : 'HTCondor', 'lsst' : 'LSST', '' : '' }
 VOMODE = ' '
 
-def setupSiteInfo():
+def setupSiteInfo(request):
+    
+    requestParams = {}
+    if not 'requestParams' in request.session:
+        request.session['requestParams'] = requestParams
+
+    
     global homeCloud, objectStores, pandaSites, callCount
     callCount += 1
-    if len(homeCloud) > 0 and callCount%100 != 1 and 'refresh' not in requestParams: return
+    if len(homeCloud) > 0 and callCount%100 != 1 and 'refresh' not in request.session['requestParams']: return
     sflist = ('siteid','status','cloud','tier','comment_field','objectstore','catchall')
     sites = Schedconfig.objects.filter().exclude(cloud='CMS').values(*sflist)
     for site in sites:
@@ -166,16 +172,18 @@ def initRequest(request):
         VOMODE = 'atlas'
     ENV['MON_VO'] = VONAME[VOMODE]
     request.session['viewParams']['MON_VO'] = ENV['MON_VO']
-    global requestParams
+
     global errorFields, errorCodes, errorStages
     requestParams = {}
+    if not 'requestParams' in request.session:
+        request.session['requestParams'] = requestParams
 
     if request.method == 'POST':
         for p in request.POST:
             if p in ( 'csrfmiddlewaretoken', ): continue
             pval = request.POST[p]
             pval = pval.replace('+',' ')
-            requestParams[p.lower()] = pval
+            request.session['requestParams'][p.lower()] = pval
     else:
         for p in request.GET:
             pval = request.GET[p]
@@ -188,12 +196,12 @@ def initRequest(request):
                 except:
                     data = {
                         'viewParams' : request.session['viewParams'],
-                        'requestParams' : requestParams,
+                        'requestParams' : request.session['requestParams'],
                         "errormessage" : "Illegal value '%s' for %s" % ( pval, p ),
                         }
                     return False, render_to_response('errorPage.html', data, RequestContext(request))
-            requestParams[p.lower()] = pval
-    setupSiteInfo()
+            request.session['requestParams'][p.lower()] = pval
+    setupSiteInfo(request)
     if len(errorFields) == 0:
         codes = ErrorCodes.ErrorCodes()
         errorFields, errorCodes, errorStages = codes.getErrorCodes()
@@ -259,7 +267,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
     if not 'viewParams' in request.session:
         request.session['viewParams'] = viewParams
 
-    global LAST_N_HOURS_MAX, JOB_LIMIT
+    global LAST_N_HOURS_MAX
     
     wildSearchFields = []
     for field in Jobsactive4._meta.get_all_field_names():
@@ -268,14 +276,14 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
     
     deepquery = False
     fields = standard_fields
-    if 'limit' in requestParams:
-        JOB_LIMIT = int(requestParams['limit'])
+    if 'limit' in request.session['requestParams']:
+        request.session['JOB_LIMIT'] = int(request.session['requestParams']['limit'])
     elif limit != -99 and limit > 0:
-        JOB_LIMIT = limit
+        request.session['JOB_LIMIT'] = limit
     elif VOMODE == 'atlas':
-        JOB_LIMIT = 6000
+        request.session['JOB_LIMIT'] = 6000
     else:
-        JOB_LIMIT = 10000
+        request.session['JOB_LIMIT'] = 10000
 
     if VOMODE == 'atlas':
         LAST_N_HOURS_MAX = 12
@@ -285,9 +293,9 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
     if VOMODE == 'atlas':
         if 'cloud' not in fields: fields.append('cloud')
         if 'atlasrelease' not in fields: fields.append('atlasrelease')
-        if 'produsername' in requestParams or 'jeditaskid' in requestParams or 'user' in requestParams:
+        if 'produsername' in request.session['requestParams'] or 'jeditaskid' in request.session['requestParams'] or 'user' in request.session['requestParams']:
             if 'jobsetid' not in fields: fields.append('jobsetid')
-            if ('hours' not in requestParams) and ('days' not in requestParams) and ('jobsetid' in requestParams or 'taskid' in requestParams or 'jeditaskid' in requestParams):
+            if ('hours' not in request.session['requestParams']) and ('days' not in request.session['requestParams']) and ('jobsetid' in request.session['requestParams'] or 'taskid' in request.session['requestParams'] or 'jeditaskid' in request.session['requestParams']):
                 ## Cases where deep query is safe
                 deepquery = True
         else:
@@ -298,25 +306,25 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         ## Call param overrides default hours, but not a param on the URL
         LAST_N_HOURS_MAX = hours
     ## For site-specific queries, allow longer time window
-    if 'computingsite' in requestParams:
+    if 'computingsite' in request.session['requestParams']:
         LAST_N_HOURS_MAX = 12
-    if 'jobtype' in requestParams and requestParams['jobtype'] == 'eventservice':
+    if 'jobtype' in request.session['requestParams'] and request.session['requestParams']['jobtype'] == 'eventservice':
         LAST_N_HOURS_MAX = 3*24
     ## hours specified in the URL takes priority over the above
-    if 'hours' in requestParams:
-        LAST_N_HOURS_MAX = int(requestParams['hours'])
-    if 'days' in requestParams:
-        LAST_N_HOURS_MAX = int(requestParams['days'])*24
+    if 'hours' in request.session['requestParams']:
+        LAST_N_HOURS_MAX = int(request.session['requestParams']['hours'])
+    if 'days' in request.session['requestParams']:
+        LAST_N_HOURS_MAX = int(request.session['requestParams']['days'])*24
     ## Exempt single-job, single-task etc queries from time constraint
-    if 'jeditaskid' in requestParams: deepquery = True
-    if 'taskid' in requestParams: deepquery = True
-    if 'pandaid' in requestParams: deepquery = True
-    if 'jobname' in requestParams: deepquery = True
-    if 'batchid' in requestParams: deepquery = True
+    if 'jeditaskid' in request.session['requestParams']: deepquery = True
+    if 'taskid' in request.session['requestParams']: deepquery = True
+    if 'pandaid' in request.session['requestParams']: deepquery = True
+    if 'jobname' in request.session['requestParams']: deepquery = True
+    if 'batchid' in request.session['requestParams']: deepquery = True
     if deepquery:
         opmode = 'notime'
         hours = LAST_N_HOURS_MAX = 24*180
-        JOB_LIMIT = 999999
+        request.session['JOB_LIMIT'] = 999999
     if opmode != 'notime':
         if LAST_N_HOURS_MAX <= 72 :
             request.session['viewParams']['selection'] = ", last %s hours" % LAST_N_HOURS_MAX
@@ -329,34 +337,34 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         #    viewParams['selection'] += "hours=%s" % LAST_N_HOURS_MAX
         #else:
         #    viewParams['selection'] += "days=%s" % int(LAST_N_HOURS_MAX/24)
-        if JOB_LIMIT < 100000 and JOB_LIMIT > 0:
-            request.session['viewParams']['selection'] += "  &nbsp; <b>limit=</b>%s" % JOB_LIMIT
+        if request.session['JOB_LIMIT'] < 100000 and request.session['JOB_LIMIT'] > 0:
+            request.session['viewParams']['selection'] += "  &nbsp; <b>limit=</b>%s" % request.session['JOB_LIMIT']
     else:
         request.session['viewParams']['selection'] = ""
-    for param in requestParams:
-        if requestParams[param] == 'None': continue
-        if requestParams[param] == '': continue
+    for param in request.session['requestParams']:
+        if request.session['requestParams'][param] == 'None': continue
+        if request.session['requestParams'][param] == '': continue
         if param == 'display_limit': continue
         if param == 'sortby': continue
-        if param == 'limit' and JOB_LIMIT>0: continue
-        request.session['viewParams']['selection'] += "  &nbsp; <b>%s=</b>%s " % ( param, requestParams[param] )
+        if param == 'limit' and request.session['JOB_LIMIT']>0: continue
+        request.session['viewParams']['selection'] += "  &nbsp; <b>%s=</b>%s " % ( param, request.session['requestParams'][param] )
 
     startdate = None
-    if 'date_from' in requestParams:
-        time_from_struct = time.strptime(requestParams['date_from'],'%Y-%m-%d')
+    if 'date_from' in request.session['requestParams']:
+        time_from_struct = time.strptime(request.session['requestParams']['date_from'],'%Y-%m-%d')
         startdate = datetime.utcfromtimestamp(time.mktime(time_from_struct)).strftime(defaultDatetimeFormat)
     if not startdate:
         startdate = timezone.now() - timedelta(hours=LAST_N_HOURS_MAX)
         startdate = startdate.strftime(defaultDatetimeFormat)
     enddate = None
-    if 'date_to' in requestParams:
-        time_from_struct = time.strptime(requestParams['date_to'],'%Y-%m-%d')
+    if 'date_to' in request.session['requestParams']:
+        time_from_struct = time.strptime(request.session['requestParams']['date_to'],'%Y-%m-%d')
         enddate = datetime.utcfromtimestamp(time.mktime(time_from_struct)).strftime(defaultDatetimeFormat)
-    if 'earlierthan' in requestParams:
-        enddate = timezone.now() - timedelta(hours=int(requestParams['earlierthan']))
+    if 'earlierthan' in request.session['requestParams']:
+        enddate = timezone.now() - timedelta(hours=int(request.session['requestParams']['earlierthan']))
         enddate = enddate.strftime(defaultDatetimeFormat)
-    if 'earlierthandays' in requestParams:
-        enddate = timezone.now() - timedelta(hours=int(requestParams['earlierthandays'])*24)
+    if 'earlierthandays' in request.session['requestParams']:
+        enddate = timezone.now() - timedelta(hours=int(request.session['requestParams']['earlierthandays'])*24)
         enddate = enddate.strftime(defaultDatetimeFormat)
     if enddate == None:
         enddate = timezone.now().strftime(defaultDatetimeFormat)
@@ -364,27 +372,25 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
     query = { 'modificationtime__range' : [startdate, enddate] }
 
     
-    global TFIRST
-    TFIRST = datetime.strptime(startdate[:18], '%Y-%m-%d %H:%M:%S')
-    global TLAST
-    TLAST = datetime.strptime(enddate[:18], '%Y-%m-%d %H:%M:%S')
+    request.session['TFIRST'] = startdate[:18]
+    request.session['TLAST'] = enddate[:18]
 
     ### Add any extensions to the query determined from the URL
     for vo in [ 'atlas', 'lsst' ]:
         if request.META['HTTP_HOST'].startswith(vo):
             query['vo'] = vo
-    for param in requestParams:
+    for param in request.session['requestParams']:
         if param in ('hours', 'days'): continue
-        if param == 'cloud' and requestParams[param] == 'All': continue
+        if param == 'cloud' and request.session['requestParams'][param] == 'All': continue
         elif param == 'priorityrange':
-            mat = re.match('([0-9]+)\:([0-9]+)', requestParams[param])
+            mat = re.match('([0-9]+)\:([0-9]+)', request.session['requestParams'][param])
             if mat:
                 plo = int(mat.group(1))
                 phi = int(mat.group(2))
                 query['currentpriority__gte'] = plo
                 query['currentpriority__lte'] = phi                
         elif param == 'jobsetrange':
-            mat = re.match('([0-9]+)\:([0-9]+)', requestParams[param])
+            mat = re.match('([0-9]+)\:([0-9]+)', request.session['requestParams'][param])
             if mat:
                 plo = int(mat.group(1))
                 phi = int(mat.group(2))
@@ -392,23 +398,23 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
                 query['jobsetid__lte'] = phi 
         elif param == 'user' or param == 'username':
             if querytype == 'task':
-                query['username__icontains'] = requestParams[param].strip()
+                query['username__icontains'] = request.session['requestParams'][param].strip()
             else:
-                query['produsername__icontains'] = requestParams[param].strip()
+                query['produsername__icontains'] = request.session['requestParams'][param].strip()
         elif param in ( 'project', ) and querytype == 'task':
-            val = requestParams[param]
+            val = request.session['requestParams'][param]
             query['taskname__istartswith'] = val
         elif param in ( 'outputfiletype', ) and querytype != 'task':
-            val = requestParams[param]
+            val = request.session['requestParams'][param]
             query['destinationdblock__icontains'] = val
         elif param in ( 'stream', 'tag') and querytype == 'task':
-            val = requestParams[param]
+            val = request.session['requestParams'][param]
             query['taskname__icontains'] = val
         elif param == 'reqid_from':
-            val = int(requestParams[param])
+            val = int(request.session['requestParams'][param])
             query['reqid__gte'] = val
         elif param == 'reqid_to':
-            val = int(requestParams[param])
+            val = int(request.session['requestParams'][param])
             query['reqid__lte'] = val
 
 
@@ -417,12 +423,12 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
                         #for param in requestParams:
                         if param == field:
                             if param == 'transpath':
-                                query['%s__endswith' % param] = requestParams[param]
+                                query['%s__endswith' % param] = request.session['requestParams'][param]
                             elif param in ( 'taskname', ):
                                 ## support wildcarding
-                                if requestParams[param][1:-1].find('*') > 0:
+                                if request.session['requestParams'][param][1:-1].find('*') > 0:
                                     ## If there are embedded wildcards...
-                                    tokens = requestParams[param].split('*')
+                                    tokens = request.session['requestParams'][param].split('*')
                                     for t in tokens:
                                         if len(t) == 0: continue
                                         if t == tokens[0]:
@@ -431,60 +437,60 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
                                             query['%s__iendswith' % param] = t
                                         else:
                                             query['%s__icontains' % param] = t
-                                elif requestParams[param].startswith('*') and requestParams[param].endswith('*'):
-                                    query['%s__icontains' % param] = requestParams[param].replace('*','')
-                                elif requestParams[param].endswith('*'):
-                                    query['%s__istartswith' % param] = requestParams[param].replace('*','')                                    
+                                elif request.session['requestParams'][param].startswith('*') and request.session['requestParams'][param].endswith('*'):
+                                    query['%s__icontains' % param] = request.session['requestParams'][param].replace('*','')
+                                elif request.session['requestParams'][param].endswith('*'):
+                                    query['%s__istartswith' % param] = request.session['requestParams'][param].replace('*','')                                    
                                     #query['%s__icontains' % param] = [ requestParams[param].replace('*',''), ]
-                                elif requestParams[param].startswith('*'):
-                                    query['%s__iendswith' % param] = requestParams[param].replace('*','')
+                                elif request.session['requestParams'][param].startswith('*'):
+                                    query['%s__iendswith' % param] = request.session['requestParams'][param].replace('*','')
                                     #query['%s__icontains' % param] = requestParams[param].replace('*','')
                                 else:
-                                    query[param] = requestParams[param]
+                                    query[param] = request.session['requestParams'][param]
                             elif param == 'tasktype':
-                                ttype = requestParams[param]
+                                ttype = request.session['requestParams'][param]
                                 if ttype.startswith('anal'): ttype='anal'
                                 elif ttype.startswith('prod'): ttype='prod'
                                 query[param] = ttype
                             else:
-                                query[param] = requestParams[param]
+                                query[param] = request.session['requestParams'][param]
                         if param == 'eventservice':
                             query['eventservice'] = 1
         else:
             for field in Jobsactive4._meta.get_all_field_names():
                 if param == field:
                     if param == 'specialhandling':
-                        query['specialhandling__contains'] = requestParams[param]
+                        query['specialhandling__contains'] = request.session['requestParams'][param]
                     elif param == 'transformation' or param == 'transpath':
-                        query['%s__endswith' % param] = requestParams[param]
-                    elif param == 'modificationhost' and requestParams[param].find('@') < 0:
-                        query['%s__contains' % param] = requestParams[param]
+                        query['%s__endswith' % param] = request.session['requestParams'][param]
+                    elif param == 'modificationhost' and request.session['requestParams'][param].find('@') < 0:
+                        query['%s__contains' % param] = request.session['requestParams'][param]
                     elif param == 'jeditaskid':
-                        if requestParams['jeditaskid'] != 'None':
-                            if int(requestParams['jeditaskid']) < 4000000:
-                                query['taskid'] = requestParams[param]
+                        if request.session['requestParams']['jeditaskid'] != 'None':
+                            if int(request.session['requestParams']['jeditaskid']) < 4000000:
+                                query['taskid'] = request.session['requestParams'][param]
                             else:
-                                query[param] = requestParams[param]
+                                query[param] = request.session['requestParams'][param]
                     elif param == 'taskid':
-                        if requestParams['taskid'] != 'None': query[param] = requestParams[param]
+                        if request.session['requestParams']['taskid'] != 'None': query[param] = request.session['requestParams'][param]
                     elif param == 'pandaid':
                         try:
-                            pid = requestParams['pandaid']
+                            pid = request.session['requestParams']['pandaid']
                             if pid.find(',') >= 0:
                                 pidl = pid.split(',')
                                 query['pandaid__in'] = pidl
                             else:
                                 query['pandaid'] = int(pid)
                         except:
-                            query['jobname'] = requestParams['pandaid']
-                    elif param == 'jobstatus' and requestParams[param] == 'finished' and  ( ('mode' in requestParams and requestParams['mode'] == 'eventservice') or ('jobtype' in requestParams and requestParams['jobtype'] == 'eventservice') ):
+                            query['jobname'] = request.session['requestParams']['pandaid']
+                    elif param == 'jobstatus' and request.session['requestParams'][param] == 'finished' and  ( ('mode' in request.session['requestParams'] and request.session['requestParams']['mode'] == 'eventservice') or ('jobtype' in request.session['requestParams'] and request.session['requestParams']['jobtype'] == 'eventservice') ):
                         query['jobstatus__in'] = ( 'finished', 'cancelled' )
                     else:
                         if (param not in wildSearchFields):
-                            query[param] = requestParams[param]
+                            query[param] = request.session['requestParams'][param]
 
-    if 'jobtype' in requestParams:
-        jobtype = requestParams['jobtype']
+    if 'jobtype' in request.session['requestParams']:
+        jobtype = request.session['requestParams']['jobtype']
     else:
         jobtype = opmode
     if jobtype.startswith('anal'):
@@ -503,7 +509,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         return query
 
     extraQueryString = ''
-    wildSearchFields = (set(wildSearchFields) & set(requestParams.keys()))
+    wildSearchFields = (set(wildSearchFields) & set(request.session['requestParams'].keys()))
 
     lenWildSearchFields = len(wildSearchFields)
     currentField = 1
@@ -511,7 +517,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
     for currenfField in wildSearchFields:
         
         extraQueryString += '('
-        wildCards = requestParams[currenfField].split('|')
+        wildCards = request.session['requestParams'][currenfField].split('|')
         countCards = len(wildCards)
          
         currentCardCount = 1
@@ -525,8 +531,8 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         if (currentField < lenWildSearchFields): extraQueryString +=' AND '
         currentField += 1
     
-    if ('jobparam' in requestParams.keys()):
-        jobParWildCards = requestParams['jobparam'].split('|')
+    if ('jobparam' in request.session['requestParams'].keys()):
+        jobParWildCards = request.session['requestParams']['jobparam'].split('|')
         jobParCountCards = len(jobParWildCards)
         jobParCurrentCardCount = 1
         extraJobParCondition = '('
@@ -549,8 +555,8 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
    
     return (query,extraQueryString)
 
-def cleanJobList(jobl, mode='nodrop'):
-    if 'mode' in requestParams and requestParams['mode'] == 'drop': mode='drop'
+def cleanJobList(request, jobl, mode='nodrop'):
+    if 'mode' in request.session['requestParams'] and request.session['requestParams']['mode'] == 'drop': mode='drop'
     jobs = addJobMetadata(jobl)
     for job in jobs:
         if isEventService(job):
@@ -701,7 +707,7 @@ def cleanJobList(jobl, mode='nodrop'):
                     ## there is a retry for this job. Drop it.
                     dropJob = retry['newpandaid']
         if isEventService(job):
-            if 'jobstatus' in requestParams and requestParams['jobstatus'] == 'cancelled' and job['jobstatus'] != 'cancelled':
+            if 'jobstatus' in request.session['requestParams'] and request.session['requestParams']['jobstatus'] == 'cancelled' and job['jobstatus'] != 'cancelled':
                 dropJob = 1
             else:
                 dropJob = 0
@@ -712,14 +718,14 @@ def cleanJobList(jobl, mode='nodrop'):
             
     droplist = sorted(droplist, key=lambda x:-x['modificationtime'], reverse=True)
     jobs = newjobs
-    global TFIRST, TLAST, PLOW, PHIGH
-    TFIRST = timezone.now()
-    TLAST = timezone.now() - timedelta(hours=2400)
+    global PLOW, PHIGH
+    request.session['TFIRST'] = timezone.now().strftime(defaultDatetimeFormat)
+    request.session['TLAST']  = (timezone.now() - timedelta(hours=2400)).strftime(defaultDatetimeFormat)
     PLOW = 1000000
     PHIGH = -1000000
     for job in jobs:
-        if job['modificationtime'] > TLAST: TLAST = job['modificationtime']
-        if job['modificationtime'] < TFIRST: TFIRST = job['modificationtime']
+        if job['modificationtime'] > request.session['TLAST']: request.session['TLAST'] = job['modificationtime']
+        if job['modificationtime'] < request.session['TFIRST']: request.session['TFIRST'] = job['modificationtime']
         if job['currentpriority'] > PHIGH: PHIGH = job['currentpriority']
         if job['currentpriority'] < PLOW: PLOW = job['currentpriority']
     jobs = sorted(jobs, key=lambda x:-x['modificationtime'], reverse=True)
@@ -780,8 +786,8 @@ def cleanTaskList(tasks):
 
         task['dsinfo'] = dstotals
 
-    if 'sortby' in requestParams:
-        sortby = requestParams['sortby']
+    if 'sortby' in request.session['requestParams']:
+        sortby = request.session['requestParams']['sortby']
         if sortby == 'time-ascending':
             tasks = sorted(tasks, key=lambda x:x['modificationtime'])
         if sortby == 'time-descending':
@@ -819,7 +825,7 @@ def jobSummaryDict(request, jobs, fieldlist = None):
     for job in jobs:
         for f in flist:
             if f in job and job[f]:
-                if f == 'taskid' and int(job[f]) < 1000000 and 'produsername' not in requestParams: continue
+                if f == 'taskid' and int(job[f]) < 1000000 and 'produsername' not in request.session['requestParams']: continue
                 if f == 'specialhandling':
                     if not 'specialhandling' in sumd: sumd['specialhandling'] = {}
                     shl = job['specialhandling'].split()
@@ -878,7 +884,7 @@ def jobSummaryDict(request, jobs, fieldlist = None):
             kys.sort()
         for ky in kys:
             iteml.append({ 'kname' : ky, 'kvalue' : sumd[f][ky] })
-        if 'sortby' in requestParams and requestParams['sortby'] == 'count':
+        if 'sortby' in request.session['requestParams'] and request.session['requestParams']['sortby'] == 'count':
             iteml = sorted(iteml, key=lambda x:x['kvalue'], reverse=True)
         elif f not in ( 'priorityrange', 'jobsetrange', 'attemptnr', 'jeditaskid', 'taskid', ):
             iteml = sorted(iteml, key=lambda x:str(x['kname']).lower())
@@ -993,7 +999,7 @@ def taskSummaryDict(request, tasks, fieldlist = None):
         flist = standard_taskfields
     for task in tasks:
         for f in flist:
-            if 'tasktype' in requestParams and requestParams['tasktype'].startswith('analy'):
+            if 'tasktype' in request.session['requestParams'] and request.session['requestParams']['tasktype'].startswith('analy'):
                 ## Remove the noisy useless parameters in analysis listings
                 if flist in ( 'reqid', 'stream', 'tag' ): continue
 
@@ -1133,7 +1139,7 @@ def mainPage(request):
             'prefix': getPrefix(request),
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'debuginfo' : debuginfo
         }
         data.update(getContextVariables(request))
@@ -1156,7 +1162,7 @@ def helpPage(request):
             'prefix': getPrefix(request),
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
         }
         data.update(getContextVariables(request))
         ##self monitor
@@ -1216,8 +1222,8 @@ def errorInfo(job, nchars=300, mode='html'):
 
 def jobParamList(request):
     idlist = []
-    if 'pandaid' in requestParams:
-        idstring = requestParams['pandaid']
+    if 'pandaid' in request.session['requestParams']:
+        idstring = request.session['requestParams']['pandaid']
         idstringl = idstring.split(',')
         for id in idstringl:
             idlist.append(int(id))
@@ -1233,19 +1239,19 @@ def jobParamList(request):
 def jobList(request, mode=None, param=None):
     valid, response = initRequest(request)
     if not valid: return response
-    if 'dump' in requestParams and requestParams['dump'] == 'parameters':
+    if 'dump' in request.session['requestParams'] and request.session['requestParams']['dump'] == 'parameters':
         return jobParamList(request)
 
     eventservice = False
-    if 'mode' in requestParams and requestParams['mode'] == 'eventservice':
+    if 'mode' in request.session['requestParams'] and request.session['requestParams']['mode'] == 'eventservice':
         eventservice = True
-    if 'jobtype' in requestParams and requestParams['jobtype'] == 'eventservice':
+    if 'jobtype' in request.session['requestParams'] and request.session['requestParams']['jobtype'] == 'eventservice':
         eventservice = True
         
     query,wildCardExtension = setupView(request, wildCardExt=True)
     
-    if 'batchid' in requestParams:
-        query['batchid'] = requestParams['batchid']
+    if 'batchid' in request.session['requestParams']:
+        query['batchid'] = request.session['requestParams']['batchid']
     jobs = []
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         values = Jobsactive4._meta.get_all_field_names()
@@ -1253,32 +1259,32 @@ def jobList(request, mode=None, param=None):
         values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'proddblock', 'destinationdblock', 'jobmetrics', 'reqid'
     else:
         values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'computingelement', 'proddblock', 'destinationdblock', 'reqid'
-    global JOB_LIMIT
-    JOB_LIMITS=JOB_LIMIT
+    
+    JOB_LIMITS=request.session['JOB_LIMIT']
     totalJobs = 0
     showTop = 0
 
-    if 'limit' in requestParams:
-        JOB_LIMIT = int(requestParams['limit'])
+    if 'limit' in request.session['requestParams']:
+        request.session['JOB_LIMIT'] = int(request.session['requestParams']['limit'])
         
-    if 'transferringnotupdated' in requestParams:
+    if 'transferringnotupdated' in request.session['requestParams']:
         jobs = stateNotUpdated(request, state='transferring', values=values, wildCardExtension=wildCardExtension)
-    elif 'statenotupdated' in requestParams:
+    elif 'statenotupdated' in request.session['requestParams']:
         jobs = stateNotUpdated(request, values=values, wildCardExtension=wildCardExtension)
         
     else:
-        jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
-        jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+        jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+        jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+        jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
 
         ##hard limit is set to 2K
-        if ('jobstatus' not in requestParams or requestParams['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
+        if ('jobstatus' not in request.session['requestParams'] or request.session['requestParams']['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
             totalJobs = Jobsarchived.objects.filter(**query).count()
-            if ('limit' not in requestParams) & (int(totalJobs)>6000):
-               JOB_LIMITS = 6000
+            if ('limit' not in request.session['requestParams']) & (int(totalJobs)>6000):
+               request.session['JOB_LIMIT'] = 6000
                showTop = 1
-            jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMITS].values(*values))
+            jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
              
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
     taskids = {}
@@ -1286,7 +1292,7 @@ def jobList(request, mode=None, param=None):
     for job in jobs:
         if 'jeditaskid' in job: taskids[job['jeditaskid']] = 1
     dropmode = False
-    if 'mode' in requestParams and requestParams['mode'] == 'drop': dropmode = True
+    if 'mode' in request.session['requestParams'] and request.session['requestParams']['mode'] == 'drop': dropmode = True
     droplist = []
     droppedIDs = set()
     if dropmode and (len(taskids) == 1):
@@ -1312,26 +1318,26 @@ def jobList(request, mode=None, param=None):
         droplist = sorted(droplist, key=lambda x:-x['pandaid'])
         jobs = newjobs
     
-    jobs = cleanJobList(jobs)
+    jobs = cleanJobList(request, jobs)
     njobs = len(jobs)
     jobtype = ''
-    if 'jobtype' in requestParams:
-        jobtype = requestParams['jobtype']
+    if 'jobtype' in request.session['requestParams']:
+        jobtype = request.session['requestParams']['jobtype']
     elif '/analysis' in request.path:
         jobtype = 'analysis'
     elif '/production' in request.path:
         jobtype = 'production'
 
-    if u'display_limit' in requestParams and int(requestParams['display_limit']) < njobs:
-        display_limit = int(requestParams['display_limit'])
+    if u'display_limit' in request.session['requestParams'] and int(request.session['requestParams']['display_limit']) < njobs:
+        display_limit = int(request.session['requestParams']['display_limit'])
         url_nolimit = removeParam(request.get_full_path(), 'display_limit')
     else:
         display_limit = 3000
         url_nolimit = request.get_full_path()
     njobsmax = display_limit
 
-    if 'sortby' in requestParams:
-        sortby = requestParams['sortby']
+    if 'sortby' in request.session['requestParams']:
+        sortby = request.session['requestParams']['sortby']
         if sortby == 'time-ascending':
             jobs = sorted(jobs, key=lambda x:x['modificationtime'])
         if sortby == 'time-descending':
@@ -1352,23 +1358,23 @@ def jobList(request, mode=None, param=None):
 
 
     taskname = ''
-    if 'jeditaskid' in requestParams:
-        taskname = getTaskName('jeditaskid',requestParams['jeditaskid'])
-    if 'taskid' in requestParams:
-        taskname = getTaskName('jeditaskid',requestParams['taskid'])
+    if 'jeditaskid' in request.session['requestParams']:
+        taskname = getTaskName('jeditaskid',request.session['requestParams']['jeditaskid'])
+    if 'taskid' in request.session['requestParams']:
+        taskname = getTaskName('jeditaskid',request.session['requestParams']['taskid'])
 
-    if 'produsername' in requestParams:
-        user = requestParams['produsername']
-    elif 'user' in requestParams:
-        user = requestParams['user']
+    if 'produsername' in request.session['requestParams']:
+        user = request.session['requestParams']['produsername']
+    elif 'user' in request.session['requestParams']:
+        user = request.session['requestParams']['user']
     else:
         user = None
 
     
     ## set up google flow diagram
-    flowstruct = buildGoogleFlowDiagram(jobs=jobs)
+    flowstruct = buildGoogleFlowDiagram(request, jobs=jobs)
 
-    if (('datasets' in requestParams) and (requestParams['datasets'] == 'yes') and (request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json')):
+    if (('datasets' in request.session['requestParams']) and (request.session['requestParams']['datasets'] == 'yes') and (request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json')):
         for job in jobs:
             files = []
             files.extend(JediDatasetContents.objects.filter(pandaid=pandaid).order_by('type').values())
@@ -1414,7 +1420,7 @@ def jobList(request, mode=None, param=None):
             job['datasets'] = files
 
     #show warning or not
-    if njobs<=JOB_LIMIT:
+    if njobs<=request.session['JOB_LIMIT']:
         showwarn=0
     else:
         showwarn=1
@@ -1423,7 +1429,7 @@ def jobList(request, mode=None, param=None):
         sumd, esjobdict = jobSummaryDict(request, jobs)
         testjobs = False
 
-        if 'prodsourcelabel' in requestParams and requestParams['prodsourcelabel'].lower().find('test') >= 0:
+        if 'prodsourcelabel' in request.session['requestParams'] and request.session['requestParams']['prodsourcelabel'].lower().find('test') >= 0:
             testjobs = True
         tasknamedict = taskNameDict(jobs)
         errsByCount, errsBySite, errsByUser, errsByTask, errdSumd, errHist = errorSummaryDict(request,jobs, tasknamedict, testjobs)
@@ -1446,7 +1452,7 @@ def jobList(request, mode=None, param=None):
             'errdSumd' : errdSumd,
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'jobList': jobs[:njobsmax],
             'jobtype' : jobtype,
             'njobs' : njobs,
@@ -1455,12 +1461,12 @@ def jobList(request, mode=None, param=None):
             'xurl' : xurl,
             'droplist' : droplist,
             'ndrops' : len(droplist),
-            'tfirst' : TFIRST,
-            'tlast' : TLAST,
+            'tfirst' : request.session['TFIRST'],
+            'tlast' : request.session['TLAST'],
             'plow' : PLOW,
             'phigh' : PHIGH,
             'showwarn': showwarn,
-            'joblimit': JOB_LIMIT,
+            'joblimit': request.session['JOB_LIMIT'],
             'limit' : JOB_LIMITS,
             'totalJobs': totalJobs,
             'showTop' : showTop,
@@ -1481,8 +1487,8 @@ def jobList(request, mode=None, param=None):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
-        if (('fields' in requestParams) and (len(jobs) > 0)):
-            fields = requestParams['fields'].split(',')
+        if (('fields' in request.session['requestParams']) and (len(jobs) > 0)):
+            fields = request.session['requestParams']['fields'].split(',')
             fields= (set(fields) & set(jobs[0].keys()))
             
             for job in jobs:
@@ -1508,10 +1514,10 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     eventservice = False
     query = setupView(request, hours=365*24)
     jobid = ''
-    if 'creator' in requestParams:
+    if 'creator' in request.session['requestParams']:
         ## Find the job that created the specified file.
         fquery = {}
-        fquery['lfn'] = requestParams['creator']
+        fquery['lfn'] = request.session['requestParams']['creator']
         fquery['type'] = 'output'
         fileq = Filestable4.objects.filter(**fquery)
         fileq = fileq.values('pandaid','type')
@@ -1530,16 +1536,16 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     if batchid:
         jobid = batchid
         query['batchid'] = batchid
-    if 'pandaid' in requestParams:
-        pandaid = requestParams['pandaid']
+    if 'pandaid' in request.session['requestParams']:
+        pandaid = request.session['requestParams']['pandaid']
         jobid = pandaid
         query['pandaid'] = int(pandaid)
-    elif 'batchid' in requestParams:
-        batchid = requestParams['batchid']
+    elif 'batchid' in request.session['requestParams']:
+        batchid = request.session['requestParams']['batchid']
         jobid = "'"+batchid+"'"
         query['batchid'] = batchid
-    elif 'jobname' in requestParams:
-        jobid = requestParams['jobname']
+    elif 'jobname' in request.session['requestParams']:
+        jobid = request.session['requestParams']['jobname']
         query['jobname'] = jobid
 
     jobs = []
@@ -1551,13 +1557,13 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         jobs.extend(Jobsarchived4.objects.filter(**query).values())
         if len(jobs) == 0:
             jobs.extend(Jobsarchived.objects.filter(**query).values())
-        jobs = cleanJobList(jobs, mode='nodrop')
+        jobs = cleanJobList(request, jobs, mode='nodrop')
         
     if len(jobs) == 0:
         data = {
             'prefix': getPrefix(request),
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'pandaid': pandaid,
             'job': None,
             'jobid' : jobid,
@@ -1660,7 +1666,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         debugmode = False
     debugstdout = None
     if debugmode:
-        if 'showdebug' in requestParams:
+        if 'showdebug' in request.session['requestParams']:
             debugstdoutrec = Jobsdebug.objects.filter(pandaid=pandaid).values()
             if len(debugstdoutrec) > 0:
                 if 'stdout' in debugstdoutrec[0]: debugstdout = debugstdoutrec[0]['stdout']
@@ -1781,7 +1787,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             'prefix': getPrefix(request),
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'pandaid': pandaid,
             'job': job,
             'columns' : columns,
@@ -1831,8 +1837,8 @@ def userList(request):
         view = 'database'
     else:
         view = 'dynamic'
-    if 'view' in requestParams:
-        view = requestParams['view']
+    if 'view' in request.session['requestParams']:
+        view = request.session['requestParams']['view']
     sumd = []
     jobsumd = []
     userdb = []
@@ -1846,8 +1852,8 @@ def userList(request):
         #viewParams['selection'] = ", last %d days" % (float(nhours)/24.)
         ## Use the users table
         userdb = Users.objects.filter(**query).order_by('name')
-        if 'sortby' in requestParams:
-            sortby = requestParams['sortby']
+        if 'sortby' in request.session['requestParams']:
+            sortby = request.session['requestParams']['sortby']
             if sortby == 'name':
                 userdb = Users.objects.filter(**query).order_by('name')
             elif sortby == 'njobs':
@@ -1911,12 +1917,12 @@ def userList(request):
         ## dynamically assemble user summary info
         values = 'produsername','cloud','computingsite','cpuconsumptiontime','jobstatus','transformation','prodsourcelabel','specialhandling','vo','modificationtime','pandaid', 'atlasrelease', 'processingtype', 'workinggroup', 'currentpriority'
         jobs = QuerySetChain(\
-                        Jobsdefined4.objects.filter(**query).order_by('-modificationtime')[:JOB_LIMIT].values(*values),
-                        Jobsactive4.objects.filter(**query).order_by('-modificationtime')[:JOB_LIMIT].values(*values),
-                        Jobswaiting4.objects.filter(**query).order_by('-modificationtime')[:JOB_LIMIT].values(*values),
-                        Jobsarchived4.objects.filter(**query).order_by('-modificationtime')[:JOB_LIMIT].values(*values),
+                        Jobsdefined4.objects.filter(**query).order_by('-modificationtime')[:request.session['JOB_LIMIT']].values(*values),
+                        Jobsactive4.objects.filter(**query).order_by('-modificationtime')[:request.session['JOB_LIMIT']].values(*values),
+                        Jobswaiting4.objects.filter(**query).order_by('-modificationtime')[:request.session['JOB_LIMIT']].values(*values),
+                        Jobsarchived4.objects.filter(**query).order_by('-modificationtime')[:request.session['JOB_LIMIT']].values(*values),
         )
-        jobs = cleanJobList(jobs)
+        jobs = cleanJobList(request, jobs)
         sumd = userSummaryDict(jobs)
         sumparams = [ 'jobstatus', 'prodsourcelabel', 'specialhandling', 'transformation', 'processingtype', 'workinggroup', 'priorityrange', 'jobsetrange' ]
         if VOMODE == 'atlas':
@@ -1930,15 +1936,15 @@ def userList(request):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'xurl' : extensibleURL(request),
             'url' : request.path,
             'sumd' : sumd,
             'jobsumd' : jobsumd,
             'userdb' : userdbl,
             'userstats' : userstats,
-            'tfirst' : TFIRST,
-            'tlast' : TLAST,
+            'tfirst' : request.session['TFIRST'],
+            'tlast' : request.session['TLAST'],
             'plow' : PLOW,
             'phigh' : PHIGH,
         }
@@ -1956,8 +1962,8 @@ def userInfo(request, user=''):
     valid, response = initRequest(request)
     if not valid: return response
     if user == '':
-        if 'user' in requestParams: user = requestParams['user']
-        if 'produsername' in requestParams: user = requestParams['produsername']
+        if 'user' in request.session['requestParams']: user = request.session['requestParams']['user']
+        if 'produsername' in request.session['requestParams']: user = request.session['requestParams']['produsername']
 
     ## Tasks owned by the user
     startdate = timezone.now() - timedelta(hours=7*24)
@@ -1977,13 +1983,13 @@ def userInfo(request, user=''):
     query['produsername__icontains'] = user.strip()
     jobs = []
     values = 'produsername','cloud','computingsite','cpuconsumptiontime','jobstatus','transformation','prodsourcelabel','specialhandling','vo','modificationtime','pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'proddblock', 'destinationdblock',
-    jobs.extend(Jobsdefined4.objects.filter(**query)[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobsactive4.objects.filter(**query)[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobswaiting4.objects.filter(**query)[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobsarchived4.objects.filter(**query)[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobsdefined4.objects.filter(**query)[:request.session['JOB_LIMIT']].values(*values))
+    jobs.extend(Jobsactive4.objects.filter(**query)[:request.session['JOB_LIMIT']].values(*values))
+    jobs.extend(Jobswaiting4.objects.filter(**query)[:request.session['JOB_LIMIT']].values(*values))
+    jobs.extend(Jobsarchived4.objects.filter(**query)[:request.session['JOB_LIMIT']].values(*values))
     jobsetids = None
     if len(jobs) == 0 or (len(jobs) < limit and LAST_N_HOURS_MAX > 72):
-        jobs.extend(Jobsarchived.objects.filter(**query)[:JOB_LIMIT].values(*values))
+        jobs.extend(Jobsarchived.objects.filter(**query)[:request.session['JOB_LIMIT']].values(*values))
 #         if len(jobs) < limit and ntasks == 0:
 #             ## try at least to find some old jobsets
 #             startdate = timezone.now() - timedelta(hours=30*24)
@@ -1992,7 +1998,7 @@ def userInfo(request, user=''):
 #             query = { 'modificationtime__range' : [startdate, enddate] }
 #             query['produsername'] = user
 #             jobsetids = Jobsarchived.objects.filter(**query).values('jobsetid').distinct()
-    jobs = cleanJobList(jobs)
+    jobs = cleanJobList(request, jobs)
     query = { 'name__icontains' : user.strip() }
     userdb = Users.objects.filter(**query).values()
     if len(userdb) > 0:
@@ -2038,8 +2044,8 @@ def userInfo(request, user=''):
         jobsetl.append(jobsets[jobset])
 
     njobsmax = len(jobs)
-    if 'display_limit' in requestParams and int(requestParams['display_limit']) < len(jobs):
-        display_limit = int(requestParams['display_limit'])
+    if 'display_limit' in request.session['requestParams'] and int(request.session['requestParams']['display_limit']) < len(jobs):
+        display_limit = int(request.session['requestParams']['display_limit'])
         njobsmax = display_limit
         url_nolimit = removeParam(request.get_full_path(), 'display_limit')
     else:
@@ -2073,7 +2079,7 @@ def userInfo(request, user=''):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'xurl' : xurl,
             'nosorturl' : nosorturl,
             'user' : user,
@@ -2083,8 +2089,8 @@ def userInfo(request, user=''):
             'njobs' : len(jobs),
             'query' : query,
             'userstats' : userstats,
-            'tfirst' : TFIRST,
-            'tlast' : TLAST,
+            'tfirst' : request.session['TFIRST'],
+            'tlast' : request.session['TLAST'],
             'plow' : PLOW,
             'phigh' : PHIGH,
             'jobsets' : jobsetl[:njobsetmax-1],
@@ -2114,31 +2120,31 @@ def siteList(request):
     ### Add any extensions to the query determined from the URL  
     if VOMODE == 'lsst': query['siteid__contains'] = 'LSST'
     prod = False
-    for param in requestParams:
-        if param == 'category' and requestParams[param] == 'multicloud':
+    for param in request.session['requestParams']:
+        if param == 'category' and request.session['requestParams'][param] == 'multicloud':
             query['multicloud__isnull'] = False
-        if param == 'category' and requestParams[param] == 'analysis':
+        if param == 'category' and request.session['requestParams'][param] == 'analysis':
             query['siteid__contains'] = 'ANALY'
-        if param == 'category' and requestParams[param] == 'test':
+        if param == 'category' and request.session['requestParams'][param] == 'test':
             query['siteid__icontains'] = 'test'
-        if param == 'category' and requestParams[param] == 'production':
+        if param == 'category' and request.session['requestParams'][param] == 'production':
             prod = True
         for field in Schedconfig._meta.get_all_field_names():
             if param == field:
-                query[param] = requestParams[param]
+                query[param] = request.session['requestParams'][param]
 
     siteres = Schedconfig.objects.filter(**query).exclude(cloud='CMS').values()
     mcpres = Schedconfig.objects.filter(status='online').exclude(cloud='CMS').exclude(siteid__icontains='test').values('siteid','multicloud','cloud').order_by('siteid')
     sites = []
     for site in siteres:
-        if 'category' in requestParams and requestParams['category'] == 'multicloud':
+        if 'category' in request.session['requestParams'] and request.session['requestParams']['category'] == 'multicloud':
             if (site['multicloud'] == 'None') or (not re.match('[A-Z]+',site['multicloud'])): continue
         sites.append(site)
-    if 'sortby' in requestParams and requestParams['sortby'] == 'maxmemory':
+    if 'sortby' in request.session['requestParams'] and request.session['requestParams']['sortby'] == 'maxmemory':
         sites = sorted(sites, key=lambda x:-x['maxmemory'])
-    elif 'sortby' in requestParams and requestParams['sortby'] == 'maxtime':
+    elif 'sortby' in request.session['requestParams'] and request.session['requestParams']['sortby'] == 'maxtime':
         sites = sorted(sites, key=lambda x:-x['maxtime'])
-    elif 'sortby' in requestParams and requestParams['sortby'] == 'gocname':
+    elif 'sortby' in request.session['requestParams'] and request.session['requestParams']['sortby'] == 'gocname':
         sites = sorted(sites, key=lambda x:x['gocname'])
     else:
         sites = sorted(sites, key=lambda x:x['siteid'])
@@ -2156,13 +2162,13 @@ def siteList(request):
         if site['maxtime'] and (site['maxtime'] > 0) : site['maxtime'] = "%.1f" % ( float(site['maxtime'])/3600. )
         site['space'] = "%d" % (site['space']/1000.)
 
-    if VOMODE == 'atlas' and (len(requestParams) == 0 or 'cloud' in requestParams):
+    if VOMODE == 'atlas' and (len(request.session['requestParams']) == 0 or 'cloud' in request.session['requestParams']):
         clouds = Cloudconfig.objects.filter().exclude(name='CMS').exclude(name='OSG').values()
         clouds = sorted(clouds, key=lambda x:x['name'])
         mcpsites = {}
         for cloud in clouds:
             cloud['display'] = True
-            if 'cloud' in requestParams and requestParams['cloud'] != cloud['name']: cloud['display'] = False
+            if 'cloud' in request.session['requestParams'] and request.session['requestParams']['cloud'] != cloud['name']: cloud['display'] = False
             mcpsites[cloud['name']] = []
             for site in sites:
                 if site['siteid'] == cloud['tier1']:
@@ -2194,14 +2200,14 @@ def siteList(request):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'sites': sites,
             'clouds' : clouds,
             'sumd' : sumd,
             'xurl' : xurl,
             'nosorturl' : nosorturl,
         }
-        if 'cloud' in requestParams: data['mcpsites'] = mcpsites[requestParams['cloud']]
+        if 'cloud' in request.session['requestParams']: data['mcpsites'] = mcpsites[request.session['requestParams']['cloud']]
         #data.update(getContextVariables(request))
         ##self monitor
         endSelfMonitor(request)
@@ -2215,7 +2221,7 @@ def siteList(request):
 def siteInfo(request, site=''):
     valid, response = initRequest(request)
     if not valid: return response
-    if site == '' and 'site' in requestParams: site = requestParams['site']
+    if site == '' and 'site' in request.session['requestParams']: site = request.session['requestParams']['site']
     setupView(request)
     startdate = timezone.now() - timedelta(hours=LAST_N_HOURS_MAX)
     startdate = startdate.strftime(defaultDatetimeFormat)
@@ -2318,14 +2324,14 @@ def taskSummaryData(query):
     summary = []
     querynotime = query
     del querynotime['modificationtime__range']
-    summary.extend(Jobsactive4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:JOB_LIMIT])
-    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:JOB_LIMIT])
-    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:JOB_LIMIT])
-    summary.extend(Jobsarchived4.objects.filter(**query).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:JOB_LIMIT])
-    summary.extend(Jobsactive4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:JOB_LIMIT])
-    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:JOB_LIMIT])
-    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:JOB_LIMIT])
-    summary.extend(Jobsarchived4.objects.filter(**query).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:JOB_LIMIT])
+    summary.extend(Jobsactive4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:request.session['JOB_LIMIT']])
+    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:request.session['JOB_LIMIT']])
+    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:request.session['JOB_LIMIT']])
+    summary.extend(Jobsarchived4.objects.filter(**query).values('taskid','jobstatus').annotate(Count('jobstatus')).order_by('taskid','jobstatus')[:request.session['JOB_LIMIT']])
+    summary.extend(Jobsactive4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:request.session['JOB_LIMIT']])
+    summary.extend(Jobsdefined4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:request.session['JOB_LIMIT']])
+    summary.extend(Jobswaiting4.objects.filter(**querynotime).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:request.session['JOB_LIMIT']])
+    summary.extend(Jobsarchived4.objects.filter(**query).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).order_by('jeditaskid','jobstatus')[:request.session['JOB_LIMIT']])
     return summary
 
 def voSummary(query):
@@ -2484,10 +2490,10 @@ def wnInfo(request,site,wnname='all'):
         wns[wn]['outlier'] = outlier
         fullsummary.append(wns[wn])
 
-    if 'sortby' in requestParams:
-        if requestParams['sortby'] in sitestatelist:
-            fullsummary = sorted(fullsummary, key=lambda x:x['states'][requestParams['sortby']],reverse=True)
-        elif requestParams['sortby'] == 'pctfail':
+    if 'sortby' in request.session['requestParams']:
+        if request.session['requestParams']['sortby'] in sitestatelist:
+            fullsummary = sorted(fullsummary, key=lambda x:x['states'][request.session['requestParams']['sortby']],reverse=True)
+        elif request.session['requestParams']['sortby'] == 'pctfail':
             fullsummary = sorted(fullsummary, key=lambda x:x['pctfail'],reverse=True)
 
     kys = wnPlotFailed.keys()
@@ -2507,7 +2513,7 @@ def wnInfo(request,site,wnname='all'):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'url' : request.path,
             'xurl' : xurl,
             'site' : site,
@@ -2531,7 +2537,7 @@ def wnInfo(request,site,wnname='all'):
 def dashSummary(request, hours, limit=999999, view='all', cloudview='region', notime=True):
     pilots = getPilotCounts(view)
     query = setupView(request,hours=hours,limit=limit,opmode=view)
-    if VOMODE == 'atlas' and len(requestParams) == 0:
+    if VOMODE == 'atlas' and len(request.session['requestParams']) == 0:
         cloudinfol = Cloudconfig.objects.filter().exclude(name='CMS').exclude(name='OSG').values('name','status')
     else:
         cloudinfol = []
@@ -2678,13 +2684,13 @@ def dashSummary(request, hours, limit=999999, view='all', cloudview='region', no
 
         fullsummary.append(clouds[cloud])
 
-    if 'sortby' in requestParams:
-        if requestParams['sortby'] in statelist:
-            fullsummary = sorted(fullsummary, key=lambda x:x['states'][requestParams['sortby']],reverse=True)
-            cloudsummary = sorted(cloudsummary, key=lambda x:x['states'][requestParams['sortby']],reverse=True)
+    if 'sortby' in request.session['requestParams']:
+        if request.session['requestParams']['sortby'] in statelist:
+            fullsummary = sorted(fullsummary, key=lambda x:x['states'][request.session['requestParams']['sortby']],reverse=True)
+            cloudsummary = sorted(cloudsummary, key=lambda x:x['states'][request.session['requestParams']['sortby']],reverse=True)
             for cloud in clouds:
-                clouds[cloud]['summary'] = sorted(clouds[cloud]['summary'], key=lambda x:x['states'][requestParams['sortby']]['count'],reverse=True)
-        elif requestParams['sortby'] == 'pctfail':
+                clouds[cloud]['summary'] = sorted(clouds[cloud]['summary'], key=lambda x:x['states'][request.session['requestParams']['sortby']]['count'],reverse=True)
+        elif request.session['requestParams']['sortby'] == 'pctfail':
             fullsummary = sorted(fullsummary, key=lambda x:x['pctfail'],reverse=True)
             cloudsummary = sorted(cloudsummary, key=lambda x:x['pctfail'],reverse=True)
             for cloud in clouds:
@@ -2753,10 +2759,10 @@ def dashTaskSummary(request, hours, limit=999999, view='all'):
             tasks[taskid]['pctfail'] =  int(100.*float(tasks[taskid]['states']['failed']['count'])/(tasks[taskid]['states']['finished']['count']+tasks[taskid]['states']['failed']['count']))
 
         fullsummary.append(tasks[taskid])
-    if 'sortby' in requestParams:
-        if requestParams['sortby'] in sitestatelist:
-            fullsummary = sorted(fullsummary, key=lambda x:x['states'][requestParams['sortby']],reverse=True)
-        elif requestParams['sortby'] == 'pctfail':
+    if 'sortby' in request.session['requestParams']:
+        if request.session['requestParams']['sortby'] in sitestatelist:
+            fullsummary = sorted(fullsummary, key=lambda x:x['states'][request.session['requestParams']['sortby']],reverse=True)
+        elif request.session['requestParams']['sortby'] == 'pctfail':
             fullsummary = sorted(fullsummary, key=lambda x:x['pctfail'],reverse=True)
 
     return fullsummary
@@ -2835,7 +2841,7 @@ def dashboard(request, view='production'):
 
     query = setupView(request,hours=hours,limit=999999,opmode=view)
 
-    if 'mode' in requestParams and requestParams['mode'] == 'task':
+    if 'mode' in request.session['requestParams'] and request.session['requestParams']['mode'] == 'task':
         return dashTasks(request, hours, view)
 
     if VOMODE != 'atlas':
@@ -2870,10 +2876,10 @@ def dashboard(request, view='production'):
                     vos[vo]['pctfail'] = int(100.*float(vos[vo]['states']['failed']['count'])/(vos[vo]['states']['finished']['count']+vos[vo]['states']['failed']['count']))
             vosummary.append(vos[vo])
 
-        if 'sortby' in requestParams:
-            if requestParams['sortby'] in statelist:
-                vosummary = sorted(vosummary, key=lambda x:x['states'][requestParams['sortby']],reverse=True)
-            elif requestParams['sortby'] == 'pctfail':
+        if 'sortby' in request.session['requestParams']:
+            if request.session['requestParams']['sortby'] in statelist:
+                vosummary = sorted(vosummary, key=lambda x:x['states'][request.session['requestParams']['sortby']],reverse=True)
+            elif request.session['requestParams']['sortby'] == 'pctfail':
                 vosummary = sorted(vosummary, key=lambda x:x['pctfail'],reverse=True)
 
     else:
@@ -2884,8 +2890,8 @@ def dashboard(request, view='production'):
         vosummary = []
 
     cloudview = 'cloud'
-    if 'cloudview' in requestParams:
-        cloudview = requestParams['cloudview']
+    if 'cloudview' in request.session['requestParams']:
+        cloudview = request.session['requestParams']['cloudview']
     if view == 'analysis':
         cloudview = 'region'
     elif view != 'production':
@@ -2914,7 +2920,7 @@ def dashboard(request, view='production'):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'url' : request.path,
             'xurl' : xurl,
             'nosorturl' : nosorturl,
@@ -2966,8 +2972,8 @@ def dashTasks(request, hours, view='production'):
     else:
         errthreshold = 15
     
-    if 'days' in requestParams:
-        taskdays = int(requestParams['days'])
+    if 'days' in request.session['requestParams']:
+        taskdays = int(request.session['requestParams']['days'])
     else:
         taskdays = 7
     hours = taskdays*24
@@ -2978,9 +2984,9 @@ def dashTasks(request, hours, view='production'):
     #taskJobSummary = dashTaskSummary(request, hours, view)     not particularly informative
     taskJobSummary = []  
 
-    if 'display_limit' in requestParams:
+    if 'display_limit' in request.session['requestParams']:
         try:
-            display_limit = int(requestParams['display_limit'])
+            display_limit = int(request.session['requestParams']['display_limit'])
         except:
             display_limit = 300
     else:
@@ -2991,7 +2997,7 @@ def dashTasks(request, hours, view='production'):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'url' : request.path,
             'xurl' : xurl,
             'nosorturl' : nosorturl,
@@ -3019,21 +3025,21 @@ def dashTasks(request, hours, view='production'):
 def taskList(request):
     valid, response = initRequest(request)
 
-    if 'limit' in requestParams:            
-        limit = int(requestParams['limit'])
+    if 'limit' in request.session['requestParams']:            
+        limit = int(request.session['requestParams']['limit'])
     else:
         limit = 5000
  
     if not valid: return response
-    if 'tasktype' in requestParams and requestParams['tasktype'].startswith('anal'):
+    if 'tasktype' in request.session['requestParams'] and request.session['requestParams']['tasktype'].startswith('anal'):
         hours = 3*24
     else:
         hours = 7*24
     eventservice = False
-    if 'eventservice' in requestParams: eventservice = True
+    if 'eventservice' in request.session['requestParams']: eventservice = True
     if eventservice: hours = 7*24
     query = setupView(request, hours=hours, limit=9999999, querytype='task')
-    if 'statenotupdated' in requestParams:
+    if 'statenotupdated' in request.session['requestParams']:
         tasks = taskNotUpdated(request, query)
     else:
         tasks = JediTasks.objects.filter(**query)[:limit].values()
@@ -3042,8 +3048,8 @@ def taskList(request):
     ntasks = len(tasks)
     nmax = ntasks
 
-    if 'display_limit' in requestParams and int(requestParams['display_limit']) < nmax:
-        display_limit = int(requestParams['display_limit'])
+    if 'display_limit' in request.session['requestParams'] and int(request.session['requestParams']['display_limit']) < nmax:
+        display_limit = int(request.session['requestParams']['display_limit'])
         nmax = display_limit
         url_nolimit = removeParam(request.get_full_path(), 'display_limit')
     else:
@@ -3093,7 +3099,7 @@ def taskList(request):
                 task['estaskstr'] = estaskstr
 
     ## set up google flow diagram
-    flowstruct = buildGoogleFlowDiagram(tasks=tasks)
+    flowstruct = buildGoogleFlowDiagram(request, tasks=tasks)
 
     xurl = extensibleURL(request)
     nosorturl = removeParam(xurl, 'sortby',mode='extensible')
@@ -3104,7 +3110,7 @@ def taskList(request):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'tasks': tasks[:nmax],
             'ntasks' : ntasks,
             'sumd' : sumd,
@@ -3116,7 +3122,7 @@ def taskList(request):
         }
         ##self monitor
         endSelfMonitor(request)
-        if 'eventservice' in requestParams:
+        if 'eventservice' in request.session['requestParams']:
             response = render_to_response('taskListES.html', data, RequestContext(request))
         else:
             response = render_to_response('taskList.html', data, RequestContext(request))
@@ -3127,7 +3133,7 @@ def taskInfo(request, jeditaskid=0):
     jeditaskid = int(jeditaskid)
     valid, response = initRequest(request)
     if not valid: return response
-    if 'taskname' in requestParams and requestParams['taskname'].find('*') >= 0:
+    if 'taskname' in request.session['requestParams'] and request.session['requestParams']['taskname'].find('*') >= 0:
         return taskList(request)
     setupView(request, hours=365*24, limit=999999999, querytype='task')
     eventservice = False
@@ -3137,7 +3143,7 @@ def taskInfo(request, jeditaskid=0):
     colnames = []
     columns = []
     jobsummary = []
-    if 'jeditaskid' in requestParams: jeditaskid = int(requestParams['jeditaskid'])
+    if 'jeditaskid' in request.session['requestParams']: jeditaskid = int(request.session['requestParams']['jeditaskid'])
     if jeditaskid != 0:
         query = {'jeditaskid' : jeditaskid}
         tasks = JediTasks.objects.filter(**query).values()
@@ -3149,8 +3155,8 @@ def taskInfo(request, jeditaskid=0):
             ## Exclude merge jobs. Can be misleading. Can show failures with no downstream successes.
             exclude = {'processingtype' : 'pmerge' }
             jobsummary = jobSummary2(query, exclude=exclude)
-    elif 'taskname' in requestParams:
-        querybyname = {'taskname' : requestParams['taskname'] }
+    elif 'taskname' in request.session['requestParams']:
+        querybyname = {'taskname' : request.session['requestParams']['taskname'] }
         tasks = JediTasks.objects.filter(**querybyname).values()
         if len(tasks) > 0:
             jeditaskid = tasks[0]['jeditaskid']
@@ -3209,8 +3215,8 @@ def taskInfo(request, jeditaskid=0):
 
     if taskrec:
         taskname = taskrec['taskname']
-    elif 'taskname' in requestParams:
-        taskname = requestParams['taskname']
+    elif 'taskname' in request.session['requestParams']:
+        taskname = request.session['requestParams']['taskname']
     else:
         taskname = ''        
 
@@ -3326,7 +3332,7 @@ def taskInfo(request, jeditaskid=0):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'task' : taskrec,
             'taskname' : taskname,
             'taskparams' : taskparams,
@@ -3495,8 +3501,8 @@ def errorSummaryDict(request,jobs, tasknamedict, testjobs):
         if not testjobs:
             if job['jobstatus'] not in [ 'failed', 'holding' ]: continue
         site = job['computingsite']
-        if 'cloud' in requestParams:
-            if site in homeCloud and homeCloud[site] != requestParams['cloud']: continue
+        if 'cloud' in request.session['requestParams']:
+            if site in homeCloud and homeCloud[site] != request.session['requestParams']['cloud']: continue
         user = job['produsername']
         taskname = ''
         if job['jeditaskid'] > 0:
@@ -3517,7 +3523,7 @@ def errorSummaryDict(request,jobs, tasknamedict, testjobs):
         ## Overall summary
         for f in flist:
             if job[f]:
-                if f == 'taskid' and job[f] < 1000000 and 'produsername' not in requestParams:
+                if f == 'taskid' and job[f] < 1000000 and 'produsername' not in request.session['requestParams']:
                     pass
                 else:
                     if not f in sumd: sumd[f] = {}
@@ -3586,7 +3592,7 @@ def errorSummaryDict(request,jobs, tasknamedict, testjobs):
                 errsBySite[site]['errors'][errcode]['count'] += 1
                 errsBySite[site]['toterrors'] += 1
                 
-                if tasktype == 'jeditaskid' or taskid > 1000000 or 'produsername' in requestParams:
+                if tasktype == 'jeditaskid' or taskid > 1000000 or 'produsername' in request.session['requestParams']:
                     if taskid not in errsByTask:
                         errsByTask[taskid] = {}
                         errsByTask[taskid]['name'] = taskid
@@ -3618,7 +3624,7 @@ def errorSummaryDict(request,jobs, tasknamedict, testjobs):
     kys.sort()
     for err in kys:
         errsByCountL.append(errsByCount[err])
-    if 'sortby' in requestParams and requestParams['sortby'] == 'count':
+    if 'sortby' in request.session['requestParams'] and request.session['requestParams']['sortby'] == 'count':
         errsByCountL = sorted(errsByCountL, key=lambda x:-x['count'])
 
     kys = errsByUser.keys()
@@ -3630,7 +3636,7 @@ def errorSummaryDict(request,jobs, tasknamedict, testjobs):
         for err in errkeys:
             errsByUser[user]['errorlist'].append(errsByUser[user]['errors'][err])
         errsByUserL.append(errsByUser[user])
-    if 'sortby' in requestParams and requestParams['sortby'] == 'count':
+    if 'sortby' in request.session['requestParams'] and request.session['requestParams']['sortby'] == 'count':
         errsByUserL = sorted(errsByUserL, key=lambda x:-x['toterrors'])
 
     kys = errsBySite.keys()
@@ -3642,7 +3648,7 @@ def errorSummaryDict(request,jobs, tasknamedict, testjobs):
         for err in errkeys:
             errsBySite[site]['errorlist'].append(errsBySite[site]['errors'][err])
         errsBySiteL.append(errsBySite[site])
-    if 'sortby' in requestParams and requestParams['sortby'] == 'count':
+    if 'sortby' in request.session['requestParams'] and request.session['requestParams']['sortby'] == 'count':
         errsBySiteL = sorted(errsBySiteL, key=lambda x:-x['toterrors'])
 
     kys = errsByTask.keys()
@@ -3654,7 +3660,7 @@ def errorSummaryDict(request,jobs, tasknamedict, testjobs):
         for err in errkeys:
             errsByTask[taskid]['errorlist'].append(errsByTask[taskid]['errors'][err])
         errsByTaskL.append(errsByTask[taskid])
-    if 'sortby' in requestParams and requestParams['sortby'] == 'count':
+    if 'sortby' in request.session['requestParams'] and request.session['requestParams']['sortby'] == 'count':
         errsByTaskL = sorted(errsByTaskL, key=lambda x:-x['toterrors'])
 
     suml = []
@@ -3670,7 +3676,7 @@ def errorSummaryDict(request,jobs, tasknamedict, testjobs):
         suml.append(itemd)
     suml = sorted(suml, key=lambda x:x['field'])
 
-    if 'sortby' in requestParams and requestParams['sortby'] == 'count':
+    if 'sortby' in request.session['requestParams'] and request.session['requestParams']['sortby'] == 'count':
         for item in suml:
             item['list'] = sorted(item['list'], key=lambda x:-x['kvalue'])
 
@@ -3697,12 +3703,12 @@ def errorSummary(request):
     if not valid: return response
 
     testjobs = False
-    if 'prodsourcelabel' in requestParams and requestParams['prodsourcelabel'].lower().find('test') >= 0:
+    if 'prodsourcelabel' in request.session['requestParams'] and request.session['requestParams']['prodsourcelabel'].lower().find('test') >= 0:
         testjobs = True
 
     jobtype = ''
-    if 'jobtype' in requestParams:
-        jobtype = requestParams['jobtype']
+    if 'jobtype' in request.session['requestParams']:
+        jobtype = request.session['requestParams']['jobtype']
     elif '/analysis' in request.path:
         jobtype = 'analysis'
     elif '/production' in request.path:
@@ -3726,13 +3732,13 @@ def errorSummary(request):
 
     jobs = []
     values = 'produsername', 'pandaid', 'cloud','computingsite','cpuconsumptiontime','jobstatus','transformation','prodsourcelabel','specialhandling','vo','modificationtime', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'currentpriority', 'computingelement'
-    jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
-    jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension])[:JOB_LIMIT].values(*values))
+    jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+    jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+    jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+    jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+    jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
     
-    jobs = cleanJobList(jobs, mode='nodrop')
+    jobs = cleanJobList(request, jobs, mode='nodrop')
     njobs = len(jobs)
     tasknamedict = taskNameDict(jobs)
     ## Build the error summary.
@@ -3775,14 +3781,14 @@ def errorSummary(request):
                 for s in savestates:
                     if s in taskstates[taskid]: task[s] = taskstates[taskid][s]
                 if 'pctfail' in taskstates[taskid]: task['pctfail'] = taskstates[taskid]['pctfail']
-        if 'jeditaskid' in requestParams:
-            taskname = getTaskName('jeditaskid',requestParams['jeditaskid'])
+        if 'jeditaskid' in request.session['requestParams']:
+            taskname = getTaskName('jeditaskid',request.session['requestParams']['jeditaskid'])
 
-    if 'sortby' in requestParams:
-        sortby = requestParams['sortby']
+    if 'sortby' in request.session['requestParams']:
+        sortby = request.session['requestParams']['sortby']
     else:
         sortby = 'alpha'
-    flowstruct = buildGoogleFlowDiagram(jobs=jobs)
+    flowstruct = buildGoogleFlowDiagram(request, jobs=jobs)
 
     request.session['max_age_minutes'] = 6
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
@@ -3793,12 +3799,12 @@ def errorSummary(request):
             'prefix': getPrefix(request),
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'requestString' : request.META['QUERY_STRING'],
             'jobtype' : jobtype,
             'njobs' : njobs,
             'hours' : LAST_N_HOURS_MAX,
-            'limit' : JOB_LIMIT,
+            'limit' : request.session['JOB_LIMIT'],
             'user' : None,
             'xurl' : xurl,
             'jobsurl' : jobsurl,
@@ -3809,8 +3815,8 @@ def errorSummary(request):
             'errsByTask' : errsByTask,
             'sumd' : sumd,
             'errHist' : errHist,
-            'tfirst' : TFIRST,
-            'tlast' : TLAST,
+            'tfirst' : request.session['TFIRST'],
+            'tlast' : request.session['TLAST'],
             'sortby' : sortby,
             'taskname' : taskname,
             'flowstruct' : flowstruct,
@@ -3846,27 +3852,27 @@ def removeParam(urlquery, parname, mode='complete'):
 def incidentList(request):
     valid, response = initRequest(request)
     if not valid: return response
-    if 'days' in requestParams:
-        hours = int(requestParams['days'])*24
+    if 'days' in request.session['requestParams']:
+        hours = int(request.session['requestParams']['days'])*24
     else:
-        if 'hours' not in requestParams:
+        if 'hours' not in request.session['requestParams']:
             hours = 24*3
         else:
-            hours = int(requestParams['hours'])
+            hours = int(request.session['requestParams']['hours'])
     setupView(request, hours=hours, limit=9999999)
     iquery = {}
     startdate = timezone.now() - timedelta(hours=hours)
     startdate = startdate.strftime(defaultDatetimeFormat)
     enddate = timezone.now().strftime(defaultDatetimeFormat)
     iquery['at_time__range'] = [startdate, enddate]
-    if 'site' in requestParams:
-        iquery['description__contains'] = 'queue=%s' % requestParams['site']
-    if 'category' in requestParams:
-        iquery['description__startswith'] = '%s:' % requestParams['category']
-    if 'comment' in requestParams:
-        iquery['description__contains'] = '%s' % requestParams['comment']
-    if 'notifier' in requestParams:
-        iquery['description__contains'] = 'DN=%s' % requestParams['notifier']
+    if 'site' in request.session['requestParams']:
+        iquery['description__contains'] = 'queue=%s' % request.session['requestParams']['site']
+    if 'category' in request.session['requestParams']:
+        iquery['description__startswith'] = '%s:' % request.session['requestParams']['category']
+    if 'comment' in request.session['requestParams']:
+        iquery['description__contains'] = '%s' % request.session['requestParams']['comment']
+    if 'notifier' in request.session['requestParams']:
+        iquery['description__contains'] = 'DN=%s' % request.session['requestParams']['notifier']
     incidents = Incidents.objects.filter(**iquery).order_by('at_time').reverse().values()
     sumd = {}
     pars = {}
@@ -3929,7 +3935,7 @@ def incidentList(request):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'user' : None,
             'incidents': incidents,
             'sumd' : suml,
@@ -3952,34 +3958,34 @@ def pandaLogger(request):
     if not valid: return response
     getrecs = False
     iquery = {}
-    if 'category' in requestParams:
-        iquery['name'] = requestParams['category']
+    if 'category' in request.session['requestParams']:
+        iquery['name'] = request.session['requestParams']['category']
         getrecs = True
-    if 'type' in requestParams:
-        iquery['type'] = requestParams['type']
+    if 'type' in request.session['requestParams']:
+        iquery['type'] = request.session['requestParams']['type']
         getrecs = True
-    if 'level' in requestParams:
-        iquery['levelname'] = requestParams['level'].upper()
+    if 'level' in request.session['requestParams']:
+        iquery['levelname'] = request.session['requestParams']['level'].upper()
         getrecs = True
-    if 'taskid' in requestParams:
-        iquery['message__startswith'] = requestParams['taskid']
+    if 'taskid' in request.session['requestParams']:
+        iquery['message__startswith'] = request.session['requestParams']['taskid']
         getrecs = True
-    if 'jeditaskid' in requestParams:
-        iquery['message__icontains'] = "jeditaskid=%s" % requestParams['jeditaskid']
+    if 'jeditaskid' in request.session['requestParams']:
+        iquery['message__icontains'] = "jeditaskid=%s" % request.session['requestParams']['jeditaskid']
         getrecs = True
-    if 'site' in requestParams:
-        iquery['message__startswith'] = requestParams['site']
+    if 'site' in request.session['requestParams']:
+        iquery['message__startswith'] = request.session['requestParams']['site']
         getrecs = True
-    if 'pandaid' in requestParams:
-        iquery['pid'] = requestParams['pandaid']
+    if 'pandaid' in request.session['requestParams']:
+        iquery['pid'] = request.session['requestParams']['pandaid']
         getrecs = True
-    if 'hours' not in requestParams:
+    if 'hours' not in request.session['requestParams']:
         if getrecs:
             hours = 72
         else:
             hours = 24
     else:
-        hours = int(requestParams['hours'])
+        hours = int(request.session['requestParams']['hours'])
     setupView(request, hours=hours, limit=9999999)
     startdate = timezone.now() - timedelta(hours=hours)
     startdate = startdate.strftime(defaultDatetimeFormat)
@@ -3987,7 +3993,7 @@ def pandaLogger(request):
     iquery['bintime__range'] = [startdate, enddate]
     counts = Pandalog.objects.filter(**iquery).values('name','type','levelname').annotate(Count('levelname')).order_by('name','type','levelname')
     if getrecs:
-        records = Pandalog.objects.filter(**iquery).order_by('bintime').reverse()[:JOB_LIMIT].values()
+        records = Pandalog.objects.filter(**iquery).order_by('bintime').reverse()[:request.session['JOB_LIMIT']].values()
         ## histogram of logs vs. time, for plotting
         logHist = {}
         for r in records:
@@ -4054,7 +4060,7 @@ def pandaLogger(request):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'user' : None,
             'logl' : logl,
             'records' : records,
@@ -4132,7 +4138,7 @@ def workingGroups(request):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'url' : request.path,
             'xurl' : xurl,
             'user' : None,
@@ -4161,12 +4167,12 @@ def datasetInfo(request):
     dsrec = None
     colnames = []
     columns = []
-    if 'datasetname' in requestParams:
-        dataset = requestParams['datasetname']
-        query['datasetname'] = requestParams['datasetname']
-    elif 'datasetid' in requestParams:
-        dataset = requestParams['datasetid']
-        query['datasetid'] = requestParams['datasetid']
+    if 'datasetname' in request.session['requestParams']:
+        dataset = request.session['requestParams']['datasetname']
+        query['datasetname'] = request.session['requestParams']['datasetname']
+    elif 'datasetid' in request.session['requestParams']:
+        dataset = request.session['requestParams']['datasetid']
+        query['datasetid'] = request.session['requestParams']['datasetid']
     else:
         dataset = None
     
@@ -4177,10 +4183,10 @@ def datasetInfo(request):
             startdate = startdate.strftime(defaultDatetimeFormat)
             enddate = timezone.now().strftime(defaultDatetimeFormat)
             query = { 'modificationdate__range' : [startdate, enddate] }
-            if 'datasetname' in requestParams:
-                query['name'] = requestParams['datasetname']
-            elif 'datasetid' in requestParams:
-                query['vuid'] = requestParams['datasetid']
+            if 'datasetname' in request.session['requestParams']:
+                query['name'] = request.session['requestParams']['datasetname']
+            elif 'datasetid' in request.session['requestParams']:
+                query['vuid'] = request.session['requestParams']['datasetid']
             moredsets = Datasets.objects.filter(**query).values()
             if len(moredsets) > 0:
                 dsets = moredsets
@@ -4207,7 +4213,7 @@ def datasetInfo(request):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'dsrec' : dsrec,
             'datasetname' : dataset,
             'columns' : columns,
@@ -4228,8 +4234,8 @@ def datasetList(request):
     query = {}
     dsets = []
     for par in ( 'jeditaskid', 'containername' ):
-        if par in requestParams:
-            query[par] = requestParams[par]
+        if par in request.session['requestParams']:
+            query[par] = request.session['requestParams'][par]
     
     if len(query) > 0:
         dsets = JediDatasets.objects.filter(**query).values()
@@ -4238,7 +4244,7 @@ def datasetList(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'datasets' : dsets,
         }
         data.update(getContextVariables(request))
@@ -4259,24 +4265,24 @@ def fileInfo(request):
     frec = None
     colnames = []
     columns = []
-    if 'filename' in requestParams:
-        file = requestParams['filename']
-        query['lfn'] = requestParams['filename']
-    elif 'lfn' in requestParams:
-        file = requestParams['lfn']
-        query['lfn'] = requestParams['lfn']
-    elif 'fileid' in requestParams:
-        file = requestParams['fileid']
-        query['fileid'] = requestParams['fileid']
-    elif 'guid' in requestParams:
-        file = requestParams['guid']
-        query['guid'] = requestParams['guid']
+    if 'filename' in request.session['requestParams']:
+        file = request.session['requestParams']['filename']
+        query['lfn'] = request.session['requestParams']['filename']
+    elif 'lfn' in request.session['requestParams']:
+        file = request.session['requestParams']['lfn']
+        query['lfn'] = request.session['requestParams']['lfn']
+    elif 'fileid' in request.session['requestParams']:
+        file = request.session['requestParams']['fileid']
+        query['fileid'] = request.session['requestParams']['fileid']
+    elif 'guid' in request.session['requestParams']:
+        file = request.session['requestParams']['guid']
+        query['guid'] = request.session['requestParams']['guid']
     else:
         file = None
-    if 'scope' in requestParams:
-        query['scope'] = requestParams['scope']
-    if 'pandaid' in requestParams and requestParams['pandaid'] != '':
-        query['pandaid'] = requestParams['pandaid']
+    if 'scope' in request.session['requestParams']:
+        query['scope'] = request.session['requestParams']['scope']
+    if 'pandaid' in request.session['requestParams'] and request.session['requestParams']['pandaid'] != '':
+        query['pandaid'] = request.session['requestParams']['pandaid']
     
     if file:
         files = JediDatasetContents.objects.filter(**query).values()
@@ -4316,7 +4322,7 @@ def fileInfo(request):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'frec' : frec,
             'files' : files,
             'filename' : file,
@@ -4342,13 +4348,13 @@ def fileList(request):
     columns = []
     datasetname = ''
     datasetid = 0
-    if 'datasetname' in requestParams:
-        datasetname = requestParams['datasetname']
+    if 'datasetname' in request.session['requestParams']:
+        datasetname = request.session['requestParams']['datasetname']
         dsets = JediDatasets.objects.filter(datasetname=datasetname).values()
         if len(dsets) > 0:
             datasetid = dsets[0]['datasetid']
-    elif 'datasetid' in requestParams:
-        datasetid = requestParams['datasetid']
+    elif 'datasetid' in request.session['requestParams']:
+        datasetid = request.session['requestParams']['datasetid']
         dsets = JediDatasets.objects.filter(datasetid=datasetid).values()
         if len(dsets) > 0:
             datasetname = dsets[0]['datasetname']
@@ -4370,7 +4376,7 @@ def fileList(request):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'files' : files,
             'nfiles' : nfiles,
         }
@@ -4388,10 +4394,10 @@ def workQueues(request):
     if not valid: return response
     setupView(request, hours=180*24, limit=9999999)
     query = {}
-    for param in requestParams:
+    for param in request.session['requestParams']:
         for field in JediWorkQueue._meta.get_all_field_names():
             if param == field:
-                query[param] = requestParams[param]
+                query[param] = request.session['requestParams'][param]
     queues = JediWorkQueue.objects.filter(**query).order_by('queue_type','queue_order').values()
     #queues = sorted(queues, key=lambda x:x['queue_name'],reverse=True)
         
@@ -4399,7 +4405,7 @@ def workQueues(request):
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
-            'requestParams' : requestParams,
+            'requestParams' : request.session['requestParams'],
             'queues': queues,
             'xurl' : extensibleURL(request),
         }
@@ -4415,9 +4421,9 @@ def stateNotUpdated(request, state='transferring', hoursSinceUpdate=36, values =
     valid, response = initRequest(request)
     if not valid: return response
     query = setupView(request, opmode='notime', limit=99999999)
-    if 'jobstatus' in requestParams: state = requestParams['jobstatus']
-    if 'transferringnotupdated' in requestParams: hoursSinceUpdate = int(requestParams['transferringnotupdated'])
-    if 'statenotupdated' in requestParams: hoursSinceUpdate = int(requestParams['statenotupdated'])
+    if 'jobstatus' in request.session['requestParams']: state = request.session['requestParams']['jobstatus']
+    if 'transferringnotupdated' in request.session['requestParams']: hoursSinceUpdate = int(request.session['requestParams']['transferringnotupdated'])
+    if 'statenotupdated' in request.session['requestParams']: hoursSinceUpdate = int(request.session['requestParams']['statenotupdated'])
     moddate = timezone.now() - timedelta(hours=hoursSinceUpdate)
     moddate = moddate.strftime(defaultDatetimeFormat)
     mindate = timezone.now() - timedelta(hours=24*30)
@@ -4470,8 +4476,8 @@ def taskNotUpdated(request, query, state='submitted', hoursSinceUpdate=36, value
     valid, response = initRequest(request)
     if not valid: return response
     #query = setupView(request, opmode='notime', limit=99999999)
-    if 'status' in requestParams: state = requestParams['status']
-    if 'statenotupdated' in requestParams: hoursSinceUpdate = int(requestParams['statenotupdated'])
+    if 'status' in request.session['requestParams']: state = request.session['requestParams']['status']
+    if 'statenotupdated' in request.session['requestParams']: hoursSinceUpdate = int(request.session['requestParams']['statenotupdated'])
     moddate = timezone.now() - timedelta(hours=hoursSinceUpdate)
     moddate = moddate.strftime(defaultDatetimeFormat)
     mindate = timezone.now() - timedelta(hours=24*30)
@@ -4616,16 +4622,16 @@ def getFilePathForObjectStore(objectstore, filetype="logs"):
 
     return basepath
 
-def buildGoogleFlowDiagram(jobs=[], tasks=[]):
+def buildGoogleFlowDiagram(request, jobs=[], tasks=[]):
     ## set up google flow diagram
-    if 'flow' not in requestParams: return None
+    if 'flow' not in request.session['requestParams']: return None
     flowstruct = {}
     if len(jobs) > 0:
         flowstruct['maxweight'] = len(jobs)
         flowrows = buildGoogleJobFlow(jobs)
     elif len(tasks) > 0:
         flowstruct['maxweight'] = len(tasks)
-        flowrows = buildGoogleTaskFlow(tasks)
+        flowrows = buildGoogleTaskFlow(request, tasks)
     else:
         return None
     flowstruct['columns'] = [ ['string', 'From'], ['string', 'To'], ['number', 'Weight'] ]
@@ -4751,8 +4757,8 @@ def buildGoogleJobFlow(jobs):
 
     return flowrows
 
-def buildGoogleTaskFlow(tasks):
-    analysis = 'tasktype' in requestParams and requestParams['tasktype'].startswith('anal')
+def buildGoogleTaskFlow(request, tasks):
+    analysis = 'tasktype' in request.session['requestParams'] and request.session['requestParams']['tasktype'].startswith('anal')
     ptyped = {}
     reqd = {}
     statd = {}
