@@ -86,7 +86,7 @@ errorcodelist = [
 
 
 _logger = logging.getLogger('bigpandamon')
-viewParams = {}
+#viewParams = {}
 requestParams = {}
 
 LAST_N_HOURS_MAX = 0
@@ -127,6 +127,12 @@ def setupSiteInfo():
 
 def initRequest(request):
     global VOMODE, ENV, viewParams, hostname
+    
+    viewParams = {}
+    if not 'viewParams' in request.session:
+        request.session['viewParams'] = viewParams
+    
+    
     if 'USER' in os.environ and os.environ['USER'] != 'apache':
         request.session['debug'] = True
     elif 'debug' in request.GET and request.GET['debug'] == 'insider':
@@ -150,7 +156,7 @@ def initRequest(request):
             request.session['username'] = userrec[0]['name']
 
     ENV['MON_VO'] = ''
-    viewParams['MON_VO'] = ''
+    request.session['viewParams']['MON_VO'] = ''
     VOMODE = ''
     for vo in VOLIST:
         if request.META['HTTP_HOST'].startswith(vo):
@@ -159,7 +165,7 @@ def initRequest(request):
     if dbaccess['default']['ENGINE'].find('oracle') >= 0:
         VOMODE = 'atlas'
     ENV['MON_VO'] = VONAME[VOMODE]
-    viewParams['MON_VO'] = ENV['MON_VO']
+    request.session['viewParams']['MON_VO'] = ENV['MON_VO']
     global requestParams
     global errorFields, errorCodes, errorStages
     requestParams = {}
@@ -181,7 +187,7 @@ def initRequest(request):
                     i = int(request.GET[p])
                 except:
                     data = {
-                        'viewParams' : viewParams,
+                        'viewParams' : request.session['viewParams'],
                         'requestParams' : requestParams,
                         "errormessage" : "Illegal value '%s' for %s" % ( pval, p ),
                         }
@@ -248,7 +254,11 @@ def preprocessWildCardString(strToProcess, fieldToLookAt):
 
 
 def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardExt=False):
-    global viewParams
+
+    viewParams = {}
+    if not 'viewParams' in request.session:
+        request.session['viewParams'] = viewParams
+
     global LAST_N_HOURS_MAX, JOB_LIMIT
     
     wildSearchFields = []
@@ -309,27 +319,27 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         JOB_LIMIT = 999999
     if opmode != 'notime':
         if LAST_N_HOURS_MAX <= 72 :
-            viewParams['selection'] = ", last %s hours" % LAST_N_HOURS_MAX
+            request.session['viewParams']['selection'] = ", last %s hours" % LAST_N_HOURS_MAX
         else:
-            viewParams['selection'] = ", last %d days" % (float(LAST_N_HOURS_MAX)/24.)
+            request.session['viewParams']['selection'] = ", last %d days" % (float(LAST_N_HOURS_MAX)/24.)
         #if JOB_LIMIT < 999999 and JOB_LIMIT > 0:
         #    viewParams['selection'] += ", <font style='color:#FF8040; size=-1'>Warning: limit %s per job table</font>" % JOB_LIMIT
-        viewParams['selection'] += ". &nbsp; <b>Params:</b> "
+        request.session['viewParams']['selection'] += ". &nbsp; <b>Params:</b> "
         #if 'days' not in requestParams:
         #    viewParams['selection'] += "hours=%s" % LAST_N_HOURS_MAX
         #else:
         #    viewParams['selection'] += "days=%s" % int(LAST_N_HOURS_MAX/24)
         if JOB_LIMIT < 100000 and JOB_LIMIT > 0:
-            viewParams['selection'] += "  &nbsp; <b>limit=</b>%s" % JOB_LIMIT
+            request.session['viewParams']['selection'] += "  &nbsp; <b>limit=</b>%s" % JOB_LIMIT
     else:
-        viewParams['selection'] = ""
+        request.session['viewParams']['selection'] = ""
     for param in requestParams:
         if requestParams[param] == 'None': continue
         if requestParams[param] == '': continue
         if param == 'display_limit': continue
         if param == 'sortby': continue
         if param == 'limit' and JOB_LIMIT>0: continue
-        viewParams['selection'] += "  &nbsp; <b>%s=</b>%s " % ( param, requestParams[param] )
+        request.session['viewParams']['selection'] += "  &nbsp; <b>%s=</b>%s " % ( param, requestParams[param] )
 
     startdate = None
     if 'date_from' in requestParams:
@@ -1122,7 +1132,7 @@ def mainPage(request):
         data = {
             'prefix': getPrefix(request),
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'debuginfo' : debuginfo
         }
@@ -1145,7 +1155,7 @@ def helpPage(request):
         data = {
             'prefix': getPrefix(request),
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
         }
         data.update(getContextVariables(request))
@@ -1435,7 +1445,7 @@ def jobList(request, mode=None, param=None):
             'errsByCount' : errsByCount,
             'errdSumd' : errdSumd,
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'jobList': jobs[:njobsmax],
             'jobtype' : jobtype,
@@ -1546,7 +1556,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     if len(jobs) == 0:
         data = {
             'prefix': getPrefix(request),
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'pandaid': pandaid,
             'job': None,
@@ -1770,7 +1780,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         data = {
             'prefix': getPrefix(request),
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'pandaid': pandaid,
             'job': job,
@@ -1919,7 +1929,7 @@ def userList(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'xurl' : extensibleURL(request),
             'url' : request.path,
@@ -2062,7 +2072,7 @@ def userInfo(request, user=''):
         
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'xurl' : xurl,
             'nosorturl' : nosorturl,
@@ -2183,7 +2193,7 @@ def siteList(request):
         sumd = siteSummaryDict(sites)
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'sites': sites,
             'clouds' : clouds,
@@ -2273,7 +2283,7 @@ def siteInfo(request, site=''):
             incidents = []
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'site' : siterec,
             'queues' : sites,
             'colnames' : colnames,
@@ -2496,7 +2506,7 @@ def wnInfo(request,site,wnname='all'):
         xurl = extensibleURL(request)
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'url' : request.path,
             'xurl' : xurl,
@@ -2775,115 +2785,6 @@ def getEffectiveFileSize(fsize,startEvent,endEvent,nEvents):
     return effectiveFsize
 
 
-
-### Taken (with minor modifications) from
-### https://github.com/PanDAWMS/panda-jedi/blob/master/pandajedi/jedicore/JediDBProxy.py#L4691
-def calculateRWwithPrio_JEDI(vo, cloud, prodSourceLabel, workQueue, priority):
-    comment = ' /* JediDBProxy.calculateRWwithPrio_JEDI */'
-    methodName = self.getMethodName(comment)
-    if workQueue == None:
-        methodName += ' <vo={0} label={1} queue={2} prio={3}>'.format(vo,prodSourceLabel,None,priority)
-    else:
-        methodName += ' <vo={0} label={1} queue={2} prio={3}>'.format(vo,prodSourceLabel,workQueue.queue_name,priority)
-    tmpLog = MsgWrapper(logger,methodName)
-    tmpLog.debug('start')
-    try:
-        # sql to get RW
-        varMap = {}
-
-        sql  = "SELECT tabT.jediTaskID,tabT.cloud,tabD.datasetID,nFiles-nFilesFinished-nFilesFailed,walltime "
-        sql += "FROM {0}.JEDI_Tasks tabT,{0}.JEDI_Datasets tabD,{0}.JEDI_AUX_Status_MinTaskID tabA ".format(jedi_config.db.schemaJEDI)
-        sql += "WHERE tabT.status=tabA.status AND tabT.jediTaskID>=tabA.min_jediTaskID "
-        sql += "AND tabT.jediTaskID=tabD.jediTaskID AND masterID IS NULL "
-        sql += "AND (nFiles-nFilesFinished-nFilesFailed)>0 "
-        
-        if prodSourceLabel!=None:
-            varMap[':prodSourceLabel'] = prodSourceLabel
-            sql += "AND prodSourceLabel=:prodSourceLabel "
-
-        if priority != None:
-            varMap[':priority'] = priority
-        
-        if vo!=None:
-            sql += "AND tabT.vo=:vo "
-            varMap[':vo'] = vo
-        if cloud!=None:
-            sql += "AND tabT.CLOUD=:CLOUD "
-            varMap[':CLOUD'] = cloud
-        if priority != None:
-            sql += "AND currentPriority>=:priority "
-        if workQueue != None:
-            sql += "AND workQueue_ID IN (" 
-            for tmpQueue_ID in workQueue.getIDs():
-                tmpKey = ':queueID_{0}'.format(tmpQueue_ID)
-                varMap[tmpKey] = tmpQueue_ID
-                sql += '{0},'.format(tmpKey)
-            sql  = sql[:-1]    
-            sql += ") "
-        sql += "AND tabT.status IN (:status1,:status2,:status3,:status4) "
-        sql += "AND tabD.type IN ("
-        for tmpType in ['input','pseudo_input']:
-            mapKey = ':type_'+tmpType
-            sql += '{0},'.format(mapKey)
-            varMap[mapKey] = tmpType
-        sql  = sql[:-1]
-        sql += ") "
-        varMap[':status1'] = 'ready'
-        varMap[':status2'] = 'scouting'
-        varMap[':status3'] = 'running'
-        varMap[':status4'] = 'pending'
-        sql += "AND tabT.cloud IS NOT NULL "
-        # begin transaction
-        
-        print sql;
-        
-        #self.conn.begin()
-        ## set cloud
-        #self.cur.execute(sql+comment,varMap)
-        #resList = self.cur.fetchall()
-        ## commit
-        #if not self._commit():
-        #    raise RuntimeError, 'Commit error'
-        ## loop over all tasks
-        #retMap = {}
-        #sqlF  = "SELECT fsize,startEvent,endEvent,nEvents "
-        #sqlF += "FROM {0}.JEDI_Dataset_Contents ".format(jedi_config.db.schemaJEDI)
-        #sqlF += "WHERE jediTaskID=:jediTaskID AND datasetID=:datasetID AND rownum<=1"
-        #for jediTaskID,cloud,datasetID,nRem,walltime in resList:
-        #    # get effective size
-        #    varMap = {}
-        #    varMap[':jediTaskID'] = jediTaskID
-        #    varMap[':datasetID'] = datasetID
-        #    # begin transaction
-        #    self.conn.begin()
-        #    # get file
-        #    self.cur.execute(sqlF+comment,varMap)
-        #    resFile = self.cur.fetchone()
-        #    # commit
-        #    if not self._commit():
-        #        raise RuntimeError, 'Commit error'
-        #    if resFile != None:
-        #        # calculate RW using effective size
-        #        fsize,startEvent,endEvent,nEvents = resFile
-        #        effectiveFsize = getEffectiveFileSize(fsize,startEvent,endEvent,nEvents)
-        #        tmpRW = nRem * effectiveFsize * walltime
-        #        if not cloud in retMap:
-        #            retMap[cloud] = 0
-        #        retMap[cloud] += tmpRW    
-        #for cloudName,rwValue in retMap.iteritems():
-        #    retMap[cloudName] = int(rwValue/24/3600)
-        #tmpLog.debug('RW={0}'.format(str(retMap)))
-        ## return    
-        #tmpLog.debug('done')
-        #return retMap
-    except:
-        # roll back
-        self._rollback()
-        # error
-        self.dumpErrorMessage(tmpLog)
-        return None
-
-
 def calculateRWwithPrio_JEDI():
     query = {}
     retMap = {}
@@ -3012,7 +2913,7 @@ def dashboard(request, view='production'):
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'url' : request.path,
             'xurl' : xurl,
@@ -3089,7 +2990,7 @@ def dashTasks(request, hours, view='production'):
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'url' : request.path,
             'xurl' : xurl,
@@ -3202,7 +3103,7 @@ def taskList(request):
         sumd = taskSummaryDict(request,tasks)
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'tasks': tasks[:nmax],
             'ntasks' : ntasks,
@@ -3424,7 +3325,7 @@ def taskInfo(request, jeditaskid=0):
             attrs.append({'name' : 'Status', 'value' : taskrec['status'] })
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'task' : taskrec,
             'taskname' : taskname,
@@ -3891,7 +3792,7 @@ def errorSummary(request):
         data = {
             'prefix': getPrefix(request),
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'requestString' : request.META['QUERY_STRING'],
             'jobtype' : jobtype,
@@ -4027,7 +3928,7 @@ def incidentList(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'user' : None,
             'incidents': incidents,
@@ -4152,7 +4053,7 @@ def pandaLogger(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'user' : None,
             'logl' : logl,
@@ -4230,7 +4131,7 @@ def workingGroups(request):
         xurl = extensibleURL(request)
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'url' : request.path,
             'xurl' : xurl,
@@ -4305,7 +4206,7 @@ def datasetInfo(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'dsrec' : dsrec,
             'datasetname' : dataset,
@@ -4336,7 +4237,7 @@ def datasetList(request):
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'datasets' : dsets,
         }
@@ -4414,7 +4315,7 @@ def fileInfo(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'frec' : frec,
             'files' : files,
@@ -4468,7 +4369,7 @@ def fileList(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'files' : files,
             'nfiles' : nfiles,
@@ -4497,7 +4398,7 @@ def workQueues(request):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'request' : request,
-            'viewParams' : viewParams,
+            'viewParams' : request.session['viewParams'],
             'requestParams' : requestParams,
             'queues': queues,
             'xurl' : extensibleURL(request),
