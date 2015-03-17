@@ -221,6 +221,20 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endfor %}
 {% endif %}
 
+{% if request.clouddisttxt %}
+<br>Cloud/core task distribution: (JEDI tasks active in last 30 days)
+{% for line in request.clouddisttxt %}
+<br> &nbsp; &nbsp; {{ line|safe }}
+{% endfor %}
+{% endif %}
+
+{% if request.jobdisttxt %}
+<br>Cloud/core event production: (PanDA jobs completed in last 3 days)
+{% for line in request.jobdisttxt %}
+<br> &nbsp; &nbsp; {{ line|safe }}
+{% endfor %}
+{% endif %}
+
 {% if request.comment %}
 <br>
 <font color='brown'>{{ request.comment }}</font>

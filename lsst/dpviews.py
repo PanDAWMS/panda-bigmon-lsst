@@ -31,11 +31,8 @@ from boto.dynamodb2.types import STRING_SET
 
 from settings.local import aws
 
-# A crapshoot whether they're available because of the branch mess
-try:
-    from atlas.prodtask.models import TRequest, TProject, RequestStatus, ProductionTask, StepTemplate, StepExecution, InputRequestList, ProductionContainer, ProductionDataset
-except:
-    pass
+from atlas.prodtask.models import TRequest, TProject, RequestStatus, ProductionTask, StepTemplate, StepExecution, InputRequestList, ProductionContainer, ProductionDataset
+
 from core.pandajob.models import PandaJob, Jobsactive4, Jobsdefined4, Jobswaiting4, Jobsarchived4, Jobsarchived
 from core.common.models import JediTasks
 from core.common.models import Filestable4 
@@ -157,6 +154,8 @@ def doRequest(request):
     datasets = containers = tasks = jeditasks = jedidatasets = steps = slices = files = []
     events_processed = None
     request_columns = None
+    jobsum = []
+    jobsumd = {}
     if reqid:
         events_processed = {}
         ## Prepare information for the particular request
@@ -209,14 +208,12 @@ def doRequest(request):
                     if t['status'] not in ( 'aborted', 'broken' ):
                         if evtag not in events_processed: events_processed[evtag] = 0
                         events_processed[evtag] += t['total_events']            
-        ## get the needed task records
 
         ## for each slice, add its steps
         for sl in slices:
             sl['steps'] = []
             for st in steps:
                 if st['slice_id'] == sl['id']: sl['steps'].append(st)
-
             ## prepare dump of all fields
             reqd = {}
             colnames = []
@@ -234,9 +231,13 @@ def doRequest(request):
                     request_columns.append(pair)
             except IndexError:
                 reqd = {}
+
+    ## gather summary info for request listings
     if reqid or (mode == 'request'):
         query = {}
         if reqid: query = { 'request' : reqid }
+
+        ## slice counts per request
         slicecounts = InputRequestList.objects.using('deft_adcr').filter(**query).values('request').annotate(Count('request'))   
         nsliced = {}
         for s in slicecounts:
@@ -247,6 +248,7 @@ def doRequest(request):
             else:
                 r['nslices'] = None
 
+        ## requested event counts, from slice info, where not set to -1
         reqevents = InputRequestList.objects.using('deft_adcr').filter(**query).values('request').annotate(Sum('input_events'))
         print 'reqevents',reqevents
         nreqevd = {}
@@ -260,6 +262,7 @@ def doRequest(request):
             else:
                 r['nrequestedevents'] = None
 
+        ## task counts
         taskcounts = ProductionTask.objects.using('deft_adcr').filter(**query).values('request','step__step_template__step','status').annotate(Count('status')).order_by('request','step__step_template__step','status')
         ntaskd = {}
         for t in taskcounts:
@@ -280,6 +283,68 @@ def doRequest(request):
             else:
                 r['ntasks'] = None
 
+        ## cloud and core count info from JEDI tasks
+        tcquery = { 'prodsourcelabel' : 'managed' }
+        if reqid: tcquery['reqid'] = reqid
+        tcquery['modificationtime__gte'] = timezone.now() - timedelta(hours=30*24)
+        taskcounts = JediTasks.objects.filter(**tcquery).values('reqid','processingtype','cloud','corecount','superstatus').annotate(Count('superstatus')).order_by('reqid','processingtype','cloud','corecount','superstatus')
+        ntaskd = {}
+        for t in taskcounts:
+            if t['reqid'] not in ntaskd: ntaskd[t['reqid']] = {}
+            if t['processingtype'] not in ntaskd[t['reqid']]: ntaskd[t['reqid']][t['processingtype']] = {}
+            if t['cloud'] not in ntaskd[t['reqid']][t['processingtype']]: ntaskd[t['reqid']][t['processingtype']][t['cloud']] = {}
+            if t['corecount'] not in ntaskd[t['reqid']][t['processingtype']][t['cloud']]: ntaskd[t['reqid']][t['processingtype']][t['cloud']][t['corecount']] = {}
+            ntaskd[t['reqid']][t['processingtype']][t['cloud']][t['corecount']][t['superstatus']] = t['superstatus__count']
+
+        for r in reqs:
+            if r['reqid'] in ntaskd:
+                r['clouddist'] = ntaskd[r['reqid']]
+                cdtxt = []
+                for typ, tval in ntaskd[r['reqid']].items():
+                    for cloud, cval in tval.items():
+                        for ncore, nval in cval.items():
+                            txt = "%s %s %s-core: " % ( typ, cloud, ncore )
+                            states = nval.keys()
+                            states.sort()
+                            for s in states:
+                                txt += " &nbsp; <span class='%s'>%s</span>:%s" % ( s, s, nval[s] )
+                            cdtxt.append(txt)
+                cdtxt.sort()
+                r['clouddisttxt'] = cdtxt
+            else:
+                r['clouddist'] = None
+
+        ## cloud and core count event production info from PanDA jobs
+        tcquery = { 'prodsourcelabel' : 'managed' }
+        if reqid: tcquery['reqid'] = reqid
+        tcquery['modificationtime__gte'] = timezone.now() - timedelta(hours=30*24)
+        jobcounts = Jobsarchived4.objects.filter(**tcquery).values('reqid','processingtype','cloud','corecount','jobstatus').annotate(Count('jobstatus')).annotate(Sum('nevents')).order_by('reqid','processingtype','cloud','corecount','jobstatus')
+        print jobcounts
+        njobd = {}
+        for t in jobcounts:
+            if t['reqid'] not in njobd: njobd[t['reqid']] = {}
+            if t['processingtype'] not in njobd[t['reqid']]: njobd[t['reqid']][t['processingtype']] = {}
+            if t['cloud'] not in njobd[t['reqid']][t['processingtype']]: njobd[t['reqid']][t['processingtype']][t['cloud']] = {}
+            if t['corecount'] not in njobd[t['reqid']][t['processingtype']][t['cloud']]: njobd[t['reqid']][t['processingtype']][t['cloud']][t['corecount']] = {}
+            nev = float(t['nevents__sum'])/1000.
+            njobd[t['reqid']][t['processingtype']][t['cloud']][t['corecount']][t['jobstatus']] = { 'events' : nev, 'jobs' : t['jobstatus__count'] }
+
+        for r in reqs:
+            if r['reqid'] in njobd:
+                cdtxt = []
+                for typ, tval in njobd[r['reqid']].items():
+                    for cloud, cval in tval.items():
+                        for ncore, nval in cval.items():
+                            txt = "%s %s %s-core: " % ( typ, cloud, ncore )
+                            states = nval.keys()
+                            states.sort()
+                            for s in states:
+                                txt += " &nbsp; <span class='%s'>%s</span>:%sk evs (%s jobs)" % ( s, s, nval[s]['events'], nval[s]['jobs'] )
+                            cdtxt.append(txt)
+                cdtxt.sort()
+                r['jobdisttxt'] = cdtxt
+
+        ## processed event counts, from prodsys task info
         eventcounts = ProductionTask.objects.using('deft_adcr').filter(**query).exclude(status__in=['aborted','broken']).values('request','step__step_template__step').annotate(Sum('total_events')).order_by('request','step__step_template__step','total_events')
         print 'eventcounts', eventcounts
         ntaskd = {}
@@ -306,9 +371,7 @@ def doRequest(request):
             else:
                 r['nprocessedevents'] = None
 
-    jobsum = []
-    jobsumd = {}
-    if True: #reqid:
+        ## processed event counts, from job info (last 3 days only)
         query = {}
         if reqid: query['reqid'] = reqid
         query['jobstatus'] = 'finished'
