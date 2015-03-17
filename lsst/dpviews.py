@@ -39,6 +39,7 @@ from core.common.models import Filestable4
 from core.common.models import FilestableArch
 from core.common.models import JediDatasets
 from core.common.settings.config import ENV
+from core.common.settings import STATIC_URL, FILTER_UI_ENV, defaultDatetimeFormat
 
 import views
 
@@ -286,7 +287,9 @@ def doRequest(request):
         ## cloud and core count info from JEDI tasks
         tcquery = { 'prodsourcelabel' : 'managed' }
         if reqid: tcquery['reqid'] = reqid
-        tcquery['modificationtime__gte'] = timezone.now() - timedelta(hours=30*24)
+        startdate = timezone.now() - timedelta(hours=30*24)
+        startdate = startdate.strftime(defaultDatetimeFormat)
+        tcquery['modificationtime__gte'] = startdate
         taskcounts = JediTasks.objects.filter(**tcquery).values('reqid','processingtype','cloud','corecount','superstatus').annotate(Count('superstatus')).order_by('reqid','processingtype','cloud','corecount','superstatus')
         ntaskd = {}
         for t in taskcounts:
