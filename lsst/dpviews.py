@@ -251,7 +251,6 @@ def doRequest(request):
 
         ## requested event counts, from slice info, where not set to -1
         reqevents = InputRequestList.objects.using('deft_adcr').filter(**query).values('request').annotate(Sum('input_events'))
-        print 'reqevents',reqevents
         nreqevd = {}
         for t in reqevents:
             if t['input_events__sum'] > 0:
@@ -322,7 +321,6 @@ def doRequest(request):
         if reqid: tcquery['reqid'] = reqid
         tcquery['modificationtime__gte'] = timezone.now() - timedelta(hours=30*24)
         jobcounts = Jobsarchived4.objects.filter(**tcquery).values('reqid','processingtype','cloud','corecount','jobstatus').annotate(Count('jobstatus')).annotate(Sum('nevents')).order_by('reqid','processingtype','cloud','corecount','jobstatus')
-        print jobcounts
         njobd = {}
         for t in jobcounts:
             if t['reqid'] not in njobd: njobd[t['reqid']] = {}
@@ -349,7 +347,6 @@ def doRequest(request):
 
         ## processed event counts, from prodsys task info
         eventcounts = ProductionTask.objects.using('deft_adcr').filter(**query).exclude(status__in=['aborted','broken']).values('request','step__step_template__step').annotate(Sum('total_events')).order_by('request','step__step_template__step','total_events')
-        print 'eventcounts', eventcounts
         ntaskd = {}
         for t in eventcounts:
             if t['request'] not in ntaskd: ntaskd[t['request']] = {}
@@ -425,7 +422,6 @@ def doRequest(request):
         for e in evkeys:
             evpl.append([e, float(events_processed[e])/1000.])
         events_processed = evpl
-    print events_processed
 
     if 'sortby' in requestParams:
         if reqs:
