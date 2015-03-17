@@ -36,6 +36,7 @@ try:
     from atlas.prodtask.models import TRequest, TProject, RequestStatus, ProductionTask, StepTemplate, StepExecution, InputRequestList, ProductionContainer, ProductionDataset
 except:
     pass
+from core.pandajob.models import PandaJob, Jobsactive4, Jobsdefined4, Jobswaiting4, Jobsarchived4, Jobsarchived
 from core.common.models import JediTasks
 from core.common.models import Filestable4 
 from core.common.models import FilestableArch
@@ -279,7 +280,8 @@ def doRequest(request):
             else:
                 r['ntasks'] = None
 
-        eventcounts = ProductionTask.objects.using('deft_adcr').filter(**query).exclude(status__in=['aborted','broken']).values('request','step__step_template__step','total_events').annotate(Sum('total_events')).order_by('request','step__step_template__step','total_events')
+        eventcounts = ProductionTask.objects.using('deft_adcr').filter(**query).exclude(status__in=['aborted','broken']).values('request','step__step_template__step').annotate(Sum('total_events')).order_by('request','step__step_template__step','total_events')
+        print 'eventcounts', eventcounts
         ntaskd = {}
         for t in eventcounts:
             if t['request'] not in ntaskd: ntaskd[t['request']] = {}
@@ -303,6 +305,26 @@ def doRequest(request):
                     r['completedevpct'].sort()
             else:
                 r['nprocessedevents'] = None
+
+    jobsum = []
+    jobsumd = {}
+    if True: #reqid:
+        query = {}
+        if reqid: query['reqid'] = reqid
+        query['jobstatus'] = 'finished'
+        query['prodsourcelabel'] = 'managed'
+        values = [ 'reqid', 'processingtype' ]
+        jobsum = Jobsarchived4.objects.filter(**query).values(*values).annotate(Sum('nevents')).order_by('reqid', 'processingtype')
+        jobsumd = {}
+        for j in jobsum:
+            j['nevents__sum'] = float(j['nevents__sum'])/1000.
+            if j['reqid'] not in jobsumd: jobsumd[j['reqid']] = []
+            jobsumd[j['reqid']].append([ j['processingtype'], j['nevents__sum'] ])
+        for r in reqs:
+            if r['reqid'] in jobsumd:
+                r['jobsumd'] = jobsumd[r['reqid']]
+            else:
+                r['jobsumd'] = None
 
     if dataset:
         print 'dataset', dataset
@@ -370,6 +392,8 @@ def doRequest(request):
         'dataset_form' : dataset_form,
         'events_processed' : events_processed,
         'request_columns' : request_columns,
+        'jobsum' : jobsum,
+        'jobsumd' : jobsumd,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
     return response
