@@ -29,7 +29,7 @@ from boto.dynamodb2.types import NUMBER
 from boto.dynamodb2.types import STRING
 from boto.dynamodb2.types import STRING_SET
 
-#from settings.local import aws
+from settings.local import aws
 
 # A crapshoot whether they're available because of the branch mess
 try:
@@ -58,10 +58,10 @@ entitytypes = [
     ]
 
 ## Open Amazon DynamoDB databases
-#dyndb = DynamoDBConnection(aws_access_key_id=aws['AWS_ACCESS_KEY_ATLAS'], aws_secret_access_key=aws['AWS_SECRET_KEY_ATLAS'])
-#usertable = Table('user', connection=dyndb)
-#projecttable = Table('project', connection=dyndb)
-#requesttable = Table('request', connection=dyndb)
+dyndb = DynamoDBConnection(aws_access_key_id=aws['AWS_ACCESS_KEY_ATLAS'], aws_secret_access_key=aws['AWS_SECRET_KEY_ATLAS'])
+usertable = Table('user', connection=dyndb)
+projecttable = Table('project', connection=dyndb)
+requesttable = Table('request', connection=dyndb)
 
 def doRequest(request):
 
