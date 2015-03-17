@@ -101,7 +101,7 @@ function toggleDetailDisplay(className) {
 <tr class='tablesection'><th colspan=20> Overall error summary </th></tr>
 <tr><th>Category:code</th><th>Attempt list</th><th>Nerrors</th><th>Sample error description</th></tr>
 {% for errval in errsByCount %}
-<tr><th> <a href="{{xurl}}jobstatus=failed&{{errval.codename}}={{errval.codeval}}&hours={{hours}}&display_limit=100"> {{ errval.error }} </a> </td><td> <a href="{{xurl}}jobstatus=failed&{{errval.codename}}={{errval.codeval}}&display_limit=100"> jobs </a> </th> <td> {{ errval.count }} </td> <td> {{ errval.diag }} </td>  </tr>
+<tr><th> <a href="{{xurl}}jobstatus=failed&{{errval.codename}}={{errval.codeval}}&display_limit=100"> {{ errval.error }} </a> </th><td> <a href="{{xurl}}jobstatus=failed&{{errval.codename}}={{errval.codeval}}&display_limit=100"> jobs </a> </th> <td> {{ errval.count }} </td> <td> {{ errval.diag }} </td>  </tr>
 {% endfor %}
 </table>
 {% endif %}
