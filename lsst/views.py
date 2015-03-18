@@ -1134,6 +1134,8 @@ def mainPage(request):
             debuginfo += "%s = %s<br>" % ( env, os.environ[env] )
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'prefix': getPrefix(request),
             'request' : request,
@@ -1157,6 +1159,8 @@ def helpPage(request):
     if not valid: return response
     setupView(request)
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'prefix': getPrefix(request),
             'request' : request,
