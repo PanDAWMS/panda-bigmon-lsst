@@ -48,7 +48,7 @@ viewParams = {}
 viewParams['MON_VO'] = ENV['MON_VO']
 
 req_fields = [ 'project_id', 'phys_group', 'campaign', 'manager', 'provenance', 'request_type', 'project', 'is_fast' ]
-jeditask_fields = [ 'jeditaskid', 'cloud', 'processingtype', 'superstatus', 'status' ]
+jeditask_fields = [ 'jeditaskid', 'cloud', 'processingtype', 'superstatus', 'status', 'ramcount', 'walltime', 'currentpriority', 'transhome' ]
 
 # entity types supported in searches
 entitytypes = [
@@ -450,7 +450,9 @@ def doRequest(request):
         #if len(files) == 0: messages.info(request, "No PanDA jobs creating files for this dataset found")
 
     reqsuml = attSummaryDict(request, reqs, req_fields)
-    jtasksuml = attSummaryDict(request, jeditasks, jeditask_fields)
+    showfields = list(jeditask_fields)
+    showfields.remove('jeditaskid')
+    jtasksuml = attSummaryDict(request, jeditasks, showfields)
 
     if events_processed:
         # Convert from dict to ordered list
