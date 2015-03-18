@@ -96,9 +96,9 @@ LAST_N_HOURS_MAX = 0
 PLOW = 1000000
 PHIGH = -1000000
 
-standard_fields = [ 'processingtype', 'computingsite', 'destinationse', 'jobstatus', 'prodsourcelabel', 'produsername', 'jeditaskid', 'workinggroup', 'transformation', 'cloud', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'specialhandling', 'priorityrange', 'reqid' ]
+standard_fields = [ 'processingtype', 'computingsite', 'destinationse', 'jobstatus', 'prodsourcelabel', 'produsername', 'jeditaskid', 'workinggroup', 'transformation', 'cloud', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'specialhandling', 'priorityrange', 'reqid', 'minramcount' ]
 standard_sitefields = [ 'region', 'gocname', 'nickname', 'status', 'tier', 'comment_field', 'cloud', 'allowdirectaccess', 'allowfax', 'copytool', 'faxredirector', 'retry', 'timefloor' ]
-standard_taskfields = [ 'tasktype', 'superstatus', 'corecount', 'taskpriority', 'username', 'transuses', 'transpath', 'workinggroup', 'processingtype', 'cloud', 'campaign', 'project', 'stream', 'tag', 'reqid']
+standard_taskfields = [ 'tasktype', 'superstatus', 'corecount', 'taskpriority', 'username', 'transuses', 'transpath', 'workinggroup', 'processingtype', 'cloud', 'campaign', 'project', 'stream', 'tag', 'reqid', 'ramcount']
 
 VOLIST = [ 'atlas', 'bigpanda', 'htcondor', 'lsst', ]
 VONAME = { 'atlas' : 'ATLAS', 'bigpanda' : 'BigPanDA', 'htcondor' : 'HTCondor', 'lsst' : 'LSST', '' : '' }
@@ -419,7 +419,14 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
             for field in JediTasks._meta.get_all_field_names():
                         #for param in requestParams:
                         if param == field:
-                            if param == 'transpath':
+                            if param == 'ramcount':
+                                if 'GB' in request.session['requestParams'][param]:
+                                    leftlimit, rightlimit = (request.session['requestParams'][param]).split('-')
+                                    rightlimit = rightlimit[:-2]
+                                    query['%s__range' % param] = (int(leftlimit)*1000, int(rightlimit)*1000-1)
+                                else:
+                                    query[param] = int(request.session['requestParams'][param])
+                            elif param == 'transpath':
                                 query['%s__endswith' % param] = request.session['requestParams'][param]
                             elif param in ( 'taskname', ):
                                 ## support wildcarding
@@ -456,7 +463,14 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         else:
             for field in Jobsactive4._meta.get_all_field_names():
                 if param == field:
-                    if param == 'specialhandling':
+                    if param == 'minramcount':
+                        if 'GB' in request.session['requestParams'][param]:
+                            leftlimit, rightlimit = (request.session['requestParams'][param]).split('-')
+                            rightlimit = rightlimit[:-2]
+                            query['%s__range' % param] = (int(leftlimit)*1000, int(rightlimit)*1000-1)
+                        else:
+                            query[param] = int(request.session['requestParams'][param])
+                    elif param == 'specialhandling':
                         query['specialhandling__contains'] = request.session['requestParams'][param]
                     elif param == 'transformation' or param == 'transpath':
                         query['%s__endswith' % param] = request.session['requestParams'][param]
@@ -867,24 +881,36 @@ def jobSummaryDict(request, jobs, fieldlist = None):
         itemd['field'] = f
         iteml = []
         kys = sumd[f].keys()
-        if f in  ( 'priorityrange', 'jobsetrange' ):
-            skys = []
-            for k in kys:
-                skys.append( { 'key' : k, 'val' : int(k[:k.index(':')]) } )
-            skys = sorted(skys, key=lambda x:x['val'])
-            kys = []
-            for sk in skys:
-                kys.append(sk['key'])
-        elif f in ( 'attemptnr', 'jeditaskid', 'taskid', ):
-            kys = sorted(kys, key=lambda x:int(x))
-        else:
-            kys.sort()
-        for ky in kys:
-            iteml.append({ 'kname' : ky, 'kvalue' : sumd[f][ky] })
-        if 'sortby' in request.session['requestParams'] and request.session['requestParams']['sortby'] == 'count':
-            iteml = sorted(iteml, key=lambda x:x['kvalue'], reverse=True)
-        elif f not in ( 'priorityrange', 'jobsetrange', 'attemptnr', 'jeditaskid', 'taskid', ):
+        if f == 'minramcount':
+            newvalues = {}
+            for ky in kys:
+                roundedval = int(ky/1000)
+                if roundedval in newvalues:
+                    newvalues[roundedval] += sumd[f][ky]
+                else:
+                    newvalues[roundedval] = sumd[f][ky]
+            for ky in newvalues:
+                iteml.append({ 'kname' : str(ky) + '-'+str(ky+1) + 'GB', 'kvalue' : newvalues[ky] })
             iteml = sorted(iteml, key=lambda x:str(x['kname']).lower())
+        else:
+            if f in  ( 'priorityrange', 'jobsetrange' ):
+                skys = []
+                for k in kys:
+                    skys.append( { 'key' : k, 'val' : int(k[:k.index(':')]) } )
+                skys = sorted(skys, key=lambda x:x['val'])
+                kys = []
+                for sk in skys:
+                    kys.append(sk['key'])
+            elif f in ( 'attemptnr', 'jeditaskid', 'taskid', ):
+                kys = sorted(kys, key=lambda x:int(x))
+            else:
+                kys.sort()
+            for ky in kys:
+                iteml.append({ 'kname' : ky, 'kvalue' : sumd[f][ky] })
+            if 'sortby' in request.session['requestParams'] and request.session['requestParams']['sortby'] == 'count':
+                iteml = sorted(iteml, key=lambda x:x['kvalue'], reverse=True)
+            elif f not in ( 'priorityrange', 'jobsetrange', 'attemptnr', 'jeditaskid', 'taskid', ):
+                iteml = sorted(iteml, key=lambda x:str(x['kname']).lower())
         itemd['list'] = iteml
         suml.append(itemd)
         suml = sorted(suml, key=lambda x:x['field'])
@@ -1043,13 +1069,24 @@ def taskSummaryDict(request, tasks, fieldlist = None):
         iteml = []
         kys = sumd[f].keys()
         kys.sort()
-        for ky in kys:
-            iteml.append({ 'kname' : ky, 'kvalue' : sumd[f][ky] })
-        iteml = sorted(iteml, key=lambda x:str(x['kname']).lower())
+        if f != 'ramcount':
+            for ky in kys:
+                iteml.append({ 'kname' : ky, 'kvalue' : sumd[f][ky] })
+            iteml = sorted(iteml, key=lambda x:str(x['kname']).lower())
+        else:
+            newvalues = {}
+            for ky in kys:
+                roundedval = int(ky/1000)
+                if roundedval in newvalues:
+                    newvalues[roundedval] += sumd[f][ky]
+                else:
+                    newvalues[roundedval] = sumd[f][ky]
+            for ky in newvalues:
+                iteml.append({ 'kname' : str(ky) + '-'+str(ky+1) + 'GB', 'kvalue' : newvalues[ky] })
+            iteml = sorted(iteml, key=lambda x:str(x['kname']).lower())
         itemd['list'] = iteml
         suml.append(itemd)
     suml = sorted(suml, key=lambda x:x['field'])
-    print suml
     return suml
 
 def wgTaskSummary(request, fieldname='workinggroup', view='production', taskdays=3):
@@ -1259,9 +1296,9 @@ def jobList(request, mode=None, param=None):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         values = Jobsactive4._meta.get_all_field_names()
     elif eventservice:
-        values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'proddblock', 'destinationdblock', 'jobmetrics', 'reqid'
+        values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'proddblock', 'destinationdblock', 'jobmetrics', 'reqid', 'minramcount'
     else:
-        values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'computingelement', 'proddblock', 'destinationdblock', 'reqid'
+        values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'computingelement', 'proddblock', 'destinationdblock', 'reqid', 'minramcount'
     
     JOB_LIMITS=request.session['JOB_LIMIT']
     totalJobs = 0
