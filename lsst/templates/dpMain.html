@@ -141,7 +141,8 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <h3>Production request {{ reqid }}</h3>
 {% if thisProject %}
 <p>
-&nbsp; Project: <b>{{ thisProject.project }}</b> &nbsp; &nbsp; {{ thisProject.description }}
+&nbsp; <b>{{ request.description }} </b>
+<br>&nbsp; Project: <b>{{ thisProject.project }}</b> &nbsp; &nbsp; {{ thisProject.description }}
 </p>
 {% if info_fields.long_description|length > 0 %}
 <table width=700><tr><td>
@@ -414,12 +415,26 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <table>
 <tr class='tablesection'><th colspan=20> {{ slices|length }} slices &nbsp; &nbsp; Click on step status, dataset name, task name to toggle details </th></tr>
 {% for e in slices %}
+{% if not e.is_hide %}
 <tr>
 
 <td rowspan=2> {{ e.slice }} </td>
 <td> <a name="slice_{{ e.slice }}"></a> {{ e.input_data }}
-<br> {{ e.comment }} </td>
-<td> <a style="cursor:pointer;" onClick=toggle_class_details('{{e.dataset_id}}')><font size=-1>{{ e.dataset_id_html|safe }} </font></a>
+<br> {{ e.comment }}
+</td>
+<td>
+{% if e.cloned_from %} 
+Cloned from <a href="#slice_{{ e.cloned_from }}">{{ e.cloned_from }}</a> <br>
+{% endif %}
+{% if e.clones %}
+Clones: 
+{% for c in e.clones %}
+    &nbsp; <a href="#slice_{{ c }}">{{ c }}</a>
+{% endfor %}
+<br>
+{% endif %}
+
+<a style="cursor:pointer;" onClick=toggle_class_details('{{e.dataset_id}}')><font size=-1>{{ e.dataset_id_html|safe }} </font></a>
 <span class={{e.dataset_id}} style="display: none">
 {% if e.dataset_data %}
 {% if e.dataset_data.task_id %}
@@ -510,6 +525,7 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
 </font>
 </td>
 </tr>
+{% endif %} 
 {% endfor %}
 </table>
 {% endif %}

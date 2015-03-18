@@ -188,11 +188,23 @@ def doRequest(request):
         print 'containers', incontainers
 
         ## add info to slices
+        sliceids = {}
+        for s in slices:
+            sliceids[s['id']] = s['slice']
+        print sliceids
+        clones = {}
         for s in slices:
             if s['dataset_id']:
                 s['dataset_id_html'] = s['dataset_id'].replace(s['brief'],'<b>%s</b>' % s['brief'])
             for ds in indatasets:
                 if ds['name'] == s['dataset_id']: s['dataset_data'] = ds
+            if 'cloned_from_id' in s:
+                if s['cloned_from_id']:
+                    s['cloned_from'] = sliceids[s['cloned_from_id']]
+                    if not sliceids[s['cloned_from_id']] in clones: clones[sliceids[s['cloned_from_id']]] = []
+                    clones[sliceids[s['cloned_from_id']]].append(sliceids[s['id']])
+        for s in slices:
+            if s['slice'] in clones: s['clones'] = clones[s['slice']]
 
         taskjobd = {}
         if reqid:
