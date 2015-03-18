@@ -96,9 +96,9 @@ LAST_N_HOURS_MAX = 0
 PLOW = 1000000
 PHIGH = -1000000
 
-standard_fields = [ 'processingtype', 'computingsite', 'destinationse', 'jobstatus', 'prodsourcelabel', 'produsername', 'jeditaskid', 'workinggroup', 'transformation', 'cloud', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'specialhandling', 'priorityrange', 'reqid' ]
+standard_fields = [ 'processingtype', 'computingsite', 'destinationse', 'jobstatus', 'prodsourcelabel', 'produsername', 'jeditaskid', 'workinggroup', 'transformation', 'cloud', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'specialhandling', 'priorityrange', 'reqid', 'minramcount' ]
 standard_sitefields = [ 'region', 'gocname', 'nickname', 'status', 'tier', 'comment_field', 'cloud', 'allowdirectaccess', 'allowfax', 'copytool', 'faxredirector', 'retry', 'timefloor' ]
-standard_taskfields = [ 'tasktype', 'superstatus', 'corecount', 'taskpriority', 'username', 'transuses', 'transpath', 'workinggroup', 'processingtype', 'cloud', 'campaign', 'project', 'stream', 'tag', 'reqid', ]
+standard_taskfields = [ 'tasktype', 'superstatus', 'corecount', 'taskpriority', 'username', 'transuses', 'transpath', 'workinggroup', 'processingtype', 'cloud', 'campaign', 'project', 'stream', 'tag', 'reqid', 'ramcount']
 
 VOLIST = [ 'atlas', 'bigpanda', 'htcondor', 'lsst', ]
 VONAME = { 'atlas' : 'ATLAS', 'bigpanda' : 'BigPanDA', 'htcondor' : 'HTCondor', 'lsst' : 'LSST', '' : '' }
@@ -3057,7 +3057,7 @@ def taskList(request):
     else:
         tasks = JediTasks.objects.filter(**query)[:limit].values()
             
-    tasks = cleanTaskList(tasks)
+    tasks = cleanTaskList(request, tasks)
     ntasks = len(tasks)
     nmax = ntasks
 
@@ -3120,6 +3120,8 @@ def taskList(request):
         return  HttpResponse(json.dumps(tasks, cls=DateEncoder), mimetype='text/html')
     else:
         sumd = taskSummaryDict(request,tasks)
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -3342,6 +3344,8 @@ def taskInfo(request, jeditaskid=0):
             return redirect('http://panda.cern.ch/?taskname=%s&overview=taskinfo' % jeditaskid)
         if taskrec:
             attrs.append({'name' : 'Status', 'value' : taskrec['status'] })
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -3951,6 +3955,8 @@ def incidentList(request):
         incHistL.append( [ k, incHist[k] ] )
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -4076,6 +4082,8 @@ def pandaLogger(request):
     logl = sorted(logl, key=lambda x:x['name'])
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -4154,6 +4162,8 @@ def workingGroups(request):
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -4229,6 +4239,8 @@ def datasetInfo(request):
             columns.append(pair)
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -4338,6 +4350,8 @@ def fileInfo(request):
             columns.append(pair)
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -4392,6 +4406,8 @@ def fileList(request):
     nfiles = len(filed)
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -4421,6 +4437,8 @@ def workQueues(request):
     #queues = sorted(queues, key=lambda x:x['queue_name'],reverse=True)
         
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
