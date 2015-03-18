@@ -137,11 +137,19 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endif %}
 
 {% if reqid %}
+
 <h3>Production request {{ reqid }}</h3>
 {% if thisProject %}
 <p>
 &nbsp; Project: <b>{{ thisProject.project }}</b> &nbsp; &nbsp; {{ thisProject.description }}
 </p>
+{% if info_fields.long_description|length > 0 %}
+<table width=700><tr><td>
+<b>Description:</b><br>
+{{ info_fields.long_description|safe }}
+</td></tr></table>
+{% endif %}
+
 {% endif %}
 
 {% elif requests %}

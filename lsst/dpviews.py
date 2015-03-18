@@ -469,7 +469,10 @@ def doRequest(request):
                 reqs = sorted(reqs, key=lambda x:x['reqid'], reverse=True)
             if requestParams['sortby'] == 'timestamp':
                 reqs = sorted(reqs, key=lambda x:x['timestamp'], reverse=True)
-
+    if len(reqs) > 0 and 'info_fields' in reqs[0]:
+        info_fields = json.loads(reqs[0]['info_fields'])
+    else:
+        info_fields = None
     xurl = views.extensibleURL(request)
     nosorturl = views.removeParam(xurl, 'sortby',mode='extensible')
     data = {
@@ -481,6 +484,8 @@ def doRequest(request):
         'dataset' : dataset,
         'thisProject' : thisProject,
         'projects' : projectd,
+        'request' : reqs[0],
+        'info_fields' : info_fields,
         'requests' : reqs,
         'reqsuml' : reqsuml,
         'jtasksuml' : jtasksuml,
