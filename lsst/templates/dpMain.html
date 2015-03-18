@@ -420,7 +420,8 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 
 <td rowspan=2> {{ e.slice }} </td>
 <td> <a name="slice_{{ e.slice }}"></a> {{ e.input_data }}
-<br> {{ e.comment }}
+<br> <font color='brown'>{{ e.comment }}</font>
+{% if e.phys_comment %} <br> <font color='brown'>{{ e.phys_comment }}</font> {% endif %}
 </td>
 <td>
 {% if e.cloned_from %} 
@@ -475,12 +476,12 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
     <a href="{% url 'taskInfo' %}?jeditaskid={{ task.id }}"><span class='{{ task.jedistatus }}'>JEDI task {% if task.jedistatus != task.status %} {{ task.jedistatus }} {% endif %}</span> </a>
     &nbsp; 
     {% if task.total_req_jobs > 0 or task.total_done_jobs > 0 %}
-        done/requested jobs:<a href="{% url 'jobList' %}?jeditaskid={{task.id}}">{{ task.total_done_jobs }}/{{ task.total_req_jobs }}</a>
+        done/req jobs:<a href="{% url 'jobList' %}?jeditaskid={{task.id}}">{{ task.total_done_jobs }}/{{ task.total_req_jobs }}</a>
     {% else %}
         <a href="{% url 'jobList' %}?jeditaskid={{task.id}}&prodsourcelabel=managed">Look for jobs</a>
     {% endif %}
     {% if task.total_events and task.total_events > 0 %}
-        &nbsp; total_events={{ task.total_events }}
+        &nbsp; totevs={{ task.total_events }}
     {% endif %}
 
     {% if task.jobstats %}
