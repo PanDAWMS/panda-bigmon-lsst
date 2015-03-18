@@ -355,25 +355,24 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         startdate = datetime.utcfromtimestamp(time.mktime(time_from_struct)).strftime(defaultDatetimeFormat)
     if not startdate:
         startdate = timezone.now() - timedelta(hours=LAST_N_HOURS_MAX)
-        startdate = startdate.strftime(defaultDatetimeFormat)
+#        startdate = startdate.strftime(defaultDatetimeFormat)
     enddate = None
     if 'date_to' in request.session['requestParams']:
         time_from_struct = time.strptime(request.session['requestParams']['date_to'],'%Y-%m-%d')
         enddate = datetime.utcfromtimestamp(time.mktime(time_from_struct)).strftime(defaultDatetimeFormat)
     if 'earlierthan' in request.session['requestParams']:
         enddate = timezone.now() - timedelta(hours=int(request.session['requestParams']['earlierthan']))
-        enddate = enddate.strftime(defaultDatetimeFormat)
+#        enddate = enddate.strftime(defaultDatetimeFormat)
     if 'earlierthandays' in request.session['requestParams']:
         enddate = timezone.now() - timedelta(hours=int(request.session['requestParams']['earlierthandays'])*24)
-        enddate = enddate.strftime(defaultDatetimeFormat)
+#        enddate = enddate.strftime(defaultDatetimeFormat)
     if enddate == None:
-        enddate = timezone.now().strftime(defaultDatetimeFormat)
+        enddate = timezone.now()#.strftime(defaultDatetimeFormat)
     
-    query = { 'modificationtime__range' : [startdate, enddate] }
-
+    query = { 'modificationtime__range' : [startdate.strftime(defaultDatetimeFormat), enddate.strftime(defaultDatetimeFormat)] }
     
-    request.session['TFIRST'] = startdate[:18]
-    request.session['TLAST'] = enddate[:18]
+    request.session['TFIRST'] = startdate #startdate[:18]
+    request.session['TLAST'] = enddate#enddate[:18]
 
     ### Add any extensions to the query determined from the URL
     for vo in [ 'atlas', 'lsst' ]:
@@ -719,8 +718,8 @@ def cleanJobList(request, jobl, mode='nodrop'):
     droplist = sorted(droplist, key=lambda x:-x['modificationtime'], reverse=True)
     jobs = newjobs
     global PLOW, PHIGH
-    request.session['TFIRST'] = timezone.now().strftime(defaultDatetimeFormat)
-    request.session['TLAST']  = (timezone.now() - timedelta(hours=2400)).strftime(defaultDatetimeFormat)
+    request.session['TFIRST'] = timezone.now()#.strftime(defaultDatetimeFormat)
+    request.session['TLAST']  = (timezone.now() - timedelta(hours=2400))#.strftime(defaultDatetimeFormat)
     PLOW = 1000000
     PHIGH = -1000000
     for job in jobs:
@@ -733,7 +732,7 @@ def cleanJobList(request, jobl, mode='nodrop'):
     print 'job list cleaned'
     return jobs
 
-def cleanTaskList(tasks):
+def cleanTaskList(request, tasks):
     
     for task in tasks:
         if task['transpath']: task['transpath'] = task['transpath'].split('/')[-1]
@@ -1369,7 +1368,6 @@ def jobList(request, mode=None, param=None):
         user = request.session['requestParams']['user']
     else:
         user = None
-
     
     ## set up google flow diagram
     flowstruct = buildGoogleFlowDiagram(request, jobs=jobs)
@@ -1446,6 +1444,11 @@ def jobList(request, mode=None, param=None):
         print xurl
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
         nosorturl = removeParam(nosorturl, 'display_limit', mode='extensible')
+        
+        TFIRST = request.session['TFIRST']
+        TLAST = request.session['TLAST']
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'prefix': getPrefix(request),
             'errsByCount' : errsByCount,
@@ -1461,8 +1464,8 @@ def jobList(request, mode=None, param=None):
             'xurl' : xurl,
             'droplist' : droplist,
             'ndrops' : len(droplist),
-            'tfirst' : request.session['TFIRST'],
-            'tlast' : request.session['TLAST'],
+            'tfirst' : TFIRST,
+            'tlast' : TLAST,
             'plow' : PLOW,
             'phigh' : PHIGH,
             'showwarn': showwarn,
@@ -1933,6 +1936,10 @@ def userList(request):
         jobsumd = jobSummaryDict(request, jobs, sumparams)[0]
         
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
+        TFIRST = request.session['TFIRST']
+        TLAST = request.session['TLAST']
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -1943,8 +1950,8 @@ def userList(request):
             'jobsumd' : jobsumd,
             'userdb' : userdbl,
             'userstats' : userstats,
-            'tfirst' : request.session['TFIRST'],
-            'tlast' : request.session['TLAST'],
+            'tfirst' : TFIRST,
+            'tlast' : TLAST,
             'plow' : PLOW,
             'phigh' : PHIGH,
         }
@@ -1973,7 +1980,7 @@ def userInfo(request, user=''):
     query['username__icontains'] = user.strip()
     tasks = JediTasks.objects.filter(**query).values()
     tasks = sorted(tasks, key=lambda x:-x['jeditaskid'])
-    tasks = cleanTaskList(tasks)
+    tasks = cleanTaskList(request, tasks)
     ntasks = len(tasks)
     tasksumd = taskSummaryDict(request,tasks)
 
@@ -2076,6 +2083,12 @@ def userInfo(request, user=''):
         #        
         #
         
+        TFIRST = request.session['TFIRST']
+        TLAST = request.session['TLAST']
+        del request.session['TFIRST']
+        del request.session['TLAST']
+
+        
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -2089,8 +2102,8 @@ def userInfo(request, user=''):
             'njobs' : len(jobs),
             'query' : query,
             'userstats' : userstats,
-            'tfirst' : request.session['TFIRST'],
-            'tlast' : request.session['TLAST'],
+            'tfirst' : TFIRST,
+            'tlast' : TLAST,
             'plow' : PLOW,
             'phigh' : PHIGH,
             'jobsets' : jobsetl[:njobsetmax-1],
@@ -3795,6 +3808,12 @@ def errorSummary(request):
         nosorturl = removeParam(request.get_full_path(), 'sortby')
         xurl = extensibleURL(request)
         jobsurl = xurl.replace('/errors/','/jobs/')
+        
+        TFIRST = request.session['TFIRST']
+        TLAST = request.session['TLAST']
+        del request.session['TFIRST']
+        del request.session['TLAST']
+        
         data = {
             'prefix': getPrefix(request),
             'request' : request,
@@ -3815,8 +3834,8 @@ def errorSummary(request):
             'errsByTask' : errsByTask,
             'sumd' : sumd,
             'errHist' : errHist,
-            'tfirst' : request.session['TFIRST'],
-            'tlast' : request.session['TLAST'],
+            'tfirst' : TFIRST,
+            'tlast' : TLAST,
             'sortby' : sortby,
             'taskname' : taskname,
             'flowstruct' : flowstruct,
