@@ -1790,6 +1790,8 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             job['errorinfo'] = errorinfo
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'prefix': getPrefix(request),
             'request' : request,
@@ -2214,6 +2216,8 @@ def siteList(request):
     nosorturl = removeParam(xurl, 'sortby',mode='extensible')
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         sumd = siteSummaryDict(sites)
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -2304,6 +2308,8 @@ def siteInfo(request, site=''):
             incidents = Incidents.objects.filter(**iquery).order_by('at_time').reverse().values()
         else:
             incidents = []
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -2527,6 +2533,8 @@ def wnInfo(request,site,wnname='all'):
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -2934,6 +2942,8 @@ def dashboard(request, view='production'):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -3011,6 +3021,8 @@ def dashTasks(request, hours, view='production'):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
