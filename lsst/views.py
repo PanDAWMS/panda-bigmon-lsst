@@ -3193,7 +3193,7 @@ def taskInfo(request, jeditaskid=0):
             jeditaskid = tasks[0]['jeditaskid']
         query = {'jeditaskid' : jeditaskid}
 
-    tasks = cleanTaskList(tasks)
+    tasks = cleanTaskList(request,tasks)
     try:
         taskrec = tasks[0]
         colnames = taskrec.keys()
