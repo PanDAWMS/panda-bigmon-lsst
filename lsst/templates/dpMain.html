@@ -267,7 +267,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 
 {% if events_processed %}
 <table>
-<tr class='tablesection'><th colspan=99> Events produced in last 3 days, from prodsys2 counts</th></tr>
+<tr class='tablesection'><th colspan=99> Events produced, from prodsys2 counts</th></tr>
 <tr class='tablesection'><th> Step ctag </th><th> Events produced in healthy tasks (not aborted or broken) </th></tr>
 {% for evts in events_processed %}
 <tr><td> {{ evts.0 }}  </td><td> {{ evts.1 }}k </td></tr>
@@ -277,7 +277,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 
 {% if jobsum %}
 <table>
-<tr class='tablesection'><th colspan=99> Events produced, from finished job counts. <a href="{% url 'jobList' %}?reqid={{ reqid }}">Job list</a></th></tr>
+<tr class='tablesection'><th colspan=99> Events produced in last 3 days, from finished job counts. <a href="{% url 'jobList' %}?reqid={{ reqid }}&days=3">Job list</a></th></tr>
 <tr class='tablesection'><th> Processingtype </th><th> Events produced </th></tr>
 {% for j in jobsum %}
 <tr><td> {{ j.processingtype }}  </td><td> {{ j.nevents__sum }}k </td></tr>
