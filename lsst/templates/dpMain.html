@@ -68,7 +68,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 
 
 <tr><td>
-<b>Dataset and container lookup</b>
+<p><b>Dataset/container search</b></p>
 
 <form action="/dp/" method="post">
 
@@ -125,10 +125,15 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endif %}
 
 {% if dataset %}
+<table><tr><td>
 <h3>Search for dataset</h3>
 <p>
 <b>{{ dataset }}*</b>
+{% if scope %} <br> Scope: {{ scope }} {% endif %}
+{% if tid %} <br> tid '{{ tid }}' trimmed for search. {% endif %}
+{% if tidnum %} tid dataset created by task <a href="{% url 'taskInfo' %}?jeditaskid={{ tidnum }}">{{ tidnum }}</a> {% endif %}
 </p>
+</td></tr></table>
 {% endif %}
 
 {% if reqid %}
@@ -215,21 +220,21 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endif %}
 
 {% if request.jobsumd %}
-<br> Produced events, 3 days, from job info:
+<br> Produced events, last 3 days, from job info:
 {% for j in request.jobsumd %}
 &nbsp; <b>{{ j.0 }}</b>:{{ j.1 }}k
 {% endfor %}
 {% endif %}
 
 {% if request.clouddisttxt %}
-<br>Cloud/core task distribution: (JEDI tasks active in last 30 days)
+<br><b>Cloud/core task distribution: (JEDI tasks active in last 30 days)</b>
 {% for line in request.clouddisttxt %}
 <br> &nbsp; &nbsp; {{ line|safe }}
 {% endfor %}
 {% endif %}
 
 {% if request.jobdisttxt %}
-<br>Cloud/core event production: (PanDA jobs completed in last 3 days)
+<br><b>Cloud/core event production: (PanDA jobs completed in last 3 days)</b>
 {% for line in request.jobdisttxt %}
 <br> &nbsp; &nbsp; {{ line|safe }}
 {% endfor %}
@@ -385,13 +390,26 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 </table>
 {% endif %}
 
+{% if dsslices %}
+<table>
+<tr class='tablesection'><th colspan=20> {{ dsslices|length }} slices </th></tr>
+{% for s in dsslices %}
+<tr> <td>
+<br> Request <a href="/dp/?reqid={{ s.request_id }}">{{ s.request_id }}</a>, <a href="/dp/?reqid={{ s.request_id }}#slice_{{ s.slice }}">slice {{ s.slice }}</a>
+&nbsp; Dataset {{ s.dataset_id }}
+</td></tr>
+{% endfor %}
+</table>
+{% endif %}
+
 {% if slices %}
 <table>
 <tr class='tablesection'><th colspan=20> {{ slices|length }} slices &nbsp; &nbsp; Click on step status, dataset name, task name to toggle details </th></tr>
 {% for e in slices %}
 <tr>
+
 <td rowspan=2> {{ e.slice }} </td>
-<td> {{ e.input_data }}
+<td> <a name="slice_{{ e.slice }}"></a> {{ e.input_data }}
 <br> {{ e.comment }} </td>
 <td> <a style="cursor:pointer;" onClick=toggle_class_details('{{e.dataset_id}}')><font size=-1>{{ e.dataset_id_html|safe }} </font></a>
 <span class={{e.dataset_id}} style="display: none">

@@ -68,6 +68,9 @@ def doRequest(request):
     if 'mode' in request.GET: mode = request.GET['mode']
     query = {}
     dataset = None
+    scope = None
+    tid = None
+    tidnum = None
     reqid = None
     dataset_form = DatasetForm()
 
@@ -151,8 +154,9 @@ def doRequest(request):
         else:
             r['timestamp'] = timezone.now() - timedelta(days=365*20)
             r['status'] = '?'
+        if 'comment' in r and r['comment'].endswith('by WebUI'): r['comment'] = ''
 
-    datasets = containers = tasks = jeditasks = jedidatasets = steps = slices = files = []
+    datasets = containers = tasks = jeditasks = jedidatasets = steps = slices = files = dsslices = []
     events_processed = None
     request_columns = None
     jobsum = []
@@ -369,7 +373,7 @@ def doRequest(request):
                 r['jobdisttxt'] = cdtxt
 
         ## processed event counts, from prodsys task info
-        eventcounts = ProductionTask.objects.using('deft_adcr').filter(**query).exclude(status__in=['aborted','broken']).values('request','step__step_template__step').annotate(Sum('total_events')).order_by('request','step__step_template__step','total_events')
+        eventcounts = ProductionTask.objects.using('deft_adcr').filter(**query).exclude(status__in=['aborted','broken']).values('request','step__step_template__step').annotate(Sum('total_events'))
         ntaskd = {}
         for t in eventcounts:
             if t['request'] not in ntaskd: ntaskd[t['request']] = {}
@@ -412,7 +416,18 @@ def doRequest(request):
             else:
                 r['jobsumd'] = None
 
+    ## dataset search mode
     if dataset:
+        if dataset.find(':') >= 0:
+            scope = dataset[:dataset.find(':')]
+            dataset = dataset[dataset.find(':')+1:]
+        mat = re.match('.*(_tid[0-9\_]+)$', dataset)
+        if mat:
+            tid = mat.group(1)
+            dataset = dataset.replace(tid,'')        
+            mat = re.match('_tid[0]*([0-9]+)', tid)
+            if mat: tidnum = int(mat.group(1))
+
         print 'dataset', dataset
         datasets = ProductionDataset.objects.using('deft_adcr').filter(name__startswith=dataset).values()
         if len(datasets) == 0: messages.info(request, "No matching datasets found")
@@ -420,9 +435,9 @@ def doRequest(request):
         containers = ProductionContainer.objects.using('deft_adcr').filter(name__startswith=dataset).values()
         if len(containers) == 0: messages.info(request, "No matching containers found")
         print 'containers', containers
-        slices = InputRequestList.objects.using('deft_adcr').filter(dataset__name__startswith=dataset).values()
-        if len(slices) == 0: messages.info(request, "No slices using this dataset found")
-        print 'slices', slices
+        dsslices = InputRequestList.objects.using('deft_adcr').filter(dataset__name__startswith=dataset).values()
+        if len(dsslices) == 0: messages.info(request, "No slices using this dataset found")
+        print 'slices', dsslices
         jedidatasets = JediDatasets.objects.filter(datasetname=dataset).values()
         if len(jedidatasets) == 0: messages.info(request, "No matching JEDI datasets found")
 
@@ -479,6 +494,10 @@ def doRequest(request):
         'request_columns' : request_columns,
         'jobsum' : jobsum,
         'jobsumd' : jobsumd,
+        'dsslices' : dsslices,
+        'scope' : scope,
+        'tid' : tid,
+        'tidnum' : tidnum,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
     return response
