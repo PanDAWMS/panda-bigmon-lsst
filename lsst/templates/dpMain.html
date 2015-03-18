@@ -415,38 +415,69 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <td colspan=20>
 <font size=-1>
 {% for step in e.steps %}
-<a style="cursor:pointer;" onClick=toggle_class_details('slice_{{e.slice}}')> <b>{{ step.ctag.step }}</b> {{ step.ctag.ctag }} <span class='{{ step.status|lower }}'> {{ step.status }} </span></a> <br>
+<a style="cursor:pointer;" onClick=toggle_class_details('slice_{{e.slice}}')> <b>{{ step.ctag.step }}</b> 
+{{ step.ctag.ctag }}
+created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
+&nbsp; {{ step.ctag.output_formats }}
+&nbsp; {{ step.ctag.trf_name }}  {{ step.ctag.swrelease }}
+&nbsp; mem={{ step.ctag.memory }}
+&nbsp; cpu/ev={{ step.ctag.cpu_per_event }}
+&nbsp; <span class='{{ step.status|lower }}'> {{ step.status }} </span></a> <br>
 <span class='slice_{{e.slice}}'  style="display: none">
- &nbsp; &nbsp; ctag created {{ step.ctag.def_time }}   status=<span class='{{ step.ctag.status|lower }}'>{{ step.ctag.status }} </span> format={{ step.ctag.output_formats }} cpu={{ step.ctag.cpu_per_event }}  mem={{ step.ctag.memory }}  trf={{ step.ctag.trf_name }} release={{ step.ctag.swrelease }}<br>
  &nbsp;  &nbsp; task_config: {{ step.task_config }} <br>
 {% if step.ctag.lparams %} &nbsp;  &nbsp; ctag lparams: {{ step.ctag.lparams }} <br> {% endif %}
 {% if step.ctag.vparams %} &nbsp;  &nbsp; ctag vparams: {{ step.ctag.vparams }} <br> {% endif %} </span>
 
 {% for task in step.tasks %}
-    &nbsp; &nbsp; task <a style="cursor:pointer;" onClick=toggle_class_details('slice_{{e.slice}}_tasks')><span class='{{ task.status }}'> <b>{{ task.id }}: {{ task.name }}</b> {{ task.status }} </span></a>
+    &nbsp; &nbsp; <a style="cursor:pointer;" onClick=toggle_class_details('slice_{{e.slice}}_tasks')><span class='{{ task.status }}'>task  <b>{{ task.id }}: {{ task.name }}</b>  &nbsp; {{ task.status }} </span></a>
+    &nbsp; 
+    <a href="{% url 'taskInfo' %}?jeditaskid={{ task.id }}"><span class='{{ task.jedistatus }}'>JEDI task {% if task.jedistatus != task.status %} {{ task.jedistatus }} {% endif %}</span> </a>
+    &nbsp; 
     {% if task.total_req_jobs > 0 or task.total_done_jobs > 0 %}
-    &nbsp; jobs={{ task.total_done_jobs }}/{{ task.total_req_jobs }}
+        done/requested jobs:<a href="{% url 'jobList' %}?jeditaskid={{task.id}}">{{ task.total_done_jobs }}/{{ task.total_req_jobs }}</a>
+    {% else %}
+        <a href="{% url 'jobList' %}?jeditaskid={{task.id}}&prodsourcelabel=managed">Look for jobs</a>
+    {% endif %}
+    {% if task.total_events and task.total_events > 0 %}
+        &nbsp; total_events={{ task.total_events }}
+    {% endif %}
+
+    {% if task.jobstats %}
+        &nbsp; last 3 days:
+        <a href="{% url 'jobList' %}?jeditaskid={{task.id}}&prodsourcelabel=managed">
+        {% for s in task.jobstats %} {{ s|safe }} {% endfor %}
+        </a>
+    {% endif %}
+
+    {% if task.chain_tid and task.chain_tid != task.id %}
+        &nbsp; <a href="{% url 'taskInfo' %}?jeditaskid={{ task.chain_tid }}"> chain_tid {{ task.chain_tid }} </a> 
+    {% endif %}
+    {% if task.parent_tid and task.parent_tid != task.id %}
+        &nbsp; <a href="{% url 'taskInfo' %}?jeditaskid={{ task.parent_tid }}"> parent_tid {{ task.parent_tid }} </a> 
     {% endif %}
     <br>
     <span class='slice_{{e.slice}}_tasks' style="display: none">
-    &nbsp; &nbsp; &nbsp; &nbsp; <a href="{% url 'taskInfo' %}?jeditaskid={{ task.id }}"> PanDA task {{ task.id }} page </a><br>
-    &nbsp; &nbsp; &nbsp; &nbsp; id={{ task.id }} &nbsp; chain_tid={{ task.chain_tid }} &nbsp; parent_id={{ task.parent_id }} &nbsp; dsn={{ task.dsn }} &nbsp; tag={{ task.physics_tag }} &nbsp; total_events={{ task.total_events }} <br>
-    &nbsp; &nbsp; &nbsp; &nbsp; submitted {{ task.submit_time }} &nbsp; started {{ task.start_time }} &nbsp; timestamp {{ task.timestamp }} 
+    &nbsp; &nbsp; &nbsp; &nbsp; 
+    {% if task.dsn %} dsn={{ task.dsn }} &nbsp;  {% endif %}
+    {% if task.physics_tag %} tag={{ task.physics_tag }} &nbsp;  {% endif %}
+    submitted {{ task.submit_time|date:"m-d H:i" }}
+    {% if task.start_time %} &nbsp; started {{ task.start_time|date:"m-d H:i" }} {% endif %}
+    &nbsp; timestamp {{ task.timestamp|date:"m-d H:i" }} 
     {% if task.update_time %}
-    &nbsp; updated {{ task.update_time }} by {{ task.update_owner }}
+        &nbsp; updated {{ task.update_time|date:"m-d H:i" }} by {{ task.update_owner }}
     {% endif %}
     <br>
-    &nbsp; &nbsp; &nbsp; &nbsp; Input dataset {{ task.inputdataset }} <br>
+    &nbsp; &nbsp; &nbsp; &nbsp; Input dataset <a href="/dp/?dataset={{ task.inputdataset }}">{{ task.inputdataset }}</a> <br>
     {% if task.postproduction %}
     &nbsp; &nbsp; &nbsp; &nbsp; Postproduction: {{ task.postproduction }} <br>
     {% endif %}
     {% if task.comments %}
-    &nbsp; &nbsp; &nbsp; &nbsp; Comments: {{ task.comments }} <br>
-    {% endif %}
-    {% if task.jedi_info %}
-    &nbsp; &nbsp; &nbsp; &nbsp; JEDI info: {{ task.jedi_info }} <br>
+    &nbsp; &nbsp; &nbsp; &nbsp; <font color='brown'> Comments: {{ task.comments }} </font> <br>
     {% endif %}
     </span>
+    {% if task.jedi_info %}
+    &nbsp; &nbsp; &nbsp; &nbsp; <font color='brown'> JEDI: {{ task.jedi_info|safe }} </font> <br>
+    {% endif %}
 {% endfor %}
 
 {% endfor %}

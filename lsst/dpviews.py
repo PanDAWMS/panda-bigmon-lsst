@@ -48,7 +48,7 @@ viewParams = {}
 viewParams['MON_VO'] = ENV['MON_VO']
 
 req_fields = [ 'project_id', 'phys_group', 'campaign', 'manager', 'provenance', 'request_type', 'project', 'is_fast' ]
-jeditask_fields = [ 'cloud', 'processingtype', 'superstatus', 'status' ]
+jeditask_fields = [ 'jeditaskid', 'cloud', 'processingtype', 'superstatus', 'status' ]
 
 # entity types supported in searches
 entitytypes = [
@@ -157,6 +157,7 @@ def doRequest(request):
     request_columns = None
     jobsum = []
     jobsumd = {}
+    jeditaskstatus = {}
     if reqid:
         events_processed = {}
         ## Prepare information for the particular request
@@ -166,6 +167,8 @@ def doRequest(request):
         steps = StepExecution.objects.using('deft_adcr').filter(request_id=reqid).values()
         slices = InputRequestList.objects.using('deft_adcr').filter(request_id=reqid).order_by('slice').values()
         jeditasks = JediTasks.objects.filter(reqid=reqid,tasktype='prod').values(*jeditask_fields)
+        for t in jeditasks:
+            jeditaskstatus[t['jeditaskid']] = t['superstatus']
 
         ## get records for input datasets
         indslist = []
@@ -187,6 +190,25 @@ def doRequest(request):
             for ds in indatasets:
                 if ds['name'] == s['dataset_id']: s['dataset_data'] = ds
 
+        taskjobd = {}
+        if reqid:
+            ## job counts per task
+            tjquery = { 'reqid' : reqid, 'prodsourcelabel' : 'managed' }
+            taskjobs = Jobsarchived4.objects.filter(**tjquery).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).annotate(Sum('nevents')).order_by('jeditaskid','jobstatus')
+            tjd = {}
+            for j in taskjobs:
+                if j['jeditaskid'] not in tjd: tjd[j['jeditaskid']] = {}
+                if j['nevents__sum'] > 0:
+                    tjd[j['jeditaskid']][j['jobstatus']] = "<span class='%s'>%s:%s jobs/%s evs</span>" % ( j['jobstatus'], j['jobstatus'], j['jobstatus__count'], j['nevents__sum'] )
+                else:
+                    tjd[j['jeditaskid']][j['jobstatus']] = "<span class='%s'>%s:%s jobs</span>" % ( j['jobstatus'], j['jobstatus'], j['jobstatus__count'] )
+            for t in tjd:
+                tstates = []
+                for s in tjd[t]:
+                    tstates.append(tjd[t][s])
+                tstates.sort()
+                taskjobd[t] = tstates
+
         ## get the needed step templates (ctags)
         tasklist = []
         ctagd = {}
@@ -203,6 +225,8 @@ def doRequest(request):
             ## add tasks to steps
             st['tasks'] = []
             for t in tasks:
+                t['jedistatus'] = jeditaskstatus[t['id']]
+                if t['id'] in taskjobd: t['jobstats'] = taskjobd[t['id']]
                 if t['step_id'] == st['id']:
                     st['tasks'].append(t)
                     tasklist.append(t['name'])
