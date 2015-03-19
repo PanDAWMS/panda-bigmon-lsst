@@ -1609,6 +1609,8 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         jobs = cleanJobList(request, jobs, mode='nodrop')
         
     if len(jobs) == 0:
+        del request.session['TFIRST']
+        del request.session['TLAST']
         data = {
             'prefix': getPrefix(request),
             'viewParams' : request.session['viewParams'],
@@ -5063,6 +5065,7 @@ def initSelfMonitor(request):
     request.session["remote"]  = remote
     request.session["mem"]     = mem
     request.session["urls"]  = urls
+
 
 def endSelfMonitor(request):
     qduration=str(timezone.now())
