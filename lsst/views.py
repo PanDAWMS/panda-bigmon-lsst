@@ -5038,11 +5038,22 @@ def addJobMetadata(jobs):
 def initSelfMonitor(request):
     import psutil
     server=request.session['hostname'],
-    remote=request.META['REMOTE_ADDR']
+
+    if 'HTTP_X_FORWARDED_FOR' in request.META:
+       remote=request.META['HTTP_X_FORWARDED_FOR']
+    else:
+       remote=request.META['REMOTE_ADDR']
+
+    urlProto=request.META['wsgi.url_scheme']
+    if 'HTTP_X_FORWARDED_PROTO' in request.META:
+        urlProto=request.META['HTTP_X_FORWARDED_PROTO']
+    urlProto=str(urlProto)+"://"
+
     try:
-        urls='http://'+request.META['SERVER_NAME']+request.META['REQUEST_URI']
+        urls=urlProto+request.META['SERVER_NAME']+request.META['REQUEST_URI']
     except:
         urls='localhost'
+
     qtime =str(timezone.now())
     load=psutil.cpu_percent(interval=1)
     mem=psutil.virtual_memory().percent
