@@ -1198,9 +1198,9 @@ def helpPage(request):
     valid, response = initRequest(request)
     if not valid: return response
     setupView(request)
+    del request.session['TFIRST']
+    del request.session['TLAST']
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
-        del request.session['TFIRST']
-        del request.session['TLAST']
         data = {
             'prefix': getPrefix(request),
             'request' : request,
@@ -1534,6 +1534,8 @@ def jobList(request, mode=None, param=None):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         if (('fields' in request.session['requestParams']) and (len(jobs) > 0)):
             fields = request.session['requestParams']['fields'].split(',')
             fields= (set(fields) & set(jobs[0].keys()))
@@ -1873,8 +1875,12 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         return  HttpResponse('json', mimetype='text/html')
     else:
+        del request.session['TFIRST']
+        del request.session['TLAST']
         return  HttpResponse('not understood', mimetype='text/html')
 
 def userList(request):
@@ -2008,6 +2014,8 @@ def userList(request):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         resp = sumd
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
@@ -2168,6 +2176,8 @@ def userInfo(request, user=''):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         resp = sumd
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
@@ -2276,6 +2286,8 @@ def siteList(request):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         resp = sites
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
@@ -2368,6 +2380,8 @@ def siteInfo(request, site=''):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         resp = []
         for job in jobList:
             resp.append({ 'pandaid': job.pandaid, 'status': job.jobstatus, 'prodsourcelabel': job.prodsourcelabel, 'produserid' : job.produserid})
@@ -2596,6 +2610,8 @@ def wnInfo(request,site,wnname='all'):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
@@ -3015,6 +3031,8 @@ def dashboard(request, view='production'):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
@@ -3087,13 +3105,14 @@ def dashTasks(request, hours, view='production'):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
 @csrf_exempt
 def taskList(request):
     valid, response = initRequest(request)
-
     if 'limit' in request.session['requestParams']:            
         limit = int(request.session['requestParams']['limit'])
     else:
@@ -3169,11 +3188,15 @@ def taskList(request):
 
     ## set up google flow diagram
     flowstruct = buildGoogleFlowDiagram(request, tasks=tasks)
-
     xurl = extensibleURL(request)
     nosorturl = removeParam(xurl, 'sortby',mode='extensible')
+    print "step 1"
+
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
-        return  HttpResponse(json.dumps(tasks, cls=DateEncoder), mimetype='text/html')
+        dump = json.dumps(tasks, cls=DateEncoder)
+        del request.session['TFIRST']
+        del request.session['TLAST']
+        return  HttpResponse(dump, mimetype='text/html')
     else:
         sumd = taskSummaryDict(request,tasks)
         del request.session['TFIRST']
@@ -3387,6 +3410,8 @@ def taskInfo(request, jeditaskid=0):
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         resp = []
+        del request.session['TFIRST']
+        del request.session['TLAST']
         return  HttpResponse(json.dumps(resp), mimetype='text/html') 
     else:
         attrs = []
@@ -3907,6 +3932,8 @@ def errorSummary(request):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         resp = []
         for job in jobs:
             resp.append({ 'pandaid': job.pandaid, 'status': job.jobstatus, 'prodsourcelabel': job.prodsourcelabel, 'produserid' : job.produserid})
@@ -4031,6 +4058,8 @@ def incidentList(request):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         resp = incidents
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
@@ -4159,6 +4188,8 @@ def pandaLogger(request):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         resp = incidents
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
@@ -4240,6 +4271,8 @@ def workingGroups(request):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        del request.session['TFIRST']
+        del request.session['TLAST']
         resp = []
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
@@ -4293,10 +4326,9 @@ def datasetInfo(request):
                 continue
             pair = { 'name' : k, 'value' : val }
             columns.append(pair)
-
+    del request.session['TFIRST']
+    del request.session['TLAST']
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
-        del request.session['TFIRST']
-        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -4328,6 +4360,8 @@ def datasetList(request):
         dsets = JediDatasets.objects.filter(**query).values()
         dsets = sorted(dsets, key=lambda x:x['datasetname'].lower())
 
+    del request.session['TFIRST']
+    del request.session['TLAST']
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         data = {
             'viewParams' : request.session['viewParams'],
@@ -4404,10 +4438,9 @@ def fileInfo(request):
                 continue
             pair = { 'name' : k, 'value' : val }
             columns.append(pair)
-
+    del request.session['TFIRST']
+    del request.session['TLAST']
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
-        del request.session['TFIRST']
-        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -4460,10 +4493,9 @@ def fileList(request):
     for f in files:
         filed[f['lfn']] = 1
     nfiles = len(filed)
-
+    del request.session['TFIRST']
+    del request.session['TLAST']
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
-        del request.session['TFIRST']
-        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
@@ -4491,10 +4523,10 @@ def workQueues(request):
                 query[param] = request.session['requestParams'][param]
     queues = JediWorkQueue.objects.filter(**query).order_by('queue_type','queue_order').values()
     #queues = sorted(queues, key=lambda x:x['queue_name'],reverse=True)
-        
+
+    del request.session['TFIRST']
+    del request.session['TLAST']
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
-        del request.session['TFIRST']
-        del request.session['TLAST']
         data = {
             'request' : request,
             'viewParams' : request.session['viewParams'],
