@@ -48,7 +48,7 @@ viewParams = {}
 viewParams['MON_VO'] = ENV['MON_VO']
 
 req_fields = [ 'project_id', 'phys_group', 'campaign', 'manager', 'provenance', 'request_type', 'project', 'is_fast' ]
-jeditask_fields = [ 'jeditaskid', 'cloud', 'processingtype', 'superstatus', 'status', 'ramcount', 'walltime', 'currentpriority', 'transhome' ]
+jeditask_fields = [ 'jeditaskid', 'cloud', 'processingtype', 'superstatus', 'status', 'ramcount', 'walltime', 'currentpriority', 'transhome', 'corecount' ]
 
 # entity types supported in searches
 entitytypes = [
@@ -187,11 +187,19 @@ def doRequest(request):
         incontainers = ProductionContainer.objects.using('deft_adcr').filter(name__in=indslist).values()
         print 'containers', incontainers
 
+        ## get task datasets
+        taskdsdict = {}
+        for ds in datasets:
+            if ds['task_id'] not in taskdsdict: taskdsdict[ds['task_id']] = []
+            taskdsdict[ds['task_id']].append(ds)
+
+        for t in tasks:
+            if t['id'] in taskdsdict: t['dslist'] = taskdsdict[t['id']]
+
         ## add info to slices
         sliceids = {}
         for s in slices:
             sliceids[s['id']] = s['slice']
-        print sliceids
         clones = {}
         for s in slices:
             if s['dataset_id']:
@@ -485,6 +493,10 @@ def doRequest(request):
         info_fields = json.loads(reqs[0]['info_fields'])
     else:
         info_fields = None
+    if len(reqs) > 0:
+        req = reqs[0]
+    else:
+        req = None
     xurl = views.extensibleURL(request)
     nosorturl = views.removeParam(xurl, 'sortby',mode='extensible')
     data = {
@@ -496,7 +508,7 @@ def doRequest(request):
         'dataset' : dataset,
         'thisProject' : thisProject,
         'projects' : projectd,
-        'request' : reqs[0],
+        'request' : req,
         'info_fields' : info_fields,
         'requests' : reqs,
         'reqsuml' : reqsuml,

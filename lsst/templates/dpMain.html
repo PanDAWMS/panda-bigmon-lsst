@@ -249,11 +249,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endfor %}
 {% endif %}
 
-{% if request.comment %}
-<br>
-<font color='brown'>{{ request.comment }}</font>
-{% endif %}
-
+{% if request.comment %} <br><font color='brown'>{{ request.comment }}</font> {% endif %}
 </td>
 <td> <a href="{{ xurl }}project_id={{ request.project_id }}">{{ request.project_id }}</a>
 {% if request.campaign != request.project_id %}
@@ -420,8 +416,9 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 
 <td rowspan=2> {{ e.slice }} </td>
 <td> <a name="slice_{{ e.slice }}"></a> {{ e.input_data }}
-<br> <font color='brown'>{{ e.comment }}</font>
+{% if e.comment %} <br> <font color='brown'>{{ e.comment }}</font> {% endif %}
 {% if e.phys_comment %} <br> <font color='brown'>{{ e.phys_comment }}</font> {% endif %}
+{% if e.brief %} <br><font color='brown'>{{ e.brief }}</font> {% endif %}
 </td>
 <td>
 {% if e.cloned_from %} 
@@ -464,8 +461,15 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
 &nbsp; {{ step.ctag.trf_name }}  {{ step.ctag.swrelease }}
 &nbsp; mem={{ step.ctag.memory }}
 &nbsp; cpu/ev={{ step.ctag.cpu_per_event }}
+{% if step.step_parent %} &nbsp; parent={{ step.step_parent__step_template__step }} {{ step.step_parent__step_template__ctag }} {% endif %}
 &nbsp; <span class='{{ step.status|lower }}'> {{ step.status }} </span></a> <br>
 <span class='slice_{{e.slice}}'  style="display: none">
+ &nbsp;
+    {% if step.step_def_time %} &nbsp; defined {{ step.step_def_time|date:"Y-m-d H:i" }} {% endif %}
+    {% if step.step_appr_time %} &nbsp; approved {{ step.step_appr_time|date:"m-d H:i" }} {% endif %}
+    {% if step.step_exe_time %} &nbsp; exe {{ step.step_exe_time|date:"m-d H:i" }} {% endif %}
+    {% if step.step_done_time %} &nbsp; done {{ step.step_done_time|date:"m-d H:i" }} {% endif %}
+<br>
  &nbsp;  &nbsp; task_config: {{ step.task_config }} <br>
 {% if step.ctag.lparams %} &nbsp;  &nbsp; ctag lparams: {{ step.ctag.lparams }} <br> {% endif %}
 {% if step.ctag.vparams %} &nbsp;  &nbsp; ctag vparams: {{ step.ctag.vparams }} <br> {% endif %} </span>
@@ -476,7 +480,7 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
     <a href="{% url 'taskInfo' %}?jeditaskid={{ task.id }}"><span class='{{ task.jedistatus }}'>JEDI task {% if task.jedistatus != task.status %} {{ task.jedistatus }} {% endif %}</span> </a>
     &nbsp; 
     {% if task.total_req_jobs > 0 or task.total_done_jobs > 0 %}
-        done/req jobs:<a href="{% url 'jobList' %}?jeditaskid={{task.id}}">{{ task.total_done_jobs }}/{{ task.total_req_jobs }}</a>
+        jobs done/req:<a href="{% url 'jobList' %}?jeditaskid={{task.id}}">{{ task.total_done_jobs }}/{{ task.total_req_jobs }}</a>
     {% else %}
         <a href="{% url 'jobList' %}?jeditaskid={{task.id}}&prodsourcelabel=managed">Look for jobs</a>
     {% endif %}
@@ -509,12 +513,21 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
         &nbsp; updated {{ task.update_time|date:"m-d H:i" }} by {{ task.update_owner }}
     {% endif %}
     <br>
-    &nbsp; &nbsp; &nbsp; &nbsp; Input dataset <a href="/dp/?dataset={{ task.inputdataset }}">{{ task.inputdataset }}</a> <br>
+    &nbsp; &nbsp; &nbsp; &nbsp; Input <a href="/dp/?dataset={{ task.inputdataset }}">{{ task.inputdataset }}</a> <br>
+    {% if task.dslist %}
+        {% for ds in task.dslist %}
+            &nbsp; &nbsp; &nbsp; &nbsp; Output <a href="/dp/?dataset={{ ds.name }}">{{ ds.name }}</a> 
+                &nbsp; files:{{ ds.files }} &nbsp; evs:{{ ds.events }} &nbsp; status:<span class='{{ ds.status|lower }}'>{{ ds.status|lower }}</span><br>
+        {% endfor %}
+    {% endif %}
     {% if task.postproduction %}
     &nbsp; &nbsp; &nbsp; &nbsp; Postproduction: {{ task.postproduction }} <br>
     {% endif %}
     {% if task.comments %}
     &nbsp; &nbsp; &nbsp; &nbsp; <font color='brown'> Comments: {{ task.comments }} </font> <br>
+    {% endif %}
+    {% if task.reference %}
+    &nbsp; &nbsp; &nbsp; &nbsp; Reference: <a href="https://its.cern.ch/jira/browse/{{ task.reference }}">{{ task.reference }}</a> <br>
     {% endif %}
     </span>
     {% if task.jedi_info %}
