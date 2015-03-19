@@ -2397,7 +2397,7 @@ def siteSummary(query, notime=True):
     summary.extend(Jobsarchived4.objects.filter(**query).values('cloud','computingsite','jobstatus').annotate(Count('jobstatus')).order_by('cloud','computingsite','jobstatus'))
     return summary
 
-def taskSummaryData(query):
+def taskSummaryData(request, query):
     summary = []
     querynotime = query
     del querynotime['modificationtime__range']
@@ -2780,7 +2780,7 @@ def dashSummary(request, hours, limit=999999, view='all', cloudview='region', no
 
 def dashTaskSummary(request, hours, limit=999999, view='all'):
     query = setupView(request,hours=hours,limit=limit,opmode=view) 
-    tasksummarydata = taskSummaryData(query)
+    tasksummarydata = taskSummaryData(request, query)
     tasks = {}
     totstates = {}
     totjobs = 0
