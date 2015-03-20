@@ -2,7 +2,7 @@
 {% load url from future %}
 
 {% block page_title %} {{ viewParams.MON_VO }} PanDA self monitor {% endblock %}
-{% block subtitle %}view summary{{ viewParams.selection|safe }}
+{% block subtitle %}view summary{{ viewParams.selection|safe }} {% if nmax %}<b> display limit:{{nmax}}</b> {% endif %}
 {% if user %} &nbsp; user={{ user }} {% endif %}
 {% if site %} &nbsp; site={{ site }} {% endif %}
 {% if vo %} &nbsp; VO={{ vo }} {% endif %}
@@ -45,5 +45,24 @@
 
 {% endif %}
 
+{% if mons %}
+<a name="Views"></a>
+<table>
+  <tr class='tablesection'>
+    <td style="word-wrap:break-word;word-break:break-all;">URL&nbsp;</td>
+    <td>REMOTE&nbsp;</td>
+    <td>QUERY START TIME&nbsp;</td>
+    <td>DURATION</td>
+  </tr>
+
+{% for frec in mons %}
+  <tr>
+    <td style="word-wrap:break-word;word-break:break-all;">{{ frec.urls}}&nbsp;</td>
+    <td>{{ frec.remote}}&nbsp;</td>
+    <td>{{ frec.qtime}}&nbsp;</td>
+    <td>{{ frec.duration}}s&nbsp;</td>
+  </tr>
+{% endfor %}
+{% endif %}
 
 {% endblock %}

@@ -5093,6 +5093,12 @@ def listReqPlot(request):
     if 'days' in request.session['requestParams']:
         LAST_N_HOURS_MAX = int(request.session['requestParams']['days'])*24
 
+    if u'display_limit' in request.session['requestParams']:
+        display_limit = int(request.session['requestParams']['display_limit'])
+    else:
+        display_limit = 1000
+    nmax = display_limit
+
     if LAST_N_HOURS_MAX>=168:
        flag=12
     elif LAST_N_HOURS_MAX>=48:
@@ -5115,6 +5121,15 @@ def listReqPlot(request):
     reqs = RequestStat.objects.filter(**query).values(*values)
     reqHist = {}
     for req in reqs:
+        mon={}
+        mon['duration'] = (req['qduration'] - req['qtime']).seconds
+        mon['urls'] = req['urls']
+        mon['remote'] = req['remote']
+        mon['qduration']=req['qduration'].strftime('%Y-%m-%d %H:%M:%S')
+        mon['qtime'] =  req['qtime'].strftime('%Y-%m-%d %H:%M:%S')
+        mons.append(mon)
+
+        ##plot
         tm=req['qtime']
         tm = tm - timedelta(hours=tm.hour % flag, minutes=tm.minute, seconds=tm.second, microseconds=tm.microsecond)
         if not tm in reqHist: reqHist[tm] = 0
@@ -5127,7 +5142,8 @@ def listReqPlot(request):
         reqHists.append( [ k, reqHist[k] ] )
 
     data = {\
-       #'reqs': reqs,
+       'mons': mons[:nmax],
+       'nmax': nmax,
        'reqHist': reqHists,\
     }
 
