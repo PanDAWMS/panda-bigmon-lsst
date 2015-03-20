@@ -5120,6 +5120,8 @@ def listReqPlot(request):
     #reqs = RequestStat.objects.filter(**query).order_by('-id')[:limit].values(*values)
     reqs = RequestStat.objects.filter(**query).values(*values)
     reqHist = {}
+
+    mons=[]
     for req in reqs:
         mon={}
         mon['duration'] = (req['qduration'] - req['qtime']).seconds
