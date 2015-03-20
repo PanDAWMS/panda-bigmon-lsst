@@ -213,7 +213,6 @@ def preprocessWildCardString(strToProcess, fieldToLookAt):
     if (len(strToProcess)==0):
         return '(1=1)'
     cardParametersRaw = strToProcess.split('*')
-   
     cardRealParameters = [s for s in cardParametersRaw if len(s) > 1]
     countRealParameters = len(cardRealParameters)
     countParameters = len(cardParametersRaw)
@@ -230,12 +229,12 @@ def preprocessWildCardString(strToProcess, fieldToLookAt):
         if len(parameter) > 0:
             
             if (currentParCount-1 >= 0):
-                if len(cardParametersRaw[currentParCount-1]) == 0:
-                    leadStar = True
+#                if len(cardParametersRaw[currentParCount-1]) == 0:
+                leadStar = True
 
             if (currentParCount+1 < countParameters):
-                if len(cardParametersRaw[currentParCount+1]) == 0:
-                    trailStar = True
+#                if len(cardParametersRaw[currentParCount+1]) == 0:
+                trailStar = True
 
             if fieldToLookAt.lower() == 'PRODUSERID':
                 leadStar = True
@@ -533,18 +532,15 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         extraQueryString += '('
         wildCards = request.session['requestParams'][currenfField].split('|')
         countCards = len(wildCards)
-         
         currentCardCount = 1
         for card in wildCards:
             extraQueryString += preprocessWildCardString(card, currenfField)
             if (currentCardCount < countCards): extraQueryString +=' OR '
             currentCardCount += 1
-
         extraQueryString += ')'
-        
         if (currentField < lenWildSearchFields): extraQueryString +=' AND '
         currentField += 1
-    
+
     if ('jobparam' in request.session['requestParams'].keys()):
         jobParWildCards = request.session['requestParams']['jobparam'].split('|')
         jobParCountCards = len(jobParWildCards)
