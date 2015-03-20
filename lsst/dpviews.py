@@ -219,8 +219,7 @@ def doRequest(request):
                 s['dataset_id_html'] = s['dataset_id'].replace(s['brief'],'<b>%s</b>' % s['brief'])
             for ds in indatasets:
                 if ds['name'] == s['dataset_id']: s['dataset_data'] = ds
-            if 'cloned_from_id' in s:
-                if s['cloned_from_id']:
+            if 'cloned_from_id' in s and s['cloned_from_id'] and s['cloned_from_id'] in sliceids:
                     s['cloned_from'] = sliceids[s['cloned_from_id']]
                     if not sliceids[s['cloned_from_id']] in clones: clones[sliceids[s['cloned_from_id']]] = []
                     clones[sliceids[s['cloned_from_id']]].append(sliceids[s['id']])
@@ -504,7 +503,7 @@ def doRequest(request):
                 reqs = sorted(reqs, key=lambda x:x['reqid'], reverse=True)
             if requestParams['sortby'] == 'timestamp':
                 reqs = sorted(reqs, key=lambda x:x['timestamp'], reverse=True)
-    if len(reqs) > 0 and 'info_fields' in reqs[0]:
+    if len(reqs) > 0 and 'info_fields' in reqs[0] and reqs[0]['info_fields']:
         info_fields = json.loads(reqs[0]['info_fields'])
     else:
         info_fields = None
