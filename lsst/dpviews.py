@@ -31,7 +31,7 @@ from boto.dynamodb2.types import STRING_SET
 
 from settings.local import aws
 
-from atlas.prodtask.models import TRequest, TProject, RequestStatus, ProductionTask, StepTemplate, StepExecution, InputRequestList, ProductionContainer, ProductionDataset
+from atlas.prodtask.models import TRequest, TProject, RequestStatus, ProductionTask, StepTemplate, StepExecution, InputRequestList, ProductionContainer, ProductionDataset, Ttrfconfig
 
 from core.pandajob.models import PandaJob, Jobsactive4, Jobsdefined4, Jobswaiting4, Jobsarchived4, Jobsarchived
 from core.common.models import JediTasks
@@ -132,7 +132,6 @@ def doRequest(request):
             r['projectdata'] = projectd[r['project_id']]
         else:
             r['projectdata'] = None
-    if reqid: print reqs
     if len(reqs) > 0 and reqid: thisProject = reqs[0]['projectdata']
 
     reqstatd = {}
@@ -171,6 +170,20 @@ def doRequest(request):
         steps = StepExecution.objects.using('deft_adcr').filter(request_id=reqid).values()
         slices = InputRequestList.objects.using('deft_adcr').filter(request_id=reqid).order_by('slice').values()
         jeditasks = JediTasks.objects.filter(reqid=reqid,tasktype='prod').values(*jeditask_fields)
+        amitags = Ttrfconfig.objects.using('grisli').all().values()
+        amitagd = {}
+        for t in amitags:
+            t['params'] = ""
+            lparams = t['lparams'].split(',')
+            vparams = t['vparams'].split(',')
+            i=0
+            for p in lparams:
+                if vparams[i] != 'NONE':
+                    txt = "&nbsp; %s=%s" % ( lparams[i], vparams[i] )
+                    t['params'] += txt
+                i += 1
+            ctag = "%s%s" % ( t['tag'], t['cid'] )
+            amitagd[ctag] = t
         for t in jeditasks:
             jeditaskstatus[t['jeditaskid']] = t['superstatus']
 
@@ -245,6 +258,8 @@ def doRequest(request):
             for ct in ctags:
                 if st['step_template_id'] == ct['id']:
                     st['ctag'] = ct
+            ## add ctag details
+            if 'ctag' in st and st['ctag']['ctag'] in amitagd: st['ctagdetails'] = amitagd[st['ctag']['ctag']]
             evtag = "%s %s" % (st['ctag']['step'],st['ctag']['ctag'])
             ## add tasks to steps
             st['tasks'] = []

@@ -470,9 +470,20 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
     {% if step.step_exe_time %} &nbsp; exe {{ step.step_exe_time|date:"m-d H:i" }} {% endif %}
     {% if step.step_done_time %} &nbsp; done {{ step.step_done_time|date:"m-d H:i" }} {% endif %}
 <br>
+{% if step.ctagdetails %}
+ &nbsp; &nbsp; ctag {{ step.ctag.ctag }} created by {{ step.ctagdetails.createdby }}
+ {% if step.ctagdetails.input %} &nbsp; input={{ step.ctagdetails.input }} {% endif %}
+ {% if step.ctagdetails.cache %} &nbsp; cache={{ step.ctagdetails.cache }} {% endif %}
+ {% if step.ctagdetails.memory %} &nbsp; memory={{ step.ctagdetails.memory }} {% endif %}
+ {% if step.ctagdetails.events_per_job %} &nbsp; evs/job={{ step.ctagdetails.events_per_job }} {% endif %}
+ {% if step.ctagdetails.formats %} &nbsp; formats={{ step.ctagdetails.formats }} {% endif %}
+ {% if step.ctagdetails.trf %} &nbsp; trf={{ step.ctagdetails.trf }} {% endif %}
+ {% if step.ctagdetails.priority %} &nbsp; priority={{ step.ctagdetails.priority }} {% endif %}
+<br>  &nbsp; &nbsp;  &nbsp; &nbsp; <font color=darkgrey><i>ctag params: {{ step.ctagdetails.params|safe }}</i></font>
+ <br>
+ {% endif %}
  &nbsp;  &nbsp; task_config: {{ step.task_config }} <br>
-{% if step.ctag.lparams %} &nbsp;  &nbsp; ctag lparams: {{ step.ctag.lparams }} <br> {% endif %}
-{% if step.ctag.vparams %} &nbsp;  &nbsp; ctag vparams: {{ step.ctag.vparams }} <br> {% endif %} </span>
+ </span>
 
 {% for task in step.tasks %}
     &nbsp; &nbsp; <a style="cursor:pointer;" onClick=toggle_class_details('slice_{{e.slice}}_tasks')><span class='{{ task.status }}'>task  <b>{{ task.id }}: {{ task.name }}</b>  &nbsp; {{ task.status }} </span></a>
