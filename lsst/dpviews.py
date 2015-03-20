@@ -168,7 +168,7 @@ def doRequest(request):
         containers = ProductionContainer.objects.using('deft_adcr').filter(rid=reqid).order_by('name').values()
         tasks = ProductionTask.objects.using('deft_adcr').filter(request_id=reqid).order_by('id').values()
         steps = StepExecution.objects.using('deft_adcr').filter(request_id=reqid).values()
-        slices = InputRequestList.objects.using('deft_adcr').filter(request_id=reqid).order_by('slice').values()
+        slices = InputRequestList.objects.using('deft_adcr').filter(request_id=reqid).order_by('slice').reverse().values()
         jeditasks = JediTasks.objects.filter(reqid=reqid,tasktype='prod').values(*jeditask_fields)
         amitags = Ttrfconfig.objects.using('grisli').all().values()
         amitagd = {}
