@@ -5115,7 +5115,7 @@ def listReqPlot(request):
 
     query = { 'qtime__range' : [startdate.strftime(defaultDatetimeFormat), enddate.strftime(defaultDatetimeFormat)] }
 
-    values = 'urls', 'qtime','remote'
+    values = 'urls', 'qtime','remote','qduration'
     reqs=[]
     #reqs = RequestStat.objects.filter(**query).order_by('-id')[:limit].values(*values)
     reqs = RequestStat.objects.filter(**query).values(*values)
