@@ -5083,25 +5083,27 @@ def endSelfMonitor(request):
     reqs.save()
 
 def listReqPlot(request):
-    #valid, response = initRequest(request)
-    #if not valid: return response
+    valid, response = initRequest(request)
+    if not valid: return response
 
     LAST_N_HOURS_MAX=7*24
     limit=5000
+    if 'hours' in request.session['requestParams']:
+        LAST_N_HOURS_MAX = int(request.session['requestParams']['hours'])
+    if 'days' in request.session['requestParams']:
+        LAST_N_HOURS_MAX = int(request.session['requestParams']['days'])*24
+
+    if LAST_N_HOURS_MAX>=168:
+       flag=12
+    elif LAST_N_HOURS_MAX>=48:
+       flag=6
+    else:
+       flag=2
+
     startdate = None
-    if 'date_from' in request.session['requestParams']:
-        time_from_struct = time.strptime(request.session['requestParams']['date_from'],'%Y-%m-%d')
-        startdate = datetime.utcfromtimestamp(time.mktime(time_from_struct)).strftime(defaultDatetimeFormat)
     if not startdate:
         startdate = timezone.now() - timedelta(hours=LAST_N_HOURS_MAX)
     enddate = None
-    if 'date_to' in request.session['requestParams']:
-        time_from_struct = time.strptime(request.session['requestParams']['date_to'],'%Y-%m-%d')
-        enddate = datetime.utcfromtimestamp(time.mktime(time_from_struct)).strftime(defaultDatetimeFormat)
-    if 'earlierthan' in request.session['requestParams']:
-        enddate = timezone.now() - timedelta(hours=int(request.session['requestParams']['earlierthan']))
-    if 'earlierthandays' in request.session['requestParams']:
-        enddate = timezone.now() - timedelta(hours=int(request.session['requestParams']['earlierthandays'])*24)
     if enddate == None:
         enddate = timezone.now()#.strftime(defaultDatetimeFormat)
 
@@ -5114,7 +5116,7 @@ def listReqPlot(request):
     reqHist = {}
     for req in reqs:
         tm=req['qtime']
-        tm = tm - timedelta(hours=tm.hour % 12, minutes=tm.minute, seconds=tm.second, microseconds=tm.microsecond)
+        tm = tm - timedelta(hours=tm.hour % flag, minutes=tm.minute, seconds=tm.second, microseconds=tm.microsecond)
         if not tm in reqHist: reqHist[tm] = 0
         reqHist[tm] += 1
 

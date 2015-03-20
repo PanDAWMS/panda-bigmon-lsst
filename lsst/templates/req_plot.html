@@ -27,7 +27,7 @@
           ['Time', 'Count'],
 
 {% for time,count in reqHist %}
-          ['{{ time|date:"y-m-d H:i" }}', {{ count }}],
+          ['{{ time|date:"m-d H:i" }}', {{ count }}],
 {% endfor %}
 
             ])
