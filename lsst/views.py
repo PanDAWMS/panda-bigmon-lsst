@@ -557,7 +557,8 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         extraJobParCondition += ')'
         
         pandaIDs = []
-        jobParamQuery = { 'modificationtime__range' : [startdate, enddate] }
+        jobParamQuery = { 'modificationtime__range' : [startdate.strftime(defaultDatetimeFormat), enddate.strftime(defaultDatetimeFormat)] }
+
         jobs = Jobparamstable.objects.filter(**jobParamQuery).extra(where=[extraJobParCondition]).values('pandaid')
         for values in jobs:
             pandaIDs.append(values['pandaid'])
