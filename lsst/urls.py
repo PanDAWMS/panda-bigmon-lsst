@@ -64,6 +64,9 @@ urlpatterns = patterns('',
     url(r'^support/jobinfouservo/(?P<vo>[-A-Za-z0-9_.+ @]+)/(?P<ndays>\d+)/$', core_lsstmon_support_views.jobUserDaysOrig, name='supportJobUserVo'),
 
 
+    ###self monitor
+    url(r'^reqplot/$', lsstmon_views.listReqPlot, name='listReqs'),
+    
     ### api
     url(r'^api/$', core_lsstmon_support_views.maxpandaid, name='supportRoot'),
 #    url(r'^api/reprocessing/$', include('core.api.reprocessing.urls')),

@@ -1,0 +1,49 @@
+{% extends "_base_lsst.html" %}
+{% load url from future %}
+
+{% block page_title %} {{ viewParams.MON_VO }} PanDA self monitor {% endblock %}
+{% block subtitle %}view summary{{ viewParams.selection|safe }}
+{% if user %} &nbsp; user={{ user }} {% endif %}
+{% if site %} &nbsp; site={{ site }} {% endif %}
+{% if vo %} &nbsp; VO={{ vo }} {% endif %}
+{% endblock %}
+{% block body %}
+
+{{ viewParams.header }}
+<script type="text/javascript"
+           src="https://www.google.com/jsapi?autoload={'modules':[{'name':'visualization','version':'1.1','packages':['sankey','corechart']}]}">
+</script>
+
+{% if flowstruct %}
+{% include "googleFlowDiagram.html" with struct=flowstruct %}
+{% endif %}
+
+{% if reqHist %}
+
+    <script type="text/javascript">
+      google.setOnLoadCallback(drawChart);
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ['Time', 'Count'],
+
+{% for time,count in reqHist %}
+          ['{{ time|date:"y-m-d H:i" }}', {{ count }}],
+{% endfor %}
+
+            ])
+        var options = {
+          title: 'View Count timeline',
+          legend: { position: 'none' },
+          hAxis: {title: 'Time (empty bins suppressed)', titleTextStyle: {color: 'black'},  textStyle: { fontSize:11},},
+        };
+
+        var chart = new google.visualization.ColumnChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+    </script>
+    <div id="chart_div" style="height: 500px;"></div>
+
+{% endif %}
+
+
+{% endblock %}
