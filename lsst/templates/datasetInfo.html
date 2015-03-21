@@ -11,28 +11,34 @@
 <table>
 <tr class='tablesection'><th colspan=20>  Dataset {{ datasetname }} </th></tr>
 <tr class='tablesection'>
-	<th>ID</th>
 	<th>Type</th>
-	<th>Scope</th>
-	<th>Stream</th>
+	{% if dsrec.scope %} <th>Scope</th> {% endif %}
 	<th>Task</th>
-	<th>State</th>
 	<th>Status</th>
-	<th>Nfiles</th>
+	<th>Nfiles <br> <span class='finished'>finished</span></th>
+	<th>Nfiles <br> <span class='failed'>failed</span></th>
+    <th>Nevents</th>
 	<th>Created</th>
 	<th>Modified</th>
+	<th>State</th>
+	<th>Stream</th>
+	<th>Token</th>
+	<th>ID</th>
 </tr>
 	<tr>
-		<td>{{ dsrec.datasetid }}</td>
 		<td>{{ dsrec.type }}</td>
-		<td>{{ dsrec.scope }}</td>
-		<td>{{ dsrec.streamname }}</td>
+		{% if dsrec.scope %} <td>{{ dsrec.scope }}</td> {% endif %}
 		<td><a href="{% url 'taskInfo' %}?jeditaskid={{ dsrec.jeditaskid }}">{{ dsrec.jeditaskid }}</a></td>
-		<td>{{ dsrec.state }}</td>
 		<td class='{{dsrec.status}}'>{{ dsrec.status }}</td>
-		<td>{{ dsrec.nfiles }}</td>
+		<td><span class='finished'>{{ dsrec.nfilesfinished }}</span></td>
+		<td><span class='failed'>{{ dsrec.nfilesfailed }}</span></td>
+		<td>{{ dsrec.nevents }}</td>
 		<td>{{ dsrec.creationtime|date:"Y-m-d H:i" }}</td>
 		<td>{{ dsrec.modificationtime|date:"m-d H:i" }}</td>
+		<td>{{ dsrec.state }}</td>
+		<td>{{ dsrec.streamname }}</td>
+		<td>{{ dsrec.storagetoken }}</td>
+		<td>{{ dsrec.datasetid }}</td>
 	</tr>
 </table>
 

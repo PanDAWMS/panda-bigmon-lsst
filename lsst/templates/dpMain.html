@@ -384,7 +384,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <tr> <td colspan=20>
 {% for ds in e.datasets %}
 {{ ds.type }} 
-&nbsp; <a href="{% url 'datasetInfo' %}?dataset={{ ds.datasetname }}">{{ ds.datasetname }}</a>
+&nbsp; <a href="{% url 'datasetInfo' %}?datasetname={{ ds.datasetname }}">{{ ds.datasetname }}</a>
 &nbsp; <span class='{{ ds.status }}'>{{ ds.status }}</span>
 &nbsp; files={{ ds.nfiles }}
 {% if ds.type == 'output' %} &nbsp; evs={{ ds.nevents }} {% endif %}
