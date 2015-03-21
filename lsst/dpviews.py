@@ -114,6 +114,9 @@ def doRequest(request):
         else:
             query['reqid__gte'] = 920
 
+    if 'nosearch' in requestParams: nosearch = True
+    else: nosearch = False
+
     #projects = projecttable.scan()
     #projects = TProject.objects.using('deft_adcr').all().values()
     projectd = {}
@@ -451,6 +454,7 @@ def doRequest(request):
                 r['jobsumd'] = None
 
     ## dataset search mode
+    njeditasks = 0
     if dataset:
         if dataset.find(':') >= 0:
             scope = dataset[:dataset.find(':')]
@@ -462,18 +466,62 @@ def doRequest(request):
             mat = re.match('_tid[0]*([0-9]+)', tid)
             if mat: tidnum = int(mat.group(1))
 
+        fields = dataset.split('.')
+        if len(fields) == 6:
+            # try to interpret
+            format = fields[5]
+            taskname = '%s.%s.%s.%s.%s' % ( fields[0], fields[1], fields[2], fields[3], fields[5] )
+            jeditasks = JediTasks.objects.filter(taskname=taskname,tasktype='prod').order_by('jeditaskid').values()
+
+        if len(jeditasks) > 0:
+            # get associated datasets
+            tlist = []
+            for t in jeditasks: tlist.append(t['jeditaskid'])
+            dsquery = {}
+            dsquery['jeditaskid__in'] = tlist
+            dsets = JediDatasets.objects.filter(**dsquery).values()
+            dsetd = {}
+            for ds in dsets:
+                if ds['type'] == 'pseudo_input': continue
+                if ds['jeditaskid'] not in dsetd: dsetd[ds['jeditaskid']] = []
+                dsetd[ds['jeditaskid']].append(ds)
+            for t in jeditasks:
+                if t['jeditaskid'] in dsetd:
+                    dsetd[t['jeditaskid']] = sorted(dsetd[t['jeditaskid']], key=lambda x:x['datasetname'], reverse=True)
+                    t['datasets'] = dsetd[t['jeditaskid']]
+            # mark the tasks that have the exact dataset (modulo tid)
+            for t in jeditasks:
+                has_dataset = False
+                for ds in t['datasets']:
+                    if ds['datasetname'].startswith(dataset):
+                        has_dataset = True
+                        njeditasks += 1
+                t['has_dataset'] = has_dataset
+
         print 'dataset', dataset
         datasets = ProductionDataset.objects.using('deft_adcr').filter(name__startswith=dataset).values()
-        if len(datasets) == 0: messages.info(request, "No matching datasets found")
+        if len(datasets) == 0:
+            messages.info(request, "No matching datasets found")
+        else:
+            messages.info(request, "%s matching prodsys datasets found" % len(datasets))
         print 'datasets', datasets
         containers = ProductionContainer.objects.using('deft_adcr').filter(name__startswith=dataset).values()
-        if len(containers) == 0: messages.info(request, "No matching containers found")
+        if len(containers) == 0:
+            messages.info(request, "No matching containers found")
+        else:
+            messages.info(request, "%s matching containers found" % len(containers))
         print 'containers', containers
         dsslices = InputRequestList.objects.using('deft_adcr').filter(dataset__name__startswith=dataset).values()
-        if len(dsslices) == 0: messages.info(request, "No slices using this dataset found")
+        if len(dsslices) == 0:
+            messages.info(request, "No slices using this dataset found")
+        else:
+            messages.info(request, "%s slices using this dataset found" % len(dsslices))
         print 'slices', dsslices
         jedidatasets = JediDatasets.objects.filter(datasetname=dataset).values()
-        if len(jedidatasets) == 0: messages.info(request, "No matching JEDI datasets found")
+        if len(jedidatasets) == 0:
+            messages.info(request, "No matching JEDI datasets found")
+        else:
+            messages.info(request, "%s matching JEDI datasets found" % len(jedidatasets))
 
         ## check for jobs with output destined for this dataset
         files = []
@@ -529,6 +577,8 @@ def doRequest(request):
         'jtasksuml' : jtasksuml,
         'datasets' : datasets,
         'jedidatasets' : jedidatasets,
+        'jeditasks' : jeditasks,
+        'njeditasks' : njeditasks,
         'containers' : containers,
         'tasks' : tasks,
         'steps' : steps,
