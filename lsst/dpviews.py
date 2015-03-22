@@ -505,7 +505,23 @@ def doRequest(request):
         else:
             messages.info(request, "%s matching prodsys datasets found" % len(datasets))
         print 'datasets', datasets
-        containers = ProductionContainer.objects.using('deft_adcr').filter(name__startswith=dataset).values()
+
+        if len(datasets) > 0:
+            # get production tasks associated with datasets
+            tlist = []
+            for ds in datasets:
+                step = ds
+                tlist.append(ds['task_id'])
+            tquery = {}
+            tquery['id__in'] = tlist
+            ptasks = ProductionTask.objects.using('deft_adcr').filter(**tquery)
+            taskd = {}
+            for t in ptasks:
+                taskd[t.id] = t
+            for ds in datasets:
+                if ds['task_id'] in taskd: ds['ptask'] = taskd[ds['task_id']]
+
+        containers = ProductionContainer.objects.using('deft_adcr').filter(name__startswith=dataset).values()        
         if len(containers) == 0:
             messages.info(request, "No matching containers found")
         else:
@@ -513,13 +529,13 @@ def doRequest(request):
         print 'containers', containers
         dsslices = InputRequestList.objects.using('deft_adcr').filter(dataset__name__startswith=dataset).values()
         if len(dsslices) == 0:
-            messages.info(request, "No slices using this dataset found")
+            pass # messages.info(request, "No slices using this dataset found")
         else:
             messages.info(request, "%s slices using this dataset found" % len(dsslices))
-        print 'slices', dsslices
+        print "Getting JEDI datasets matching '%s'" % dataset
         jedidatasets = JediDatasets.objects.filter(datasetname=dataset).values()
         if len(jedidatasets) == 0:
-            messages.info(request, "No matching JEDI datasets found")
+            pass # messages.info(request, "No matching JEDI datasets found")
         else:
             messages.info(request, "%s matching JEDI datasets found" % len(jedidatasets))
 

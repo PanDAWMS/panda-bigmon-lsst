@@ -68,7 +68,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 
 
 <tr><td>
-<p><b>Dataset/container search</b></p>
+<p><b>Dataset search</b></p>
 
 <form action="/dp/" method="post">
 
@@ -126,9 +126,9 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 
 {% if dataset %}
 <table><tr><td>
-<h3>Search for dataset</h3>
+<h3>Search results for dataset</h3>
 <p>
-<b>{{ dataset }}*</b>
+<b>{{ dataset }}</b>
 {% if scope %} <br> Scope: {{ scope }} {% endif %}
 {% if tid %} <br> tid '{{ tid }}' trimmed for search. {% endif %}
 {% if tidnum %} tid dataset created by task <a href="{% url 'taskInfo' %}?jeditaskid={{ tidnum }}">{{ tidnum }}</a> {% endif %}
@@ -312,11 +312,14 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% if containers %}
 <table>
 <tr class='tablesection'><th colspan=20> {{ containers|length }} containers </th></tr>
+<tr> <th> Parent task </th> <th> Container </th> <th> Status </th> <th> Request </th> <th> Group </th> </tr>
 {% for e in containers %}
 <tr>
-<td> {{ e.name }}
-<br> status={{ e.status }} &nbsp; parent task=<a href="{% url 'taskInfo' %}?jeditaskid={{ e.parent_task_id }}">{{ e.parent_task_id }}</a> &nbsp; request={{ e.rid }} &nbsp; phys_group={{ e.phys_group }}
-</td>
+<td> <a href="{% url 'taskInfo' %}?jeditaskid={{ e.parent_task_id }}">{{ e.parent_task_id }}</a> </td>
+<td> {{ e.name }} </td>
+<td> {{ e.status }} </td>
+<td> {{ e.rid }} </td>
+<td>{{ e.phys_group }} </td>
 </tr>
 {% endfor %}
 </table>
@@ -325,13 +328,16 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% if datasets and not reqid %}
 <table>
 <tr class='tablesection'><th colspan=20> {{ datasets|length }} production system tasks </th></tr>
-<tr> <th> Task ID</th> <th> Name </th> <th> Events </th> <th> Files </th> <th> Status </th> <th> Group </th> <th> Timestamp </th> </tr>
+<tr> <th> Task ID</th> <th> Dataset </th> <th> Events </th> <th> Files </th> <th> Status </th> <th> Group </th> <th> Timestamp </th> </tr>
 {% for e in datasets %}
 <tr>
 <td> <a href="{% url 'taskInfo' %}?jeditaskid={{ e.task_id }}">{{ e.task_id }}</a> </td>
 <td> <font size=-1>{{ e.name }} </font>
+<br><i>Request#Slice:</i> <a href="/dp/?reqid={{ e.ptask.request_id }}#slice_{{ e.ptask.step.slice.slice }}">{{ e.ptask.request_id }}#{{ e.ptask.step.slice.slice }}</a>
+&nbsp; <i>Step:</i> {{ e.ptask.step.step_template.step }} {{ e.ptask.step.step_template.ctag }}
+
 {% if e.parent_task_id and e.parent_task_id != e.task_id%}
-<br>Parent task <a href="{% url 'taskInfo' %}?jeditaskid={{ e.parent_task_id }}">{{ e.parent_task_id }}</a>
+&nbsp; Parent task <a href="{% url 'taskInfo' %}?jeditaskid={{ e.parent_task_id }}">{{ e.parent_task_id }}</a>
 {% endif %}
 </td>
 <td> {{ e.events }} </td>
