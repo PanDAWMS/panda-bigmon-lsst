@@ -238,8 +238,10 @@ def doRequest(request):
                     cloudtodo[cloud] = {}
                     cloudtodo[cloud]['nfiles'] = 0
                     cloudtodo[cloud]['nfilesfinished'] = 0
+                    cloudtodo[cloud]['nfilesfailed'] = 0
                 cloudtodo[cloud]['nfiles'] += ds['nfiles']
                 cloudtodo[cloud]['nfilesfinished'] += ds['nfilesfinished']
+                cloudtodo[cloud]['nfilesfailed'] += ds['nfilesfailed']
 
         ## add info to slices
         sliceids = {}
@@ -400,7 +402,10 @@ def doRequest(request):
                     for cloud, cval in tval.items():
                         if cloud in cloudtodo:
                             tobedone = cloudtodo[cloud]['nfiles'] - cloudtodo[cloud]['nfilesfinished']
-                            txt = "%s %s     <b>%.0f%%</b> still to do (%s/%s inputs finished, <a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>%s to do</a>)" % ( typ, cloud, 100.*float(tobedone)/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfinished'], cloudtodo[cloud]['nfiles'], r['reqid'], cloud, typ, tobedone )
+                            failtxt = ""
+                            if cloudtodo[cloud]['nfilesfailed'] > 0:
+                                failtxt = "<font color=red>%.0f%% failed (%s inputs)</font>" % ( 100.*float(cloudtodo[cloud]['nfilesfailed'])/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfailed'] )
+                            txt = "%s %s     <b>%.0f%%</b> still to do (%s/%s inputs finished, <a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>%s to do</a>) %s" % ( typ, cloud, 100.*float(tobedone)/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfinished'], cloudtodo[cloud]['nfiles'], r['reqid'], cloud, typ, tobedone, failtxt )
                             cdtxt.append(txt)
                         for ncore, nval in cval.items():
                             txt = "%s %s %s-core: " % ( typ, cloud, ncore )
