@@ -333,7 +333,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <tr>
 <td> <a href="{% url 'taskInfo' %}?jeditaskid={{ e.task_id }}">{{ e.task_id }}</a> </td>
 <td> <font size=-1>{{ e.name }} </font>
-<br><i>Request#Slice:</i> <a href="/dp/?reqid={{ e.ptask.request_id }}#slice_{{ e.ptask.step.slice.slice }}">{{ e.ptask.request_id }}#{{ e.ptask.step.slice.slice }}</a>
+<br><i>Request #Slice:</i> <a href="/dp/?reqid={{ e.ptask.request_id }}#slice_{{ e.ptask.step.slice.slice }}">{{ e.ptask.request_id }} #{{ e.ptask.step.slice.slice }}</a>
 &nbsp; <i>Step:</i> {{ e.ptask.step.step_template.step }} {{ e.ptask.step.step_template.ctag }}
 
 {% if e.parent_task_id and e.parent_task_id != e.task_id%}
@@ -350,6 +350,26 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 </table>
 {% endif %}
 
+{% if dsslices %}
+<table>
+<tr class='tablesection'><th colspan=20> {{ dsslices|length }} production slices </th></tr>
+<tr><th> Request #Slice </th> <th> Dataset </th> <th> Input evs </th> </tr>
+{% for s in dsslices %}
+<tr> <td>
+<a href="/dp/?reqid={{ s.request_id }}#slice_{{ s.slice }}">{{ s.request_id }} #{{ s.slice }}</a>
+</td><td>
+<a href="/ds/?dataset={{ s.dataset_id }}">{{ s.dataset_id }}</a>
+<font color=brown>
+{% if s.brief %} <br> {{ s.brief }} {% endif %}
+{% if s.phys_comment %} <br> {{ s.phys_comment }} {% endif %}
+{% if s.comment %} <br> {{ s.comment }} {% endif %}
+</font>
+</td><td>
+{{ s.input_events }}
+</td></tr>
+{% endfor %}
+</table>
+{% endif %}
 
 {% if jedidatasets %}
 <table>
@@ -440,18 +460,6 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 </table>
 {% endif %}
 
-{% if dsslices %}
-<table>
-<tr class='tablesection'><th colspan=20> {{ dsslices|length }} slices </th></tr>
-{% for s in dsslices %}
-<tr> <td>
-<br> Request <a href="/dp/?reqid={{ s.request_id }}">{{ s.request_id }}</a>, <a href="/dp/?reqid={{ s.request_id }}#slice_{{ s.slice }}">slice {{ s.slice }}</a>
-&nbsp; Dataset {{ s.dataset_id }}
-</td></tr>
-{% endfor %}
-</table>
-{% endif %}
-
 {% if slices %}
 <table>
 <tr class='tablesection'><th colspan=20> {{ slices|length }} slices &nbsp; &nbsp; Click on step status, dataset name, task name to toggle details </th></tr>
@@ -466,17 +474,10 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% if e.brief %} <br><font color='brown'>{{ e.brief }}</font> {% endif %}
 </td>
 <td>
-{% if e.cloned_from %} 
-Cloned from <a href="#slice_{{ e.cloned_from }}">{{ e.cloned_from }}</a> <br>
-{% endif %}
-{% if e.clones %}
-Clones: 
-{% for c in e.clones %}
-    &nbsp; <a href="#slice_{{ c }}">{{ c }}</a>
-{% endfor %}
-<br>
-{% endif %}
 
+<font size=-1><a href="/dp/?dataset={{ e.dataset_id_html }}">{{ e.dataset_id_html|safe }}</a>
+
+{% comment %}
 <a style="cursor:pointer;" onClick=toggle_class_details('{{e.dataset_id}}')><font size=-1>{{ e.dataset_id_html|safe }} </font></a>
 <span class={{e.dataset_id}} style="display: none">
 {% if e.dataset_data %}
@@ -491,6 +492,19 @@ Clones:
 <br> No dataset details found
 {% endif %}
 </span>
+{% endcomment %}
+
+{% if e.cloned_from %} 
+Cloned from <a href="#slice_{{ e.cloned_from }}">{{ e.cloned_from }}</a> <br>
+{% endif %}
+{% if e.clones %}
+Clones: 
+{% for c in e.clones %}
+    &nbsp; <a href="#slice_{{ c }}">{{ c }}</a>
+{% endfor %}
+<br>
+{% endif %}
+
 </td>
 <td> evts <br> {{ e.input_events }} </td>
 <td> prio <br> {{ e.priority }} </td>

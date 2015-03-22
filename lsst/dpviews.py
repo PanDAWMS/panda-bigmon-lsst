@@ -111,6 +111,7 @@ def doRequest(request):
         elif 'dataset' in request.GET:
             dataset = request.GET['dataset']
             mode = 'dataset'
+            dataset_form = DatasetForm(data=request.GET)
         else:
             query['reqid__gte'] = 920
 
@@ -456,6 +457,7 @@ def doRequest(request):
     ## dataset search mode
     njeditasks = 0
     if dataset:
+        if dataset.endswith('/'): dataset = dataset.strip('/')
         if dataset.find(':') >= 0:
             scope = dataset[:dataset.find(':')]
             dataset = dataset[dataset.find(':')+1:]
@@ -531,7 +533,7 @@ def doRequest(request):
         if len(dsslices) == 0:
             pass # messages.info(request, "No slices using this dataset found")
         else:
-            messages.info(request, "%s slices using this dataset found" % len(dsslices))
+            messages.info(request, "%s slices found" % len(dsslices))
         print "Getting JEDI datasets matching '%s'" % dataset
         jedidatasets = JediDatasets.objects.filter(datasetname=dataset).values()
         if len(jedidatasets) == 0:
