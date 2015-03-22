@@ -193,7 +193,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <tr>
 <td> <a href="{{ xurl }}reqid={{ request.reqid }}">{{ request.reqid }}</a> </td>
 <td> <a href="{{ xurl }}phys_group={{ request.phys_group }}">{{ request.phys_group }}</a> </td>
-<td> {{ request.description }} 
+<td> <b>{{ request.description }}</b>
 <br>
 {% if request.nslices %} {{ request.nslices }} slices &nbsp; {% endif %}
 {{ request.energy_gev }} GeV
@@ -373,7 +373,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 
 {% if jedidatasets %}
 <table>
-<tr class='tablesection'><th colspan=20> {{ datasets|length }} JEDI datasets </th></tr>
+<tr class='tablesection'><th colspan=20> {{ jedidatasets|length }} JEDI datasets </th></tr>
 <tr>
  <th rowspan=2>Task</th>
  <th colspan=20> Dataset </th> </tr> 
@@ -570,7 +570,7 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
  {% if step.ctagdetails.memory %} &nbsp; memory={{ step.ctagdetails.memory }} {% endif %}
  {% if step.ctagdetails.events_per_job %} &nbsp; evs/job={{ step.ctagdetails.events_per_job }} {% endif %}
  {% if step.ctagdetails.formats %} &nbsp; formats={{ step.ctagdetails.formats }} {% endif %}
- {% if step.ctagdetails.trf %} &nbsp; trf={{ step.ctagdetails.trf }} {% endif %}
+ {% if step.ctagdetails.trf %} &nbsp; trf={{ step.ctagdetails.trf }} {{ step.ctagdetails.trfv }}{% endif %}
  {% if step.ctagdetails.priority %} &nbsp; priority={{ step.ctagdetails.priority }} {% endif %}
 <br>  &nbsp; &nbsp;  &nbsp; &nbsp; <font color=darkgrey><i>ctag params: {{ step.ctagdetails.params|safe }}</i></font>
  <br>

@@ -403,9 +403,15 @@ def doRequest(request):
                         if cloud in cloudtodo:
                             tobedone = cloudtodo[cloud]['nfiles'] - cloudtodo[cloud]['nfilesfinished']
                             failtxt = ""
-                            if cloudtodo[cloud]['nfilesfailed'] > 0:
-                                failtxt = "<font color=red>%.0f%% failed (%s inputs)</font>" % ( 100.*float(cloudtodo[cloud]['nfilesfailed'])/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfailed'] )
-                            txt = "%s %s     <b>%.0f%%</b> still to do (%s/%s inputs finished, <a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>%s to do</a>) %s" % ( typ, cloud, 100.*float(tobedone)/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfinished'], cloudtodo[cloud]['nfiles'], r['reqid'], cloud, typ, tobedone, failtxt )
+                            todotxt = ""
+                            if cloudtodo[cloud]['nfiles'] > 0:
+                                if tobedone > 0:
+                                    todotxt = "<b>%.0f%%</b> still to do (%s inputs)" % (100.*float(tobedone)/float(cloudtodo[cloud]['nfiles']), tobedone)
+                                else:
+                                    todotxt = "<b>none</b> still to do"
+                                if cloudtodo[cloud]['nfilesfailed'] > 0:
+                                    failtxt = "<font color=red>%.0f%% failed (%s inputs)</font>" % ( 100.*float(cloudtodo[cloud]['nfilesfailed'])/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfailed'] )
+                            txt = "%s %s     ? still to do (%s/%s inputs finished, <a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>%s to do</a>) %s" % ( typ, cloud, todotxt, cloudtodo[cloud]['nfiles'], r['reqid'], cloud, typ, tobedone, failtxt )
                             cdtxt.append(txt)
                         for ncore, nval in cval.items():
                             txt = "%s %s %s-core: " % ( typ, cloud, ncore )

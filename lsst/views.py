@@ -4399,6 +4399,8 @@ def fileInfo(request):
         query['guid'] = request.session['requestParams']['guid']
     else:
         file = None
+    if 'jeditaskid' in request.session['requestParams']:
+        query['jeditaskid'] = request.session['requestParams']['jeditaskid']
     if 'scope' in request.session['requestParams']:
         query['scope'] = request.session['requestParams']['scope']
     if 'pandaid' in request.session['requestParams'] and request.session['requestParams']['pandaid'] != '':
