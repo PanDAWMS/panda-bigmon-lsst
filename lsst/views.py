@@ -5068,7 +5068,7 @@ def endSelfMonitor(request):
     qduration=str(timezone.now())
     request.session['qduration'] = qduration
 
-#    duration = (datetime.strptime(request.session['qduration'], "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(request.session['qtime'], "%Y-%m-%d %H:%M:%S.%f")).seconds
+    duration = (datetime.strptime(request.session['qduration'], "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(request.session['qtime'], "%Y-%m-%d %H:%M:%S.%f")).seconds
 
     reqs = RequestStat(
             server = request.session['hostname'],
@@ -5076,7 +5076,7 @@ def endSelfMonitor(request):
             load = request.session['load'],
             mem = request.session['mem'],
             qduration = request.session['qduration'],
- #           duration = duration,
+            duration = duration,
             remote = request.session['remote'],
             urls = request.session['urls'],
             description=' '
