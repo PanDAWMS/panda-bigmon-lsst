@@ -309,22 +309,6 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 
 {% endif %}
 
-{% if containers %}
-<table>
-<tr class='tablesection'><th colspan=20> {{ containers|length }} containers </th></tr>
-<tr> <th> Parent task </th> <th> Container </th> <th> Status </th> <th> Request </th> <th> Group </th> </tr>
-{% for e in containers %}
-<tr>
-<td> <a href="{% url 'taskInfo' %}?jeditaskid={{ e.parent_task_id }}">{{ e.parent_task_id }}</a> </td>
-<td> {{ e.name }} </td>
-<td> {{ e.status }} </td>
-<td> {{ e.rid }} </td>
-<td>{{ e.phys_group }} </td>
-</tr>
-{% endfor %}
-</table>
-{% endif %}
-
 {% if datasets and not reqid %}
 <table>
 <tr class='tablesection'><th colspan=20> {{ datasets|length }} production system tasks </th></tr>
@@ -345,6 +329,22 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <td class='{{ e.status|lower }}_fill'>{{ e.status|lower }}</td> 
 <td> {{ e.phys_group }} </td>
 <td> {{ e.timestamp|date:"Y-m-d H:i" }} </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+{% if containers %}
+<table>
+<tr class='tablesection'><th colspan=20> {{ containers|length }} containers </th></tr>
+<tr> <th> Parent task </th> <th> Container </th> <th> Status </th> <th> Request </th> <th> Group </th> </tr>
+{% for e in containers %}
+<tr>
+<td> <a href="{% url 'taskInfo' %}?jeditaskid={{ e.parent_task_id }}">{{ e.parent_task_id }}</a> </td>
+<td> {{ e.name }} </td>
+<td> {{ e.status }} </td>
+<td> {{ e.rid }} </td>
+<td>{{ e.phys_group }} </td>
 </tr>
 {% endfor %}
 </table>
@@ -374,9 +374,43 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% if jedidatasets %}
 <table>
 <tr class='tablesection'><th colspan=20> {{ datasets|length }} JEDI datasets </th></tr>
-{% for e in jedidatasets %}
 <tr>
-<td> <a href="{% url 'datasetInfo' %}?datasetname={{ e.datasetname }}">{{ e.datasetname }}</a> </td>
+ <th rowspan=2>Task</th>
+ <th colspan=20> Dataset </th> </tr> 
+<tr>
+	<th>Type</th>
+	{% if dsrec.scope %} <th>Scope</th> {% endif %}
+	<th>Status</th>
+	<th>Nfiles <br> <span class='finished'>finished</span></th>
+	<th>Nfiles <br> <span class='failed'>failed</span></th>
+    <th>Nevents</th>
+	<th>Created</th>
+	<th>Modified</th>
+	<th>State</th>
+	<th>Stream</th>
+	<th>Token</th>
+	<th>ID</th>
+</tr>
+{% for dsrec in jedidatasets %}
+	<tr>
+		<td rowspan=2><a href="{% url 'taskInfo' %}?jeditaskid={{ dsrec.jeditaskid }}">{{ dsrec.jeditaskid }}</a></td>
+	 <td colspan=20> <font size=-1><a href="{% url 'datasetInfo' %}?datasetname={{ dsrec.datasetname }}">{{ dsrec.datasetname }}</a></font> </td></tr>
+    <tr>
+		<td>{{ dsrec.type }}</td>
+		{% if dsrec.scope %} <td>{{ dsrec.scope }}</td> {% endif %}
+		<td class='{{dsrec.status}}'>{{ dsrec.status }}</td>
+		<td><span class='finished'>{{ dsrec.nfilesfinished }}</span></td>
+		<td><span class='failed'>{{ dsrec.nfilesfailed }}</span></td>
+		<td>{{ dsrec.nevents }}</td>
+		<td>{{ dsrec.creationtime|date:"Y-m-d H:i" }}</td>
+		<td>{{ dsrec.modificationtime|date:"m-d H:i" }}</td>
+		<td>{{ dsrec.state }}</td>
+		<td>{{ dsrec.streamname }}</td>
+		<td>{{ dsrec.storagetoken }}</td>
+		<td>{{ dsrec.datasetid }}</td>
+	</tr>
+
+<tr>
 </tr>
 {% endfor %}
 </table>

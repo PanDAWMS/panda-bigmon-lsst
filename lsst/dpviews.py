@@ -535,7 +535,7 @@ def doRequest(request):
         else:
             messages.info(request, "%s slices found" % len(dsslices))
         print "Getting JEDI datasets matching '%s'" % dataset
-        jedidatasets = JediDatasets.objects.filter(datasetname=dataset).values()
+        jedidatasets = JediDatasets.objects.filter(datasetname__startswith=dataset).order_by('jeditaskid').values()
         if len(jedidatasets) == 0:
             pass # messages.info(request, "No matching JEDI datasets found")
         else:
