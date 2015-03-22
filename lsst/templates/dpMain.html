@@ -417,7 +417,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endif %}
 
 
-{% if jeditasks %}
+{% if njeditasks > 0 %}
 <table>
 <tr class='tablesection'><th colspan=20> {{ njeditasks }} JEDI tasks </th></tr>
 <tr> <th rowspan=2> Task ID</th> <th> Task info </th> <th> Status </th> <th> Group </th> <th> Cloud </th> <th> Cores </th> <th> RAM </th> <th> Modified </th> <th> Info </th> </tr>
@@ -592,6 +592,10 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
         &nbsp; totevs={{ task.total_events }}
     {% endif %}
 
+    {% if task.jeditask.progress %} &nbsp; progress={{ task.jeditask.progress }} {% endif %}
+
+    {% if task.jeditask.failurerate %} &nbsp; failurerate={{ task.jeditask.failurerate }} {% endif %}
+
     {% if task.jobstats %}
         &nbsp; last 3 days:
         <a href="{% url 'jobList' %}?jeditaskid={{task.id}}&prodsourcelabel=managed">
@@ -616,6 +620,13 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
     {% if task.update_time %}
         &nbsp; updated {{ task.update_time|date:"m-d H:i" }} by {{ task.update_owner }}
     {% endif %}
+
+    {% if task.jeditask.cloud %} &nbsp; cloud={{ task.jeditask.cloud }} {% endif %}
+    {% if task.jeditask.corecount %} &nbsp; cores={{ task.jeditask.corecount }} {% endif %}
+    {% if task.jeditask.ramcount %} &nbsp; ram={{ task.jeditask.ramcount }} {% endif %}
+    {% if task.jeditask.walltime %} &nbsp; wall={{ task.jeditask.walltime }} {% endif %}
+    {% if task.jeditask.currentpriority %} &nbsp; currentpriority={{ task.jeditask.currentpriority }} {% endif %}
+
     <br>
     &nbsp; &nbsp; &nbsp; &nbsp; Input <a href="/dp/?dataset={{ task.inputdataset }}">{{ task.inputdataset }}</a> <br>
     {% if task.dslist %}

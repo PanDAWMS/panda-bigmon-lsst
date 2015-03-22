@@ -48,7 +48,7 @@ viewParams = {}
 viewParams['MON_VO'] = ENV['MON_VO']
 
 req_fields = [ 'project_id', 'phys_group', 'campaign', 'manager', 'provenance', 'request_type', 'project', 'is_fast' ]
-jeditask_fields = [ 'jeditaskid', 'cloud', 'processingtype', 'superstatus', 'status', 'ramcount', 'walltime', 'currentpriority', 'transhome', 'corecount' ]
+jeditask_fields = [ 'jeditaskid', 'cloud', 'processingtype', 'superstatus', 'status', 'ramcount', 'walltime', 'currentpriority', 'transhome', 'corecount', 'progress', 'failurerate', ]
 
 # entity types supported in searches
 entitytypes = [
@@ -168,6 +168,7 @@ def doRequest(request):
     jobsum = []
     jobsumd = {}
     jeditaskstatus = {}
+    cloudtodo = {}
     if reqid:
         events_processed = {}
         ## Prepare information for the particular request
@@ -191,8 +192,12 @@ def doRequest(request):
                 i += 1
             ctag = "%s%s" % ( t['tag'], t['cid'] )
             amitagd[ctag] = t
+        jeditaskd = {}
         for t in jeditasks:
+            jeditaskd[t['jeditaskid']] = t
             jeditaskstatus[t['jeditaskid']] = t['superstatus']
+        for t in tasks:
+            if t['id'] in jeditaskd: t['jeditask'] = jeditaskd[t['id']]
 
         ## get records for input datasets
         indslist = []
@@ -215,6 +220,26 @@ def doRequest(request):
 
         for t in tasks:
             if t['id'] in taskdsdict: t['dslist'] = taskdsdict[t['id']]
+
+        ## get input dataset info associated with tasks
+        taskl = []
+        for t in tasks:
+            taskl.append(t['id'])
+        tdsquery = {}
+        tdsquery['jeditaskid__in'] = taskl
+        tdsquery['type'] = 'input'
+        tdsets = JediDatasets.objects.filter(**tdsquery).values('cloud','jeditaskid','nfiles','nfilesfinished','nfilesfailed')
+        cloudtodo = {}
+        if len(tdsets) > 0:
+            for ds in tdsets:
+                if jeditaskd[ds['jeditaskid']]['superstatus'] in ( 'broken', 'aborted' ) : continue
+                cloud = jeditaskd[ds['jeditaskid']]['cloud']  
+                if cloud not in cloudtodo:
+                    cloudtodo[cloud] = {}
+                    cloudtodo[cloud]['nfiles'] = 0
+                    cloudtodo[cloud]['nfilesfinished'] = 0
+                cloudtodo[cloud]['nfiles'] += ds['nfiles']
+                cloudtodo[cloud]['nfilesfinished'] += ds['nfilesfinished']
 
         ## add info to slices
         sliceids = {}
@@ -373,6 +398,10 @@ def doRequest(request):
                 cdtxt = []
                 for typ, tval in ntaskd[r['reqid']].items():
                     for cloud, cval in tval.items():
+                        if cloud in cloudtodo:
+                            tobedone = cloudtodo[cloud]['nfiles'] - cloudtodo[cloud]['nfilesfinished']
+                            txt = "%s %s     <b>%.0f%%</b> still to do (%s/%s inputs finished, <a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>%s to do</a>)" % ( typ, cloud, 100.*float(tobedone)/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfinished'], cloudtodo[cloud]['nfiles'], r['reqid'], cloud, typ, tobedone )
+                            cdtxt.append(txt)
                         for ncore, nval in cval.items():
                             txt = "%s %s %s-core: " % ( typ, cloud, ncore )
                             states = nval.keys()
