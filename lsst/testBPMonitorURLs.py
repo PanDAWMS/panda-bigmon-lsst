@@ -40,7 +40,8 @@ extendedtests = [
          { 'url' : '/jobs/?jobparam=*14_13TeV*|14_15TeV', 'isJSON': False},
          { 'url' : '/jobs/?jobparam=*14_13TeV*|14_15TeV', 'isJSON': True},
          { 'url' : '/jobs/?jeditaskid=4862100', 'isJSON': True},
-         { 'url' : '/tasks/?taskname=mc12_8TeV.227851.MadGraphPythia_AUET2B_CTEQ6L1_pMSSM_QCD_381934528_METFilter.merge.e3470_a220_a263_a264_r4540_p1328', 'isJSON': True}
+         { 'url' : '/tasks/?taskname=mc12_8TeV.227851.MadGraphPythia_AUET2B_CTEQ6L1_pMSSM_QCD_381934528_METFilter.merge.e3470_a220_a263_a264_r4540_p1328', 'isJSON': True},
+         { 'url' : '/task/?jeditaskid=1592496', 'isJSON': True}         
          ]
 
 #tests = tests + extendedtests

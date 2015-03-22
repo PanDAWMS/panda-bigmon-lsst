@@ -3189,8 +3189,6 @@ def taskList(request):
     flowstruct = buildGoogleFlowDiagram(request, tasks=tasks)
     xurl = extensibleURL(request)
     nosorturl = removeParam(xurl, 'sortby',mode='extensible')
-    print "step 1"
-
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         dump = json.dumps(tasks, cls=DateEncoder)
         del request.session['TFIRST']
@@ -3420,7 +3418,9 @@ def taskInfo(request, jeditaskid=0):
                 do_redirect = True
         except:
             pass
-        if do_redirect: 
+        if do_redirect:
+            del request.session['TFIRST']
+            del request.session['TLAST']
             return redirect('http://panda.cern.ch/?taskname=%s&overview=taskinfo' % jeditaskid)
         if taskrec:
             attrs.append({'name' : 'Status', 'value' : taskrec['status'] })
