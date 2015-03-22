@@ -46,7 +46,7 @@ extendedtests = [
          { 'url' : '/task/?jeditaskid=1592496', 'isJSON': True}         
          ]
 
-tests = tests + extendedtests
+#tests = tests + extendedtests
 
 def runTest(x):
     urlToTest = monURL+tests[x]['url']
@@ -69,7 +69,7 @@ def runTest(x):
     except URLError as e:
         testResult['status'] = e.reason
     else:
-        testResult['status'] = result.getcode().code
+        testResult['status'] = result.getcode()
     endtime = time.time()
     testResult['timeToPerform'] = endtime - starttime
     return testResult
