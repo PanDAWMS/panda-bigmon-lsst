@@ -63,6 +63,9 @@ requesttable = Table('request', connection=dyndb)
 
 def doRequest(request):
 
+    ## Set default page lifetime in the http header, for the use of the front end cache
+    request.session['max_age_minutes'] = 6
+
     ## by default, show main intro
     mode = 'intro'
     if 'mode' in request.GET: mode = request.GET['mode']
@@ -78,7 +81,7 @@ def doRequest(request):
 
         ## if POST, we have a form input to process
         formdata = request.POST.copy()
-        requestParams = formdata
+        request.session['requestParams'] = formdata
         #if 'action' in request.POST and request.POST['action'] == 'edit_from_db':
 
         if request.user.is_authenticated():
@@ -100,7 +103,7 @@ def doRequest(request):
 
     else:
         ## GET
-        requestParams = request.GET.copy()
+        request.session['requestParams'] = request.GET.copy()
         for f in req_fields:
             if f in request.GET:
                 query[f] = request.GET[f]
@@ -115,7 +118,7 @@ def doRequest(request):
         else:
             query['reqid__gte'] = 920
 
-    if 'nosearch' in requestParams: nosearch = True
+    if 'nosearch' in request.session['requestParams']: nosearch = True
     else: nosearch = False
 
     #projects = projecttable.scan()
@@ -544,7 +547,7 @@ def doRequest(request):
         ## check for jobs with output destined for this dataset
         files = []
         query = { 'dataset' : dataset }
-        if 'pandaid' in requestParams: query['pandaid'] = requestParams['pandaid']
+        if 'pandaid' in request.session['requestParams']: query['pandaid'] = request.session['requestParams']['pandaid']
         #files.extend(Filestable4.objects.filter(dataset=dataset,type='output').order_by('pandaid').values())
         #files.extend(FilestableArch.objects.filter(dataset=dataset,type='output').order_by('pandaid').values())
         #if len(files) == 0: messages.info(request, "No PanDA jobs creating files for this dataset found")
@@ -563,11 +566,11 @@ def doRequest(request):
             evpl.append([e, float(events_processed[e])/1000.])
         events_processed = evpl
 
-    if 'sortby' in requestParams:
+    if 'sortby' in request.session['requestParams']:
         if reqs:
-            if requestParams['sortby'] == 'reqid':
+            if request.session['requestParams']['sortby'] == 'reqid':
                 reqs = sorted(reqs, key=lambda x:x['reqid'], reverse=True)
-            if requestParams['sortby'] == 'timestamp':
+            if request.session['requestParams']['sortby'] == 'timestamp':
                 reqs = sorted(reqs, key=lambda x:x['timestamp'], reverse=True)
     if len(reqs) > 0 and 'info_fields' in reqs[0] and reqs[0]['info_fields']:
         info_fields = json.loads(reqs[0]['info_fields'])
@@ -613,6 +616,7 @@ def doRequest(request):
         'tidnum' : tidnum,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
+    patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
     return response
 
 def attSummaryDict(request, reqs, flist):
