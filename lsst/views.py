@@ -5067,12 +5067,16 @@ def initSelfMonitor(request):
 def endSelfMonitor(request):
     qduration=str(timezone.now())
     request.session['qduration'] = qduration
+
+    duration = (datetime.strptime(request.session['qduration'], "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(request.session['qtime'], "%Y-%m-%d %H:%M:%S.%f")).seconds
+
     reqs = RequestStat(
             server = request.session['hostname'],
             qtime = request.session['qtime'],
             load = request.session['load'],
             mem = request.session['mem'],
             qduration = request.session['qduration'],
+            duration = duration,
             remote = request.session['remote'],
             urls = request.session['urls'],
             description=' '
