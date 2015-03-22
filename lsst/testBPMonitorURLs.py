@@ -2,11 +2,13 @@
 from multiprocessing import Pool
 from datetime import datetime, timedelta
 import urllib2, socket, time, os, commands
+from urllib2 import HTTPError
+
 
 numOfProcesses = 10 # be careful with this value on production systems
 timeOutForQuery = 301 # in seconds
-monHost = 'localhost'
-monPort = '10080'
+monHost = 'aipanda022.cern.ch'
+monPort = '80'
 
 if "PANDAMON_HOST" in os.environ:
         monHost = os.environ['PANDAMON_HOST']
@@ -44,7 +46,7 @@ extendedtests = [
          { 'url' : '/task/?jeditaskid=1592496', 'isJSON': True}         
          ]
 
-#tests = tests + extendedtests
+tests = tests + extendedtests
 
 def runTest(x):
     urlToTest = monURL+tests[x]['url']
@@ -62,8 +64,12 @@ def runTest(x):
         result = urllib2.urlopen(req, timeout = timeOutForQuery)
     except socket.timeout as e:
         testResult['status'] = -1
+    except HTTPError as e:
+        testResult['status'] = e.code
+    except URLError as e:
+        testResult['status'] = e.reason
     else:
-        testResult['status'] = result.getcode()
+        testResult['status'] = result.getcode().code
     endtime = time.time()
     testResult['timeToPerform'] = endtime - starttime
     return testResult
