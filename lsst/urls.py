@@ -65,8 +65,8 @@ urlpatterns = patterns('',
 
 
     ###self monitor
-    url(r'^reqplot/$', lsstmon_views.listReqPlot, name='listReqs'),
-    
+    url(r'^admin/', include('lsst.admin.urls', namespace='admin')),
+
     ### api
     url(r'^api/$', core_lsstmon_support_views.maxpandaid, name='supportRoot'),
 #    url(r'^api/reprocessing/$', include('core.api.reprocessing.urls')),

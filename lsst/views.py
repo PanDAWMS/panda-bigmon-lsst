@@ -5068,8 +5068,10 @@ def endSelfMonitor(request):
     qduration=str(timezone.now())
     request.session['qduration'] = qduration
 
-    duration = (datetime.strptime(request.session['qduration'], "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(request.session['qtime'], "%Y-%m-%d %H:%M:%S.%f")).seconds
-
+    try:
+        duration = (datetime.strptime(request.session['qduration'], "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(request.session['qtime'], "%Y-%m-%d %H:%M:%S.%f")).seconds
+    except:
+        duration =0
     reqs = RequestStat(
             server = request.session['hostname'],
             qtime = request.session['qtime'],
@@ -5082,73 +5084,3 @@ def endSelfMonitor(request):
             description=' '
     )
     reqs.save()
-
-def listReqPlot(request):
-    valid, response = initRequest(request)
-    if not valid: return response
-
-    LAST_N_HOURS_MAX=7*24
-    limit=5000
-    if 'hours' in request.session['requestParams']:
-        LAST_N_HOURS_MAX = int(request.session['requestParams']['hours'])
-    if 'days' in request.session['requestParams']:
-        LAST_N_HOURS_MAX = int(request.session['requestParams']['days'])*24
-
-    if u'display_limit' in request.session['requestParams']:
-        display_limit = int(request.session['requestParams']['display_limit'])
-    else:
-        display_limit = 1000
-    nmax = display_limit
-
-    if LAST_N_HOURS_MAX>=168:
-       flag=12
-    elif LAST_N_HOURS_MAX>=48:
-       flag=6
-    else:
-       flag=2
-
-    startdate = None
-    if not startdate:
-        startdate = timezone.now() - timedelta(hours=LAST_N_HOURS_MAX)
-    enddate = None
-    if enddate == None:
-        enddate = timezone.now()#.strftime(defaultDatetimeFormat)
-
-    query = { 'qtime__range' : [startdate.strftime(defaultDatetimeFormat), enddate.strftime(defaultDatetimeFormat)] }
-
-    values = 'urls', 'qtime','remote','qduration'
-    reqs=[]
-    #reqs = RequestStat.objects.filter(**query).order_by('-id')[:limit].values(*values)
-    reqs = RequestStat.objects.filter(**query).values(*values)
-    reqHist = {}
-
-    mons=[]
-    for req in reqs:
-        mon={}
-        mon['duration'] = (req['qduration'] - req['qtime']).seconds
-        mon['urls'] = req['urls']
-        mon['remote'] = req['remote']
-        mon['qduration']=req['qduration'].strftime('%Y-%m-%d %H:%M:%S')
-        mon['qtime'] =  req['qtime'].strftime('%Y-%m-%d %H:%M:%S')
-        mons.append(mon)
-
-        ##plot
-        tm=req['qtime']
-        tm = tm - timedelta(hours=tm.hour % flag, minutes=tm.minute, seconds=tm.second, microseconds=tm.microsecond)
-        if not tm in reqHist: reqHist[tm] = 0
-        reqHist[tm] += 1
-
-    kys = reqHist.keys()
-    kys.sort()
-    reqHists = []
-    for k in kys:
-        reqHists.append( [ k, reqHist[k] ] )
-
-    data = {\
-       'mons': mons[:nmax],
-       'nmax': nmax,
-       'reqHist': reqHists,\
-    }
-
-    return render_to_response('req_plot.html', data, RequestContext(request))
-
