@@ -136,7 +136,8 @@ def listReqPlot(request):
        'nmax': nmax,
        'request': request,
        'reqPages': reqPages,
-       'url' : extensibleURL(request),
+       #'url' : extensibleURL(request),
+       'url' : request.path,
        'drHist': drcount,
        'reqHist': reqHists,\
     }
