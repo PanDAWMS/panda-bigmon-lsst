@@ -17,30 +17,45 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from core.common.models import RequestStat
 from core.common.settings.config import ENV
 from time import gmtime, strftime
-
+from core.common.models import Users
 
 from lsst.views import initRequest
 from lsst.views import extensibleURL
+from django.http import HttpResponseRedirect
+
 
 def login(request):
-    if len(request.session['userdn'])==0:
-       return redirect('https://bigpanda.cern.ch')
-    return True
-    
-def logout(request):
-    try:
-        del request.session['member_id']
-    except KeyError:
-        pass
-    return HttpResponse("You're logged out.")    
 
+    if 'userdn' in request.session:
+        userrec = Users.objects.filter(dn__startswith=request.session['userdn']).values()
+        if len(userrec) > 0:
+           request.session['username'] = userrec[0]['name']
+           return True,None
+    else:
+        try:
+           url="https://"+request.META['SERVER_NAME']+request.META['REQUEST_URI']
+        except:
+           url=''
+        data = {
+                'viewParams' : request.session['viewParams'],
+                'requestParams' : request.session['requestParams'],
+                'url': url,
+                "errormessage" : "No valid client certificate found.",\
+               }
+        return False, render_to_response('adError.html', data, RequestContext(request))
+ 
 def adMain(request):
-
+   
     valid, response = initRequest(request)
     if not valid: return response
 
+    valid, response = login(request)
+    if not valid: return response
+
+    
     data = {\
        'request': request,
+       'user': request.session['username'],
        'url' : request.path,\
     }
 
@@ -48,6 +63,9 @@ def adMain(request):
 
 def listReqPlot(request):
     valid, response = initRequest(request)
+    if not valid: return response
+
+    valid, response = login(request)
     if not valid: return response
 
     sortby='id'
@@ -135,8 +153,8 @@ def listReqPlot(request):
        'mons': mons[:nmax],
        'nmax': nmax,
        'request': request,
+       'user': request.session['username'],
        'reqPages': reqPages,
-       #'url' : extensibleURL(request),
        'url' : request.path,
        'drHist': drcount,
        'reqHist': reqHists,\

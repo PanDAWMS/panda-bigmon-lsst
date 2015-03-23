@@ -18,6 +18,7 @@
 {% include "googleFlowDiagram.html" with struct=flowstruct %}
 {% endif %}
 
+
 {% if reqHist %}
 
     <script type="text/javascript">
@@ -59,7 +60,7 @@
 
             ])
         var options = {
-          title: 'Query Duration',
+          title: 'Duration Count timeline',
           legend: { position: 'none' },
           hAxis: {title: 'Duration (empty bins suppressed)', titleTextStyle: {color: 'black'},  textStyle: { fontSize:11},},
         };
