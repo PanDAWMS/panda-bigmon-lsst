@@ -149,13 +149,19 @@ def listReqPlot(request):
     except EmptyPage:
         reqPages = paginator.page(paginator.num_pages)
 
+    url= request.get_full_path()
+    if url.count('?')>0:
+       url += '&'
+    else:
+       url += '?'
+
     data = {\
        'mons': mons[:nmax],
        'nmax': nmax,
        'request': request,
        'user': request.session['username'],
        'reqPages': reqPages,
-       'url' : request.path,
+       'url' : url,
        'drHist': drcount,
        'reqHist': reqHists,\
     }
