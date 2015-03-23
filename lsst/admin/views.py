@@ -20,6 +20,31 @@ from time import gmtime, strftime
 
 
 from lsst.views import initRequest
+from lsst.views import extensibleURL
+
+def login(request):
+    if len(request.session['userdn'])==0:
+       return redirect('https://bigpanda.cern.ch')
+    return True
+    
+def logout(request):
+    try:
+        del request.session['member_id']
+    except KeyError:
+        pass
+    return HttpResponse("You're logged out.")    
+
+def adMain(request):
+
+    valid, response = initRequest(request)
+    if not valid: return response
+
+    data = {\
+       'request': request,
+       'url' : request.path,\
+    }
+
+    return render_to_response('adMain.html', data, RequestContext(request))
 
 def listReqPlot(request):
     valid, response = initRequest(request)
@@ -111,7 +136,7 @@ def listReqPlot(request):
        'nmax': nmax,
        'request': request,
        'reqPages': reqPages,
-       'url' : request.path,
+       'url' : extensibleURL(request),
        'drHist': drcount,
        'reqHist': reqHists,\
     }

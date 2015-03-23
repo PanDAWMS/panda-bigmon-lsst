@@ -9,6 +9,6 @@ from django.conf import settings
 from lsst.admin import views as adviews
 
 urlpatterns = patterns('',
+    url(r'^$', adviews.adMain, name='adMain'),
     url(r'^reqplot/$', adviews.listReqPlot, name='reqPlot'),
-    url(r'^$', adviews.listReqPlot, name='reqPlot'),
 )

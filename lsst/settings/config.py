@@ -6,6 +6,8 @@ import lsst
 import filebrowser
 import pbm
 
+from lsst import admin
+
 #from local import defaultDatabase, MY_SECRET_KEY
 from local import dbaccess, MY_SECRET_KEY
 
@@ -37,6 +39,7 @@ TEMPLATE_DIRS = (
     # Always use forward slashes, even on Windows.
     # Don't forget to use absolute paths, not relative paths.
     join(dirname(lsst.__file__), 'templates'),
+    join(dirname(admin.__file__), 'templates'),
     join(dirname(core.common.__file__), 'templates'),
     join(dirname(filebrowser.__file__), 'templates'),
     join(dirname(pbm.__file__), 'templates'),
