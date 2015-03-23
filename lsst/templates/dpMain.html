@@ -176,27 +176,31 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <table>
 <tr class='tablesection'>
 <th> <a href="{{ nosorturl }}sortby=reqid">Request</a> </th>
-<th> Group </th>
-<th> Description <br>Slices &nbsp; GeV &nbsp;  Reference link
+<th> Group <br> Manager </th>
+<th> Description <br>Slices &nbsp; GeV &nbsp;  Provenance &nbsp; Reference link
 <br><font color='brown'>Comment</font>
 </th>
 <th> Project
-<br> Campaign </th>
-<th> Manager </th>
-<th> Provenance
+<br> Campaign
 <br> Type </th>
-<th> Request status </th>
+<th> Status </th>
 <th> <a href="{{ nosorturl }}sortby=timestamp">Timestamp</a> </th>
-<th> Fast </th>
 </tr>
+
 {% for request in requests %}
 <tr>
-<td> <a href="{{ xurl }}reqid={{ request.reqid }}">{{ request.reqid }}</a> </td>
-<td> <a href="{{ xurl }}phys_group={{ request.phys_group }}">{{ request.phys_group }}</a> </td>
-<td> <b>{{ request.description }}</b>
+<td rowspan=1> <a href="{{ xurl }}reqid={{ request.reqid }}">{{ request.reqid }}</a> </td>
+<td rowspan=1> <a href="{{ xurl }}phys_group={{ request.phys_group }}">{{ request.phys_group }}</a>
+<br>
+<a href="{{ xurl }}manager={{ request.manager }}">{{ request.manager|slice:":14" }}</a>
+ </td>
+<td rowspan=1> <b>{{ request.description }}</b>
 <br>
 {% if request.nslices %} {{ request.nslices }} slices &nbsp; {% endif %}
 {{ request.energy_gev }} GeV
+{% if request.provenance %}
+&nbsp; Provenance:<a href="{{ xurl }}provenance={{ request.provenance }}">{{ request.provenance }}</a>
+{% endif %}
 {% if request.ref_link %}
 &nbsp; <a href="{{ request.ref_link }}">{{ request.ref_link_path }}</a>
 {% endif %}
@@ -210,31 +214,6 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endfor %}
 {% endif %}
 
-{% if request.nrequestedevents %}
-<br>Requested events: &nbsp; {{ request.nrequestedevents }}k
-{% endif %}
-
-{% if request.nprocessedevents %}
-<br>Produced events: 
-{% for istep in request.nprocessedevents %}
-&nbsp; <b> {{ istep.0 }}</b>:{{ istep.1 }}k
-{% endfor %}
-{% endif %}
-
-{% if request.completedevpct %}
-<br>% events completed: 
-{% for istep in request.completedevpct %}
-&nbsp; <b> {{ istep.0 }}</b>:{{ istep.1 }}%
-{% endfor %}
-{% endif %}
-
-{% if request.jobsumd %}
-<br> Produced events, last 3 days, from job info:
-{% for j in request.jobsumd %}
-&nbsp; <b>{{ j.0 }}</b>:{{ j.1 }}k
-{% endfor %}
-{% endif %}
-
 {% if request.clouddisttxt %}
 <br><b>Cloud/core task distribution: (JEDI tasks active in last 30 days)</b>
 {% for line in request.clouddisttxt %}
@@ -244,6 +223,14 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 
 {% if request.jobdisttxt %}
 <br><b>Cloud/core event production: (PanDA jobs completed in last 3 days)</b>
+
+{% if request.jobsumd %}
+<br> &nbsp; &nbsp; Totals:
+{% for j in request.jobsumd %}
+&nbsp; <b>{{ j.0 }}</b>:{{ j.1 }}k
+{% endfor %}
+{% endif %}
+
 {% for line in request.jobdisttxt %}
 <br> &nbsp; &nbsp; {{ line|safe }}
 {% endfor %}
@@ -251,21 +238,169 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 
 {% if request.comment %} <br><font color='brown'>{{ request.comment }}</font> {% endif %}
 </td>
-<td> <a href="{{ xurl }}project_id={{ request.project_id }}">{{ request.project_id }}</a>
+<td rowspan=1> <a href="{{ xurl }}project_id={{ request.project_id }}">{{ request.project_id }}</a>
 {% if request.campaign != request.project_id %}
 <br> <a href="{{ xurl }}campaign={{ request.campaign }}">{{ request.campaign|slice:":15" }}</a> {{ request.sub_campaign }}
 {% endif %}
+<br>
+{% if request.is_fast == True %} <a href="{{ xurl }}is_fast=True">Fast</a> {% endif %} 
+ <a href="{{ xurl }}request_type={{ request.request_type }}">{{ request.request_type|slice:":6" }}</a> </td>
 </td>
-<td> <a href="{{ xurl }}manager={{ request.manager }}">{{ request.manager|slice:":14" }}</a> </td>
-<td> <a href="{{ xurl }}provenance={{ request.provenance }}">{{ request.provenance }}</a>
-<br> <a href="{{ xurl }}request_type={{ request.request_type }}">{{ request.request_type|slice:":6" }}</a> </td>
- <td class='{{request.cstatus}}_fill' > {{ request.cstatus }}
- {% comment %} {% if request.status !=  request.cstatus %} <br> {{ request.status }} {% endif %} {% endcomment %} </td>
-<td> {{ request.timestamp|date:"Y-m-d H:i" }} </td>
-<td> {% if request.is_fast == True %} <a href="{{ xurl }}is_fast=True">Fast</a> {% endif %} </td>
+ <td width=170 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; padding: 0; border-spacing: 0; "  border=0 padding=0 cellspacing=0>
+
+<table width='100%' border=0 padding=0 cellspacing=0 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; font-size:9pt" >
+{% if request.nrequestedevents %}
+    <tr><td class='statustable'> {{ request.nrequestedevents }}k evs requested </td></tr>
+{% endif %}
+
+{% if request.cstatus != 'processed' %}
+<tr><td class='{{request.cstatus}}_fill statustable'> request {{ request.cstatus }} </td></tr>
+{% elif not request.completedevpct and not request.nprocessedevents %}
+<tr><td class='statustable'> request {{ request.cstatus }} </td></tr>
+{% endif %}
+
+{% if request.completedevpct %}
+{% for istep in request.completedevpct %}
+<tr><td class='statustable'>
+<label for="progress-{{ request.reqid }}-{{ istep.0 }}">{{ istep.0 }}: {{ istep.1 }}%</label>
+<progress max="100" value="{{ istep.1 }}" id="progress-{{ request.reqid }}-{{ istep.0 }}" style="font-size:9pt"></progress>
+</td></tr>
+{% endfor %}
+{% elif request.nprocessedevents %}
+{% for istep in request.nprocessedevents %}
+<tr><td class='statustable'>
+{{ istep.0 }}: {{ istep.1 }}k evs
+</td></tr>
+{% endfor %}
+{% endif %}
+
+
+{% comment %}
+
+<tr><td>
+<label for="progress0">Progress: 80%</label>
+<progress max="100" value="80" id="progress0">
+    <div class="progress-bar">
+        <span style="width: 80%;">Progress: 80%</span>
+    </div>
+</progress>
+</td></tr>
+
+<tr><td>
+<label for="progress1">Progress: 40%</label>
+			<progress max="1" value=".40" id="progress1"></progress>
+</td></tr>
+
+<tr><td>
+<table class='statustable' width='100%' border=0 padding=0 cellspacing=0 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; font-size:9pt" >
+<tr class='statustable' style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; padding: 0; border-spacing: 0;>
+<td width='20%' class='finished_fill statustable' style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; padding: 0; border-spacing: 0; "> &nbsp; </td>
+<td width='80%' class='statustable'> &nbsp; </td></tr>
+</table>
+</td></tr>
+
+{% endcomment %}
+
+</table>
+
+</td>
+<td rowspan=1> <font size=-1>{{ request.timestamp|date:"Y-m-d H:i" }} </font></td>
 </tr>
+
 {% endfor %}
 </table>
+
+<STYLE type="text/css">
+.statustable {
+font-size : 10pt;
+margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em;
+}
+
+progress[value] {
+  /* Reset the default appearance */
+  -webkit-appearance: none;
+   appearance: none;
+  border: none;
+  width: 100%;
+  height: 100%;
+}
+
+progress[value]::-webkit-progress-bar {
+  background-color: #fff;
+  border-radius: 0px;
+  box-shadow: 0 0px 0px rgba(0, 0, 0, 0.25) inset;
+}
+
+.progress-bar {
+  background-color: whiteSmoke;
+  border-radius: 2px;
+  box-shadow: 0 0px 0px rgba(0, 0, 0, 0.25) inset;
+
+  width: 100%;
+  height: 100%;
+  
+  position: relative;
+  display: block;
+}
+  
+.progress-bar > span {
+  background-color: green;
+  border-radius: 2px;
+
+  display: block;
+  text-indent: 0px;
+  content: 'Text';
+}
+
+progress[role] {
+	display: inline-block;
+	position: relative;
+	width: 10em;
+	height: 1em;
+	vertical-align: -.2em;
+	background-image: url('data:image/gif;base64,R0lGODlhIAAQAIABAP///wAAACH/C05FVFNDQVBFMi4wAwEAAAAh/wtYTVAgRGF0YVhNUDw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wTU09Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9tbS8iIHhtbG5zOnN0UmVmPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvc1R5cGUvUmVzb3VyY2VSZWYjIiB4bWxuczp4bXA9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC8iIHhtcE1NOk9yaWdpbmFsRG9jdW1lbnRJRD0ieG1wLmRpZDowMTgwMTE3NDA3MjA2ODExODE3QTgyOEM0MzAwRkUyMyIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDo3NEY2MUMyQTlDMzgxMUUwOUFFQ0M4MEYwM0YzNUE2RCIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDo3NEY2MUMyOTlDMzgxMUUwOUFFQ0M4MEYwM0YzNUE2RCIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IE1hY2ludG9zaCI+IDx4bXBNTTpEZXJpdmVkRnJvbSBzdFJlZjppbnN0YW5jZUlEPSJ4bXAuaWlkOjAxODAxMTc0MDcyMDY4MTE4MTdBODI4QzQzMDBGRTIzIiBzdFJlZjpkb2N1bWVudElEPSJ4bXAuZGlkOjAxODAxMTc0MDcyMDY4MTE4MTdBODI4QzQzMDBGRTIzIi8+IDwvcmRmOkRlc2NyaXB0aW9uPiA8L3JkZjpSREY+IDwveDp4bXBtZXRhPiA8P3hwYWNrZXQgZW5kPSJyIj8+Af/+/fz7+vn49/b19PPy8fDv7u3s6+rp6Ofm5eTj4uHg397d3Nva2djX1tXU09LR0M/OzczLysnIx8bFxMPCwcC/vr28u7q5uLe2tbSzsrGwr66trKuqqainpqWko6KhoJ+enZybmpmYl5aVlJOSkZCPjo2Mi4qJiIeGhYSDgoGAf359fHt6eXh3dnV0c3JxcG9ubWxramloZ2ZlZGNiYWBfXl1cW1pZWFdWVVRTUlFQT05NTEtKSUhHRkVEQ0JBQD8+PTw7Ojk4NzY1NDMyMTAvLi0sKyopKCcmJSQjIiEgHx4dHBsaGRgXFhUUExIREA8ODQwLCgkIBwYFBAMCAQAAIfkECQoAAQAsAAAAACAAEAAAAiwMjqkQ7Q/bmijaR+ndee7bLZ8VKmNUJieUVqvTHi8cz1Jtx0yOz7pt6L10BQAh+QQJCgABACwAAAAAIAAQAAACLYwNqctwD2GbKtpH6d157ts1nxUyY1Qup5QmK9Y6LxLPdGsHsTvv8uuzBXuhAgAh+QQJCgABACwAAAAAIAAQAAACLIx/oMsNCKNxdMk7K8VXbx55DhiKDAmZJ5qoFhu4LysrcFzf9QPvet4D0igFACH5BAkKAAEALAAAAAAgABAAAAIsjI8Hy+2QYnyUyWtqxVdvnngUGIoOiZgnmqkWG7gvKy9wXN81BO963gPSGAUAIfkECQoAAQAsAAAAACAAEAAAAixEjqkB7Q/bmijaR+ndee7bLZ8VKmNUJieUVqvTHi8cz1Jtx0yOz7pt6L10BQAh+QQJCgABACwAAAAAIAAQAAACLYQdqctxD2GbKtpH6d157ts1nxUyY1Qup5QmK9Y6LxLPdGsDsTvv8uuzBXuhAgAh+QQJCgABACwAAAAAIAAQAAACLIR/ocsdCKNxdMk7K8VXbx55DhiKDAmZJ5qoFgu4LysrcFzf9QPvet4D0igFACH5BAUKAAEALAAAAAAgABAAAAIshI8Xy+2RYnyUyWtqxVdvnngUGIoOiZgnmqkWC7gvKy9wXN81BO963gPSGAUAOw==');
+	
+	-moz-box-sizing: border-box;
+	box-sizing: border-box;
+}
+
+progress[role],
+progress[aria-valuenow]:before {
+	background-color: #5af;
+}
+
+progress[role],
+progress[role]:after {
+	background-repeat:repeat-x;
+	background-position: 0 0;
+	-moz-background-size: auto 100%;
+	-webkit-background-size: auto 100%;
+	background-size: auto 100%;
+}
+
+/* Determinate only overrides */
+progress[aria-valuenow] {
+	background: #eee;
+}
+
+progress[aria-valuenow]:before {
+	content: "";
+	display: block;
+	height: 100%;
+}
+
+/* Overlay */
+progress[role]:after {
+	content: "";
+	position: absolute;
+	top: 0;
+	right: 0;
+	bottom: 0;
+	left: 0;
+	background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAA6lpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuMC1jMDYwIDYxLjEzNDc3NywgMjAxMC8wMi8xMi0xNzozMjowMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczpkYz0iaHR0cDovL3B1cmwub3JnL2RjL2VsZW1lbnRzLzEuMS8iIHhtbG5zOnhtcE1NPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvbW0vIiB4bWxuczpzdFJlZj0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL3NUeXBlL1Jlc291cmNlUmVmIyIgeG1wOkNyZWF0b3JUb29sPSJBZG9iZSBQaG90b3Nob3AgQ1M1IE1hY2ludG9zaCIgeG1wTU06SW5zdGFuY2VJRD0ieG1wLmlpZDpFRTE5QjlCQTlDMkQxMUUwOUFFQ0M4MEYwM0YzNUE2RCIgeG1wTU06RG9jdW1lbnRJRD0ieG1wLmRpZDowNkRFQUIzNjlDMkUxMUUwOUFFQ0M4MEYwM0YzNUE2RCI+IDxkYzp0aXRsZT4gPHJkZjpBbHQ+IDxyZGY6bGkgeG1sOmxhbmc9IngtZGVmYXVsdCI+Z3JhZGllbnQ8L3JkZjpsaT4gPC9yZGY6QWx0PiA8L2RjOnRpdGxlPiA8eG1wTU06RGVyaXZlZEZyb20gc3RSZWY6aW5zdGFuY2VJRD0ieG1wLmlpZDpFRTE5QjlCODlDMkQxMUUwOUFFQ0M4MEYwM0YzNUE2RCIgc3RSZWY6ZG9jdW1lbnRJRD0ieG1wLmRpZDpFRTE5QjlCOTlDMkQxMUUwOUFFQ0M4MEYwM0YzNUE2RCIvPiA8L3JkZjpEZXNjcmlwdGlvbj4gPC9yZGY6UkRGPiA8L3g6eG1wbWV0YT4gPD94cGFja2V0IGVuZD0iciI/Pq477Q0AAAD2SURBVHjaxFIxDsIwDLRF/1AmRp7AM9iYWHkD76AP6h9Qi1SGfqAMqGJg6XA4jts0RUwZiKLEsZ3L+Rwmoi0lDC6Ky4rAMuGO5DY5iuWH93oDegMuK8QA7JIYCMDpvwDDMBzNHCGtONYq2enjHKYLMObCp7dtu/+FDppDgyJpTemsrm/9l7L2ku4aUy4BTEmKR1hmVXV9OjfsqlqC7irAhBKxDnmOQdPc+ynKMXdenEELAFmzrnu8RoK6jpRhHkGJmFgdXmsByNf5Wx+fJPbigEI3OKrB77Bfy2VZzppqC0IfAtlIAusC9CNtUn/iIRXgnALwEWAA/+5+ZNOapmcAAAAASUVORK5CYII=');
+}
+</STYLE>
+
 {% endif %}
 
 {% if reqid %}
@@ -562,6 +697,7 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
     {% if step.step_appr_time %} &nbsp; approved {{ step.step_appr_time|date:"m-d H:i" }} {% endif %}
     {% if step.step_exe_time %} &nbsp; exe {{ step.step_exe_time|date:"m-d H:i" }} {% endif %}
     {% if step.step_done_time %} &nbsp; done {{ step.step_done_time|date:"m-d H:i" }} {% endif %}
+    &nbsp; &nbsp; Input events {{ step.input_events }}
 <br>
 {% if step.ctagdetails %}
  &nbsp; &nbsp; ctag {{ step.ctag.ctag }} created by {{ step.ctagdetails.createdby }}
@@ -667,6 +803,235 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
 {% endfor %}
 </table>
 {% endif %}
+
+
+<script language=javascript type='text/javascript'>
+
+/*
+ * <progress> polyfill
+ * Don't forget to also include progress-polyfill.css!
+ * @author Lea Verou http://leaverou.me
+ */
+ 
+(function(){
+
+// Test browser support first
+if('position' in document.createElement('progress')) {
+	return;
+}
+
+/**
+ * Private functions
+ */
+
+// Smoothen out differences between Object.defineProperty
+// and __defineGetter__/__defineSetter__
+var defineProperty, supportsEtters = true;
+
+if(Object.defineProperty) {
+	// Changed to fix issue #3 https://github.com/LeaVerou/HTML5-Progress-polyfill/issues/3
+	defineProperty = function(o, property, etters) {
+		etters.enumerable = true;
+		etters.configurable = true;
+		
+		try {
+			Object.defineProperty(o, property, etters);
+		} catch(e) {
+			if(e.number === -0x7FF5EC54) {
+				etters.enumerable = false;
+				Object.defineProperty(o, property, etters);
+			}
+		}
+	}
+}
+else {
+	if ('__defineSetter__' in document.body) {
+		defineProperty = function(o, property, etters) {
+			o.__defineGetter__(property, etters.get);
+			
+			if(etters.set) {
+				o.__defineSetter__(property, etters.set);
+			}
+		};
+	}
+	else {
+		// Fallback to regular properties if getters/setters are not supported
+		defineProperty = function(o, property, etters) {
+				o[property] = etters.get.call(o);
+			},
+			supportsEtters = false;
+	}
+}
+
+try {
+	[].slice.apply(document.images)
+	
+	var arr = function(collection) {
+		return [].slice.apply(collection);
+	}
+} catch(e) {
+	var arr = function(collection) {
+		var ret = [], len = collection.length;
+		
+		for(var i=0; i<len; i++) {
+			ret[i] = collection[i];
+		}
+		
+		return ret;
+	}
+}
+
+// Does the browser use attributes as properties? (IE8- bug)
+var attrsAsProps = (function(){
+	var e = document.createElement('div');
+	e.foo = 'bar';
+	return e.getAttribute('foo') === 'bar';
+})();
+
+var self = window.ProgressPolyfill = {
+	DOMInterface: {
+		max: {
+			get: function(){
+				return parseFloat(this.getAttribute('aria-valuemax')) || 1;
+			},
+			
+			set: function(value) {
+				this.setAttribute('aria-valuemax', value);
+				
+				if(!attrsAsProps) {
+					this.setAttribute('max', value);
+				}
+				
+				self.redraw(this);
+			}
+		},
+		
+		value: {
+			get: function(){
+				return parseFloat(this.getAttribute('aria-valuenow')) || 0;
+			},
+			
+			set: function(value) {
+				this.setAttribute('aria-valuenow', value);
+				
+				if(!attrsAsProps) {
+					this.setAttribute('value', value);
+				}
+				
+				self.redraw(this);
+			}
+		},
+		
+		position: {
+			get: function(){
+				return this.hasAttribute('aria-valuenow')? this.value/this.max : -1;
+			}
+		},
+		
+		labels: {
+			get: function(){
+				var label = this.parentNode;
+				
+				while(label && !/^label$/i.test(label.nodeName)) {
+					label = label.parentNode;
+				}
+				
+				var labels = label? [label] : [];
+				
+				if(this.id && document.querySelectorAll) {
+					var forLabels = arr(document.querySelectorAll('label[for="' + this.id + '"]'));
+					
+					if(forLabels.length) {
+						labels = labels.concat(forLabels);
+					}
+				}
+				
+				return labels;
+			}
+		}
+	},
+	
+	redraw: function redraw(progress) {
+		if(!self.isInited(progress)) {
+			self.init(progress);
+		}
+		else if(!attrsAsProps) {
+			progress.setAttribute('aria-valuemax', parseFloat(progress.getAttribute('max')) || 1);
+			
+			if(progress.hasAttribute('value')) {
+				progress.setAttribute('aria-valuenow', parseFloat(progress.getAttribute('value')) || 0);
+			}
+			else {
+				progress.removeAttribute('aria-valuenow');
+			}
+		}
+		    
+		if(progress.position !== -1) {
+		   progress.style.paddingRight = progress.offsetWidth * (1-progress.position) + 'px';
+		}
+	},
+	
+	isInited: function(progress) {
+		return progress.getAttribute('role') === 'progressbar';
+	},
+	
+	init: function (progress) {
+		if(self.isInited(progress)) {
+			return; // Already init-ed
+		}
+		
+		// Add ARIA
+		progress.setAttribute('role', 'progressbar');
+		progress.setAttribute('aria-valuemin', '0');
+		progress.setAttribute('aria-valuemax', parseFloat(progress.getAttribute('max')) || 1);
+		
+		if(progress.hasAttribute('value')) {
+			progress.setAttribute('aria-valuenow', parseFloat(progress.getAttribute('value')) || 0);
+		}
+		
+		// We can't add them on a prototype, as it's the same for all unknown elements
+		for(var attribute in self.DOMInterface) {
+			defineProperty(progress, attribute, {
+				get: self.DOMInterface[attribute].get,
+				set: self.DOMInterface[attribute].set
+			});
+		}
+		
+		self.redraw(progress);
+	},
+	
+	// Live NodeList, will update automatically
+	progresses: document.getElementsByTagName('progress')
+};
+
+
+
+for(var i=self.progresses.length-1; i>=0; i--) {
+	self.init(self.progresses[i]);
+}
+
+// Take care of future ones too, if supported
+if(document.addEventListener) {
+	document.addEventListener('DOMAttrModified', function(evt) {
+		var node = evt.target, attribute = evt.attrName;
+		
+		if(/^progress$/i.test(node.nodeName) && (attribute === 'max' || attribute === 'value')) {
+			self.redraw(node);
+		}
+	}, false);
+	
+	document.addEventListener('DOMNodeInserted', function(evt) {
+		var node = evt.target;
+		
+		if(/^progress$/i.test(node.nodeName)) {
+			self.init(node);
+		}
+	}, false);
+}
+
+})();
+</script>
+
 
 {% endblock %}
 

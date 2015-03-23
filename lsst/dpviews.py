@@ -131,9 +131,11 @@ def doRequest(request):
         projectd[p['project']] = p
 
     reqs = []
+    indatasets = []
     thisProject = None
     if mode in ('request', 'reqid'):
         reqs = TRequest.objects.using('deft_adcr').filter(**query).order_by('reqid').reverse().values()
+
     for r in reqs:
         if 'project_id' in r and r['project_id']:
             r['projectdata'] = projectd[r['project_id']]
@@ -162,6 +164,10 @@ def doRequest(request):
             r['status'] = '?'
         if 'comment' in r and r['comment'].endswith('by WebUI'): r['comment'] = ''
 
+    ## get event count for each slice
+    sliceevs = InputRequestList.objects.using('deft_adcr').filter(request_id=reqid).order_by('slice').reverse().values('id','dataset__events')
+    print 'sliceevs', len(sliceevs), sliceevs[:100]
+
     datasets = containers = tasks = jeditasks = jedidatasets = steps = slices = files = dsslices = []
     events_processed = None
     request_columns = None
@@ -169,6 +175,8 @@ def doRequest(request):
     jobsumd = {}
     jeditaskstatus = {}
     cloudtodo = {}
+    dsevents = {}
+    dseventsprodsys = {}
     if reqid:
         events_processed = {}
         ## Prepare information for the particular request
@@ -196,13 +204,16 @@ def doRequest(request):
         for t in jeditasks:
             jeditaskd[t['jeditaskid']] = t
             jeditaskstatus[t['jeditaskid']] = t['superstatus']
+
+        indsdict = {}
         for t in tasks:
             if t['id'] in jeditaskd: t['jeditask'] = jeditaskd[t['id']]
+            indsdict[t['inputdataset']] = 1
 
         ## get records for input datasets
-        indslist = []
         for s in slices:
-            if s['dataset_id']: indslist.append(s['dataset_id'])
+            if s['dataset_id']: indsdict[s['dataset_id']] = 1
+        indslist = indsdict.keys()
         indatasets = ProductionDataset.objects.using('deft_adcr').filter(name__in=indslist).values()
 
         ## get records for input containers
@@ -228,10 +239,13 @@ def doRequest(request):
         tdsquery = {}
         tdsquery['jeditaskid__in'] = taskl
         tdsquery['type'] = 'input'
-        tdsets = JediDatasets.objects.filter(**tdsquery).values('cloud','jeditaskid','nfiles','nfilesfinished','nfilesfailed')
-        cloudtodo = {}
+        tdsets = JediDatasets.objects.filter(**tdsquery).values('cloud','jeditaskid','nfiles','nfilesfinished','nfilesfailed','nevents','type')
+        print 'tdsets',tdsets
         if len(tdsets) > 0:
             for ds in tdsets:
+                if ds['type'] == 'input':
+                    if reqid not in dsevents: dsevents[reqid] = 0
+                    dsevents[reqid] += ds['nevents']
                 if jeditaskd[ds['jeditaskid']]['superstatus'] in ( 'broken', 'aborted' ) : continue
                 cloud = jeditaskd[ds['jeditaskid']]['cloud']  
                 if cloud not in cloudtodo:
@@ -370,6 +384,11 @@ def doRequest(request):
         for t in reqevents:
             if t['input_events__sum'] > 0:
                 nreqevd[t['request']] = t['input_events__sum']
+            else:
+                if t['request'] in dsevents: nreqevd[t['request']] = dsevents[t['request']]
+        print 'reqevents', reqevents
+        print 'dsevents', dsevents
+        print 'nreqevd', nreqevd
         for r in reqs:
             if r['reqid'] in nreqevd:
                 nEvents = float(nreqevd[r['reqid']])/1000.
