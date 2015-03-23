@@ -265,13 +265,32 @@ def doRequest(request):
             ## job counts per task
             tjquery = { 'reqid' : reqid, 'prodsourcelabel' : 'managed' }
             taskjobs = Jobsarchived4.objects.filter(**tjquery).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).annotate(Sum('nevents')).order_by('jeditaskid','jobstatus')
+            taskjobs_arch = Jobsarchived.objects.filter(**tjquery).values('jeditaskid','jobstatus').annotate(Count('jobstatus')).annotate(Sum('nevents')).order_by('jeditaskid','jobstatus')
             tjd = {}
+            tjda = {}
+            for j in taskjobs_arch:
+                if j['jeditaskid'] not in tjda:
+                    tjda[j['jeditaskid']] = {}
+                    tjda[j['jeditaskid']]['totjobs'] = 0
+                tjda[j['jeditaskid']]['totjobs'] += j['jobstatus__count']
+                tjda[j['jeditaskid']][j['jobstatus']] = {}
+                tjda[j['jeditaskid']][j['jobstatus']]['nevents'] = j['nevents__sum']
+                tjda[j['jeditaskid']][j['jobstatus']]['njobs'] = j['jobstatus__count']
+            for j in taskjobs:
+                if j['jeditaskid'] not in tjda:
+                    tjda[j['jeditaskid']] = {}
+                    tjda[j['jeditaskid']]['totjobs'] = 0
+                tjda[j['jeditaskid']]['totjobs'] += j['jobstatus__count']
             for j in taskjobs:
                 if j['jeditaskid'] not in tjd: tjd[j['jeditaskid']] = {}
+                if j['jeditaskid'] in tjda and j['jobstatus'] in tjda[j['jeditaskid']]:
+                    j['nevents__sum'] += tjda[j['jeditaskid']][j['jobstatus']]['nevents']
+                    j['jobstatus__count'] += tjda[j['jeditaskid']][j['jobstatus']]['njobs']
+                pct = 100.*float(j['jobstatus__count'])/float(tjda[j['jeditaskid']]['totjobs'])
                 if j['nevents__sum'] > 0:
-                    tjd[j['jeditaskid']][j['jobstatus']] = "<span class='%s'>%s:%s jobs/%s evs</span>" % ( j['jobstatus'], j['jobstatus'], j['jobstatus__count'], j['nevents__sum'] )
+                    tjd[j['jeditaskid']][j['jobstatus']] = "<span class='%s'>%s:%.0f%% (%s)/%s evs</span>" % ( j['jobstatus'], j['jobstatus'], pct, j['jobstatus__count'], j['nevents__sum'] )
                 else:
-                    tjd[j['jeditaskid']][j['jobstatus']] = "<span class='%s'>%s:%s jobs</span>" % ( j['jobstatus'], j['jobstatus'], j['jobstatus__count'] )
+                    tjd[j['jeditaskid']][j['jobstatus']] = "<span class='%s'>%s:%.0f%% (%s)</span>" % ( j['jobstatus'], j['jobstatus'], pct, j['jobstatus__count'] )
             for t in tjd:
                 tstates = []
                 for s in tjd[t]:

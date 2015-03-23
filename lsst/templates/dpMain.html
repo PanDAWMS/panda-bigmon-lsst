@@ -597,7 +597,7 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
     {% if task.jeditask.failurerate %} &nbsp; failurerate={{ task.jeditask.failurerate }} {% endif %}
 
     {% if task.jobstats %}
-        &nbsp; last 3 days:
+        &nbsp; jobs:
         <a href="{% url 'jobList' %}?jeditaskid={{task.id}}&prodsourcelabel=managed">
         {% for s in task.jobstats %} {{ s|safe }} {% endfor %}
         </a>
