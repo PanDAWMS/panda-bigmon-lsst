@@ -74,6 +74,7 @@ It is possible to retrieve task data in json format via curl so that it can be u
 <br><font size=-1><code>
 curl -H 'Accept: application/json' -H 'Content-Type: application/json' "http://bigpanda.cern.ch/tasks/?taskname=user.nacken*&days=3"
 </code></font>
+What you get is a list with each element a dictionary with info for a task. If your request is for a single task (jeditaskid=N), you get additional info: an element 'datasets' in the task dictionary with input/output dataset info. 
 </p>
 
 <h3> Q&amp;A </h3>

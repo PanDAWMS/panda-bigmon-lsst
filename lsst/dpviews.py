@@ -705,7 +705,6 @@ def doRequest(request):
         'scope' : scope,
         'tid' : tid,
         'tidnum' : tidnum,
-        'taskoutputdsd' : taskoutputdsd,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
     patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
