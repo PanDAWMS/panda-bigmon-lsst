@@ -209,13 +209,29 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 &nbsp; <a href="{{ request.ref_link }}">{{ request.ref_link_path }}</a>
 {% endif %}
 
+{% if totalfiles %}
+<table width='100%' border=0 padding=0 cellspacing=0 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; font-size:9pt">
+<tr><th colspan=20> Total file counts from files in input, output datasets. Progress at right is based on this. </th></tr>
+{% for tf in totalfiles %}
+<tr>
+<td> {{ tf.processingtype }} </td><td> total_in={{ tf.total_in }} </td><td> total_out={{ tf.total_out }} </td><td> finished={{ tf.finished }} </td><td> failed={{ tf.failed }} </td></tr>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
 {% if request.ntasks %}
+<table width='100%' border=0 padding=0 cellspacing=0 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; font-size:9pt">
+<tr><th colspan=20> Task status summary {% if reqid %} (details per slice/step are below).{% endif %} Click on count to see tasks.</th></tr>
 {% for istep in request.ntasks %}
-<br> <b> {{ istep.0 }}</b> tasks:  &nbsp; 
+<tr><td width=100>  {{ istep.0 }} </td>
+<td>
 {% for istate in istep.1 %}
-&nbsp; <span class='{{ istate.0 }}'><b>{{ istate.0 }}</b></span>:<a href="{% url 'taskList' %}?tasktype=prod&reqid={{ request.reqid }}&superstatus={{ istate.0 }}">{{ istate.1 }}</a>
+<span class='{{ istate.0 }}'><b>{{ istate.0 }}</b></span>:<a href="{% url 'taskList' %}?tasktype=prod&reqid={{ request.reqid }}&superstatus={{ istate.0 }}">{{ istate.1 }}</a> &nbsp; 
 {% endfor %}
+</td></tr>
 {% endfor %}
+</table>
 {% endif %}
 
 {% if request.clouddisttxt %}
@@ -228,18 +244,20 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endif %}
 
 {% if request.jobdisttxt %}
-<br><b>Cloud/core event production: (PanDA jobs completed in last 3 days)</b>
-
+<table width='100%' border=0 padding=0 cellspacing=0 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; font-size:9pt">
+<tr><th colspan=20>Recent cloud/core event production (PanDA jobs completed in last 3 days)</th></tr>
 {% if request.jobsumd %}
-<br> &nbsp; &nbsp; Totals:
+<tr><th>  Totals </th> <th colspan=20> 
 {% for j in request.jobsumd %}
-&nbsp; <b>{{ j.0 }}</b>:{{ j.1 }}k
+<b>{{ j.0 }}</b>:{{ j.1 }}k &nbsp; 
 {% endfor %}
+</th></tr>
 {% endif %}
 
 {% for line in request.jobdisttxt %}
-<br> &nbsp; &nbsp; {{ line|safe }}
+<tr><td width=100>  {{ line|safe }} </td></tr>
 {% endfor %}
+</table>
 {% endif %}
 
 {% if request.comment %} <br><font color='brown'>{{ request.comment }}</font> {% endif %}
@@ -264,18 +282,31 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endif %}
 
 {% if request.completedevpct %}
+
 {% for istep in request.completedevpct %}
 <tr><td class='statustable'>
 <label for="progress-{{ request.reqid }}-{{ istep.0 }}">{{ istep.0 }}: {{ istep.1 }}%<br></label>
 <progress max="100" value="{{ istep.1 }}" id="progress-{{ request.reqid }}-{{ istep.0 }}" style="font-size:9pt"></progress>
 </td></tr>
 {% endfor %}
+
+{% elif totalfiles %}
+
+{% for typ in totalfiles %}
+<tr><td class='statustable'>
+<label for="progress-{{ request.reqid }}-{{ typ }}">{{ typ.processingtype }}: {{ typ.progress }}%<br></label>
+<progress max="100" value="{{ typ.progress }}" id="progress-{{ request.reqid }}-{{ typ }}" style="font-size:9pt"></progress>
+</td></tr>
+{% endfor %}
+
 {% elif request.nprocessedevents %}
+
 {% for istep in request.nprocessedevents %}
 <tr><td class='statustable'>
 {{ istep.0 }}: {{ istep.1 }}k evs
 </td></tr>
 {% endfor %}
+
 {% endif %}
 
 {% comment %}
@@ -772,6 +803,7 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
     {% if task.jeditask.currentpriority %} &nbsp; currentpriority={{ task.jeditask.currentpriority }} {% endif %}
 
     <br>
+    {% comment %}  getting it from JEDI instead
     &nbsp; &nbsp; &nbsp; &nbsp; Input <a href="/dp/?dataset={{ task.inputdataset }}">{{ task.inputdataset }}</a> <br>
     {% if task.dslist %}
         {% for ds in task.dslist %}
@@ -779,9 +811,17 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
                 &nbsp; files:{{ ds.files }} &nbsp; evs:{{ ds.events }} &nbsp; status:<span class='{{ ds.status|lower }}'>{{ ds.status|lower }}</span><br>
         {% endfor %}
     {% endif %}
+    {% endcomment %}
+
+    {% if task.indslist %}
+        {% for ds in task.indslist %}
+            &nbsp; &nbsp; &nbsp; &nbsp; In <a href="/dp/?dataset={{ ds.datasetname}}">{{ ds.datasetname }}</a> &nbsp; files fin/fail=<span class='finished'>{{ ds.nfilesfinished }}</span>/<span class='failed'>{{ ds.nfilesfailed }}</span> &nbsp; nevs={{ ds.nevents }}<br> 
+        {% endfor %}
+    {% endif %}
+
     {% if task.outdslist %}
         {% for ds in task.outdslist %}
-            &nbsp; &nbsp; &nbsp; &nbsp; Output <a href="/dp/?dataset={{ ds.datasetname}}">{{ ds.datasetname }}</a> &nbsp; files fin/fail=<span class='finished'>{{ ds.nfilesfinished }}</span>/<span class='failed'>{{ ds.nfilesfailed }}</span> &nbsp; nevs={{ ds.nevents }}<br> 
+            &nbsp; &nbsp; &nbsp; &nbsp; Out <a href="/dp/?dataset={{ ds.datasetname}}">{{ ds.datasetname }}</a> &nbsp; files fin/fail=<span class='finished'>{{ ds.nfilesfinished }}</span>/<span class='failed'>{{ ds.nfilesfailed }}</span> &nbsp; nevs={{ ds.nevents }}<br> 
         {% endfor %}
     {% endif %}
     {% if task.postproduction %}

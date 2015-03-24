@@ -175,6 +175,7 @@ def doRequest(request):
     cloudtodo = {}
     dsevents = {}
     dseventsprodsys = {}
+    totalfiles = None
     if reqid:
         events_processed = {}
         ## Prepare information for the particular request
@@ -236,14 +237,31 @@ def doRequest(request):
         tdsquery = {}
         tdsquery['jeditaskid__in'] = taskl
         tdsquery['type__in'] = ['input','output']
-        tdsets = JediDatasets.objects.filter(**tdsquery).values('cloud','jeditaskid','nfiles','nfilesfinished','nfilesfailed','nevents','type','datasetname')
+        tdsets = JediDatasets.objects.filter(**tdsquery).values('cloud','jeditaskid','nfiles','nfilesfinished','nfilesfailed','nevents','type','datasetname', 'streamname')
         taskoutputdsd = {}
+        taskinputdsd = {}
+        taskinputdsl = []
+        totalfiles = {}
         if len(tdsets) > 0:
             for ds in tdsets:
+                proctype = jeditaskd[ds['jeditaskid']]['processingtype']
+                if proctype not in totalfiles:
+                    totalfiles[proctype] = {}
+                    totalfiles[proctype]['total_in'] = 0
+                    totalfiles[proctype]['finished'] = 0
+                    totalfiles[proctype]['failed'] = 0
+                    totalfiles[proctype]['total_out'] = 0
                 if ds['type'] == 'input':
+                    totalfiles[proctype]['total_in'] += ds['nfiles']
                     if reqid not in dsevents: dsevents[reqid] = 0
                     dsevents[reqid] += ds['nevents']
+                    if ds['jeditaskid'] not in taskinputdsd: taskinputdsd[ds['jeditaskid']] = []
+                    if ds['streamname'] != 'DBR': taskinputdsl.append(ds['datasetname'])
+                    taskinputdsd[ds['jeditaskid']].append(ds)
                 elif ds['type'] == 'output':
+                    totalfiles[proctype]['total_out'] += ds['nfiles']
+                    totalfiles[proctype]['finished'] += ds['nfilesfinished']
+                    totalfiles[proctype]['failed'] += ds['nfilesfailed']
                     if ds['jeditaskid'] not in taskoutputdsd: taskoutputdsd[ds['jeditaskid']] = []
                     taskoutputdsd[ds['jeditaskid']].append(ds)
                 if jeditaskd[ds['jeditaskid']]['superstatus'] in ( 'broken', 'aborted' ) : continue
@@ -258,9 +276,36 @@ def doRequest(request):
                 cloudtodo[cloud]['nfilesfailed'] += ds['nfilesfailed']
             for t in taskoutputdsd:
                 taskoutputdsd[t].sort()
+            for t in taskinputdsd:
+                taskinputdsd[t].sort()
             for t in tasks:
                 if t['id'] in taskoutputdsd:
                     t['outdslist'] = taskoutputdsd[t['id']]
+                if t['id'] in taskinputdsd:
+                    t['indslist'] = taskinputdsd[t['id']]
+
+        totalfiles_list = []
+        tfkeys = totalfiles.keys()
+        tfkeys.sort()
+        for k in tfkeys:
+            totalfiles[k]['processingtype'] = k
+            totalfiles[k]['progress'] = int(100.*float(totalfiles[k]['finished'])/float(totalfiles[k]['total_in']))
+            totalfiles_list.append(totalfiles[k])
+        totalfiles = totalfiles_list
+
+        if False: # total waste of time. Takes forever and the event counts come back zero anyway.
+            ## fetch input datasets, and count up the events
+            query = { 'datasetname__in' : taskinputdsl }
+            indsets = JediDatasets.objects.filter(**query).values()
+            dsevs = {}
+            for ds in indsets:
+                if ds['datasetname'] not in dsevs: dsevs[ds['datasetname']] = 0
+                if ds['nevents'] > dsevs[ds['datasetname']]: dsevs[ds['datasetname']] = ds['nevents']
+            total_events = 0
+            for d in dsevs:
+                total_events += dsevs[d]
+            for ds in taskinputdsl:
+                if ds not in dsevs: print 'missing dataset event count', ds
 
         ## add info to slices
         sliceids = {}
@@ -307,7 +352,6 @@ def doRequest(request):
                     j['jobstatus__count'] += tjda[j['jeditaskid']][j['jobstatus']]['njobs']
                 pct = 100.*float(j['jobstatus__count'])/float(tjda[j['jeditaskid']]['totjobs'])
                 pct = int(pct)
-                print pct
                 if j['nevents__sum'] > 0:
                     tjd[j['jeditaskid']][j['jobstatus']] = "<span class='%s'>%s:%.0f%% (%s)/%s evs</span>" % ( j['jobstatus'], j['jobstatus'], pct, j['jobstatus__count'], j['nevents__sum'] )
                 else:
@@ -454,22 +498,26 @@ def doRequest(request):
                             tobedone = cloudtodo[cloud]['nfiles'] - cloudtodo[cloud]['nfilesfinished']
                             failtxt = ""
                             todotxt = ""
+                            progresstxt = ""
                             if cloud != '' and cloudtodo[cloud]['nfiles'] > 0:
                                 if tobedone > 0:
                                     done = cloudtodo[cloud]['nfilesfinished']
                                     donepct = 100. * ( float(done) / float(cloudtodo[cloud]['nfiles']) )
-                                    todotxt = "%.0f%% </td><td> <a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>%s/%s</a> </td><td>" % (donepct, r['reqid'], cloud, typ, done, cloudtodo[cloud]['nfiles'])
+                                    todotxt = "<td> %.0f%% &nbsp; <a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>%s/%s</a> " % (donepct, r['reqid'], cloud, typ, done, cloudtodo[cloud]['nfiles'])
                                     width = int(200.*cloudtodo[cloud]['nfiles']/steptotd[typ])
-                                    todotxt += " &nbsp; <progress style='width:%spx' max='100' value='%s'></progress>" % (width, donepct )
+                                    progresstxt = "</td><td width=210><progress style='width:%spx' max='100' value='%s'></progress>" % (width, donepct )
                                 else:
-                                    todotxt = "<a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>none still to do</a>" % ( r['reqid'], cloud, typ)
+                                    todotxt = "<td> done <a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>%s/%s</a>" % ( r['reqid'], cloud, typ, cloudtodo[cloud]['nfilesfinished'], cloudtodo[cloud]['nfiles'])
+                                    width = int(200.*cloudtodo[cloud]['nfiles']/steptotd[typ])
+                                    progresstxt = "</td><td width=210><progress style='width:%spx' max='100' value='%s'></progress>" % (width, 100 )
                                 if cloudtodo[cloud]['nfilesfailed'] > 0:
-                                    failtxt = " &nbsp; <font color=red>%.0f%% failed (%s inputs)</font>" % ( 100.*float(cloudtodo[cloud]['nfilesfailed'])/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfailed'] )
+                                    failtxt = " &nbsp; <font color=red>%.0f%% fail (%s)</font>" % ( 100.*float(cloudtodo[cloud]['nfilesfailed'])/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfailed'] )
                             if cloud != '':
-                                txt = "<tr><td>%s</td><td>%s</td><td> %s </td><td> %s </td></tr>" % ( typ, cloud, todotxt, failtxt )
+                                txt = "<tr><td>%s</td><td>%s</td><!-- 2 -->%s  %s %s</td>" % ( typ, cloud, todotxt, failtxt, progresstxt)
+                                txt += "<tr>"
                                 cdtxt.append(txt)
                         for ncore, nval in cval.items():
-                            txt = "<tr><td>%s</td><td>%s</td><td colspan=20> <b>%s-core: " % ( typ, cloud, ncore )
+                            txt = "<tr><td width=100>%s</td><td width=70>%s</td><!-- 1 --><td colspan=20> <b>%s-core: " % ( typ, cloud, ncore )
                             states = nval.keys()
                             states.sort()
                             for s in states:
@@ -500,7 +548,7 @@ def doRequest(request):
                 for typ, tval in njobd[r['reqid']].items():
                     for cloud, cval in tval.items():
                         for ncore, nval in cval.items():
-                            txt = "%s %s %s-core: " % ( typ, cloud, ncore )
+                            txt = "%s </td><td> %s </td><td> %s-core </td><td> " % ( typ, cloud, ncore )
                             states = nval.keys()
                             states.sort()
                             for s in states:
@@ -705,6 +753,7 @@ def doRequest(request):
         'scope' : scope,
         'tid' : tid,
         'tidnum' : tidnum,
+        'totalfiles' : totalfiles,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
     patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
