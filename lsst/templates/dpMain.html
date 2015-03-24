@@ -219,7 +219,7 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 {% endif %}
 
 {% if request.clouddisttxt %}
-<table border=0 padding=0 cellspacing=0 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; font-size:9pt">
+<table width='100%' border=0 padding=0 cellspacing=0 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; font-size:9pt">
 <tr><th colspan=20> Cloud/core task distribution: (JEDI tasks active in last 30 days)</th></tr>
 {% for line in request.clouddisttxt %}
 {{ line|safe }}
@@ -777,6 +777,11 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
         {% for ds in task.dslist %}
             &nbsp; &nbsp; &nbsp; &nbsp; Output <a href="/dp/?dataset={{ ds.name }}">{{ ds.name }}</a> 
                 &nbsp; files:{{ ds.files }} &nbsp; evs:{{ ds.events }} &nbsp; status:<span class='{{ ds.status|lower }}'>{{ ds.status|lower }}</span><br>
+        {% endfor %}
+    {% endif %}
+    {% if task.outdslist %}
+        {% for ds in task.outdslist %}
+            &nbsp; &nbsp; &nbsp; &nbsp; Output <a href="/dp/?dataset={{ ds.datasetname}}">{{ ds.datasetname }}</a> &nbsp; files fin/fail=<span class='finished'>{{ ds.nfilesfinished }}</span>/<span class='failed'>{{ ds.nfilesfailed }}</span> &nbsp; nevs={{ ds.nevents }}<br> 
         {% endfor %}
     {% endif %}
     {% if task.postproduction %}

@@ -229,19 +229,23 @@ def doRequest(request):
         for t in tasks:
             if t['id'] in taskdsdict: t['dslist'] = taskdsdict[t['id']]
 
-        ## get input dataset info associated with tasks
+        ## get input, output dataset info associated with tasks
         taskl = []
         for t in tasks:
             taskl.append(t['id'])
         tdsquery = {}
         tdsquery['jeditaskid__in'] = taskl
-        tdsquery['type'] = 'input'
-        tdsets = JediDatasets.objects.filter(**tdsquery).values('cloud','jeditaskid','nfiles','nfilesfinished','nfilesfailed','nevents','type')
+        tdsquery['type__in'] = ['input','output']
+        tdsets = JediDatasets.objects.filter(**tdsquery).values('cloud','jeditaskid','nfiles','nfilesfinished','nfilesfailed','nevents','type','datasetname')
+        taskoutputdsd = {}
         if len(tdsets) > 0:
             for ds in tdsets:
                 if ds['type'] == 'input':
                     if reqid not in dsevents: dsevents[reqid] = 0
                     dsevents[reqid] += ds['nevents']
+                elif ds['type'] == 'output':
+                    if ds['jeditaskid'] not in taskoutputdsd: taskoutputdsd[ds['jeditaskid']] = []
+                    taskoutputdsd[ds['jeditaskid']].append(ds)
                 if jeditaskd[ds['jeditaskid']]['superstatus'] in ( 'broken', 'aborted' ) : continue
                 cloud = jeditaskd[ds['jeditaskid']]['cloud']  
                 if cloud not in cloudtodo:
@@ -252,6 +256,11 @@ def doRequest(request):
                 cloudtodo[cloud]['nfiles'] += ds['nfiles']
                 cloudtodo[cloud]['nfilesfinished'] += ds['nfilesfinished']
                 cloudtodo[cloud]['nfilesfailed'] += ds['nfilesfailed']
+            for t in taskoutputdsd:
+                taskoutputdsd[t].sort()
+            for t in tasks:
+                if t['id'] in taskoutputdsd:
+                    t['outdslist'] = taskoutputdsd[t['id']]
 
         ## add info to slices
         sliceids = {}
@@ -696,6 +705,7 @@ def doRequest(request):
         'scope' : scope,
         'tid' : tid,
         'tidnum' : tidnum,
+        'taskoutputdsd' : taskoutputdsd,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
     patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
