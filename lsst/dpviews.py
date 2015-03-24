@@ -453,7 +453,7 @@ def doRequest(request):
                                     width = int(200.*cloudtodo[cloud]['nfiles']/steptotd[typ])
                                     todotxt += " &nbsp; <progress style='width:%spx' max='100' value='%s'></progress>" % (width, donepct )
                                 else:
-                                    todotxt = "<b>none</b> still to do"
+                                    todotxt = "<a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>none still to do</a>" % ( r['reqid'], cloud, typ)
                                 if cloudtodo[cloud]['nfilesfailed'] > 0:
                                     failtxt = " &nbsp; <font color=red>%.0f%% failed (%s inputs)</font>" % ( 100.*float(cloudtodo[cloud]['nfilesfailed'])/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfailed'] )
                             if cloud != '':
