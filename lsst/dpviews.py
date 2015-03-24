@@ -289,7 +289,10 @@ def doRequest(request):
         tfkeys.sort()
         for k in tfkeys:
             totalfiles[k]['processingtype'] = k
-            totalfiles[k]['progress'] = int(100.*float(totalfiles[k]['finished'])/float(totalfiles[k]['total_in']))
+            if totalfiles[k]['total_in'] and totalfiles[k]['total_in'] > 0:
+                totalfiles[k]['progress'] = int(100.*float(totalfiles[k]['finished'])/float(totalfiles[k]['total_in']))
+            else:
+                totalfiles[k]['progress'] = 0
             totalfiles_list.append(totalfiles[k])
         totalfiles = totalfiles_list
 
