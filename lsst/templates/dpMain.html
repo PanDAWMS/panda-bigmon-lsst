@@ -146,8 +146,12 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 </p>
 {% if info_fields.long_description|length > 0 %}
 <table width=700><tr><td>
-<b>Description:</b><pre>
-{{ info_fields.long_description|safe }}</pre>
+<b>Description:</b><br>
+
+{% comment %} <pre width=700 style="word-break:break-all;"> {% endcomment %}
+{{ info_fields.long_description|safe }}
+{% comment %} </pre> {% endcomment %}
+
 </td></tr></table>
 {% endif %}
 

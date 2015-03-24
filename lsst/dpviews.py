@@ -460,12 +460,12 @@ def doRequest(request):
                                 txt = "<tr><td>%s</td><td>%s</td><td> %s </td><td> %s </td></tr>" % ( typ, cloud, todotxt, failtxt )
                                 cdtxt.append(txt)
                         for ncore, nval in cval.items():
-                            txt = "<tr><td>%s</td><td>%s</td><td colspan=20> %s-core: " % ( typ, cloud, ncore )
+                            txt = "<tr><td>%s</td><td>%s</td><td colspan=20> <b>%s-core: " % ( typ, cloud, ncore )
                             states = nval.keys()
                             states.sort()
                             for s in states:
                                 txt += " &nbsp; <span class='%s'>%s</span>:%s" % ( s, s, nval[s] )
-                            txt += "</td></tr>"
+                            txt += "</b></td></tr>"
                             cdtxt.append(txt)
                 cdtxt.sort()
                 r['clouddisttxt'] = cdtxt
