@@ -86,7 +86,6 @@ def doRequest(request):
 
         if request.user.is_authenticated():
             formdata['requester'] = request.user.get_full_name()
-        print 'formdata', formdata
 
         if formdata['type'] == 'dataset':
             dataset_form = DatasetForm(data=request.POST)
@@ -166,7 +165,6 @@ def doRequest(request):
 
     ## get event count for each slice
     sliceevs = InputRequestList.objects.using('deft_adcr').filter(request_id=reqid).order_by('slice').reverse().values('id','dataset__events')
-    print 'sliceevs', len(sliceevs), sliceevs[:100]
 
     datasets = containers = tasks = jeditasks = jedidatasets = steps = slices = files = dsslices = []
     events_processed = None
@@ -221,7 +219,6 @@ def doRequest(request):
         for s in slices:
             if s['dataset_id']: indslist.append(s['dataset_id'])
         incontainers = ProductionContainer.objects.using('deft_adcr').filter(name__in=indslist).values()
-        print 'containers', incontainers
 
         ## get task datasets
         taskdsdict = {}
@@ -240,7 +237,6 @@ def doRequest(request):
         tdsquery['jeditaskid__in'] = taskl
         tdsquery['type'] = 'input'
         tdsets = JediDatasets.objects.filter(**tdsquery).values('cloud','jeditaskid','nfiles','nfilesfinished','nfilesfailed','nevents','type')
-        print 'tdsets',tdsets
         if len(tdsets) > 0:
             for ds in tdsets:
                 if ds['type'] == 'input':
@@ -301,6 +297,8 @@ def doRequest(request):
                     j['nevents__sum'] += tjda[j['jeditaskid']][j['jobstatus']]['nevents']
                     j['jobstatus__count'] += tjda[j['jeditaskid']][j['jobstatus']]['njobs']
                 pct = 100.*float(j['jobstatus__count'])/float(tjda[j['jeditaskid']]['totjobs'])
+                pct = int(pct)
+                print pct
                 if j['nevents__sum'] > 0:
                     tjd[j['jeditaskid']][j['jobstatus']] = "<span class='%s'>%s:%.0f%% (%s)/%s evs</span>" % ( j['jobstatus'], j['jobstatus'], pct, j['jobstatus__count'], j['nevents__sum'] )
                 else:
@@ -386,9 +384,6 @@ def doRequest(request):
                 nreqevd[t['request']] = t['input_events__sum']
             else:
                 if t['request'] in dsevents: nreqevd[t['request']] = dsevents[t['request']]
-        print 'reqevents', reqevents
-        print 'dsevents', dsevents
-        print 'nreqevd', nreqevd
         for r in reqs:
             if r['reqid'] in nreqevd:
                 nEvents = float(nreqevd[r['reqid']])/1000.
@@ -434,6 +429,13 @@ def doRequest(request):
 
         for r in reqs:
             if r['reqid'] in ntaskd:
+                ## get the input totals for each step
+                steptotd = {}
+                for typ, tval in ntaskd[r['reqid']].items():
+                    for cloud, cval in tval.items():
+                        if typ not in steptotd: steptotd[typ] = 0
+                        steptotd[typ] += cloudtodo[cloud]['nfiles']         
+                ## build the table
                 r['clouddist'] = ntaskd[r['reqid']]
                 cdtxt = []
                 for typ, tval in ntaskd[r['reqid']].items():
@@ -442,21 +444,27 @@ def doRequest(request):
                             tobedone = cloudtodo[cloud]['nfiles'] - cloudtodo[cloud]['nfilesfinished']
                             failtxt = ""
                             todotxt = ""
-                            if cloudtodo[cloud]['nfiles'] > 0:
+                            if cloud != '' and cloudtodo[cloud]['nfiles'] > 0:
                                 if tobedone > 0:
-                                    todotxt = "<b>%.0f%%</b> still to do (%s inputs)" % (100.*float(tobedone)/float(cloudtodo[cloud]['nfiles']), tobedone)
+                                    done = cloudtodo[cloud]['nfilesfinished']
+                                    donepct = 100. * ( float(done) / float(cloudtodo[cloud]['nfiles']) )
+                                    todotxt = "%.0f%% </td><td> <a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>%s/%s</a> </td><td>" % (donepct, r['reqid'], cloud, typ, done, cloudtodo[cloud]['nfiles'])
+                                    width = int(200.*cloudtodo[cloud]['nfiles']/steptotd[typ])
+                                    todotxt += " &nbsp; <progress style='width:%spx' max='100' value='%s'></progress>" % (width, donepct )
                                 else:
                                     todotxt = "<b>none</b> still to do"
                                 if cloudtodo[cloud]['nfilesfailed'] > 0:
-                                    failtxt = "<font color=red>%.0f%% failed (%s inputs)</font>" % ( 100.*float(cloudtodo[cloud]['nfilesfailed'])/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfailed'] )
-                            txt = "%s %s     ? still to do (%s/%s inputs finished, <a href='/tasks/?reqid=%s&cloud=%s&processingtype=%s&days=90'>%s to do</a>) %s" % ( typ, cloud, todotxt, cloudtodo[cloud]['nfiles'], r['reqid'], cloud, typ, tobedone, failtxt )
-                            cdtxt.append(txt)
+                                    failtxt = " &nbsp; <font color=red>%.0f%% failed (%s inputs)</font>" % ( 100.*float(cloudtodo[cloud]['nfilesfailed'])/float(cloudtodo[cloud]['nfiles']), cloudtodo[cloud]['nfilesfailed'] )
+                            if cloud != '':
+                                txt = "<tr><td>%s</td><td>%s</td><td> %s </td><td> %s </td></tr>" % ( typ, cloud, todotxt, failtxt )
+                                cdtxt.append(txt)
                         for ncore, nval in cval.items():
-                            txt = "%s %s %s-core: " % ( typ, cloud, ncore )
+                            txt = "<tr><td>%s</td><td>%s</td><td colspan=20> %s-core: " % ( typ, cloud, ncore )
                             states = nval.keys()
                             states.sort()
                             for s in states:
                                 txt += " &nbsp; <span class='%s'>%s</span>:%s" % ( s, s, nval[s] )
+                            txt += "</td></tr>"
                             cdtxt.append(txt)
                 cdtxt.sort()
                 r['clouddisttxt'] = cdtxt
@@ -510,8 +518,7 @@ def doRequest(request):
                     for istep in ntaskd[r['reqid']]:
                         ndone = float(ntaskd[r['reqid']][istep])/1000.
                         nreq = r['nrequestedevents']
-                        pct = ndone / nreq * 100 
-                        pct = int(pct*10)/10.
+                        pct = int(ndone / nreq * 100.)
                         r['completedevpct'].append([ istep, pct ])
                     r['completedevpct'].sort()
             else:
@@ -581,13 +588,11 @@ def doRequest(request):
                         njeditasks += 1
                 t['has_dataset'] = has_dataset
 
-        print 'dataset', dataset
         datasets = ProductionDataset.objects.using('deft_adcr').filter(name__startswith=dataset).values()
         if len(datasets) == 0:
             messages.info(request, "No matching datasets found")
         else:
             messages.info(request, "%s matching prodsys datasets found" % len(datasets))
-        print 'datasets', datasets
 
         if len(datasets) > 0:
             # get production tasks associated with datasets
@@ -609,13 +614,11 @@ def doRequest(request):
             messages.info(request, "No matching containers found")
         else:
             messages.info(request, "%s matching containers found" % len(containers))
-        print 'containers', containers
         dsslices = InputRequestList.objects.using('deft_adcr').filter(dataset__name__startswith=dataset).values()
         if len(dsslices) == 0:
             pass # messages.info(request, "No slices using this dataset found")
         else:
             messages.info(request, "%s slices found" % len(dsslices))
-        print "Getting JEDI datasets matching '%s'" % dataset
         jedidatasets = JediDatasets.objects.filter(datasetname__startswith=dataset).order_by('jeditaskid').values()
         if len(jedidatasets) == 0:
             pass # messages.info(request, "No matching JEDI datasets found")
