@@ -1390,6 +1390,10 @@ def jobList(request, mode=None, param=None):
             jobs = sorted(jobs, key=lambda x:x['currentpriority'], reverse=True)
         elif sortby == 'attemptnr':
             jobs = sorted(jobs, key=lambda x:x['attemptnr'], reverse=True)
+        elif sortby == 'duration-ascending':
+            jobs = sorted(jobs, key=lambda x:x['durationsec'])
+        elif sortby == 'duration-descending':
+            jobs = sorted(jobs, key=lambda x:x['durationsec'], reverse=True)
         elif sortby == 'duration':
             jobs = sorted(jobs, key=lambda x:x['durationsec'], reverse=True)
         elif sortby == 'PandaID':
