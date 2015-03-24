@@ -296,8 +296,9 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         if 'produsername' in request.session['requestParams'] or 'jeditaskid' in request.session['requestParams'] or 'user' in request.session['requestParams']:
             if 'jobsetid' not in fields: fields.append('jobsetid')
             if ('hours' not in request.session['requestParams']) and ('days' not in request.session['requestParams']) and ('jobsetid' in request.session['requestParams'] or 'taskid' in request.session['requestParams'] or 'jeditaskid' in request.session['requestParams']):
-                ## Cases where deep query is safe
-                deepquery = True
+                ## Cases where deep query is safe. Unless the time depth is specified in URL.
+                if 'hours' not in request.session['requestParams'] and 'days' not in request.session['requestParams']:
+                    deepquery = True
         else:
             if 'jobsetid' in fields: fields.remove('jobsetid')
     else:
@@ -316,11 +317,12 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
     if 'days' in request.session['requestParams']:
         LAST_N_HOURS_MAX = int(request.session['requestParams']['days'])*24
     ## Exempt single-job, single-task etc queries from time constraint
-    if 'jeditaskid' in request.session['requestParams']: deepquery = True
-    if 'taskid' in request.session['requestParams']: deepquery = True
-    if 'pandaid' in request.session['requestParams']: deepquery = True
-    if 'jobname' in request.session['requestParams']: deepquery = True
-    if 'batchid' in request.session['requestParams']: deepquery = True
+    if 'hours' not in request.session['requestParams'] and 'days' not in request.session['requestParams']:
+        if 'jeditaskid' in request.session['requestParams']: deepquery = True
+        if 'taskid' in request.session['requestParams']: deepquery = True
+        if 'pandaid' in request.session['requestParams']: deepquery = True
+        if 'jobname' in request.session['requestParams']: deepquery = True
+        if 'batchid' in request.session['requestParams']: deepquery = True
     if deepquery:
         opmode = 'notime'
         hours = LAST_N_HOURS_MAX = 24*180
@@ -3822,11 +3824,15 @@ def errorSummary(request):
     else:
         hours = 12
         limit = 6000
+
+    if 'hours' in request.session['requestParams']:
+        hours = int(request.session['requestParams']['hours'])
         
     query,wildCardExtension  = setupView(request, hours=hours, limit=limit, wildCardExt=True)
 
     if not testjobs: query['jobstatus__in'] = [ 'failed', 'holding' ]
 
+    print 'errSummary query', query
     jobs = []
     values = 'produsername', 'pandaid', 'cloud','computingsite','cpuconsumptiontime','jobstatus','transformation','prodsourcelabel','specialhandling','vo','modificationtime', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'currentpriority', 'computingelement'
     jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
