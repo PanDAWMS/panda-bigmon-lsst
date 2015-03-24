@@ -3192,6 +3192,16 @@ def taskList(request):
     xurl = extensibleURL(request)
     nosorturl = removeParam(xurl, 'sortby',mode='extensible')
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        ## Add info to the json dump if the request is for a single task
+        if len(tasks) == 1:
+            id = tasks[0]['jeditaskid']
+            dsquery = { 'jeditaskid' : id, 'type__in' : ['input', 'output'] }
+            dsets = JediDatasets.objects.filter(**dsquery).values()
+            dslist = []
+            for ds in dsets:
+                dslist.append(ds)
+            tasks[0]['datasets'] = dslist
+        
         dump = json.dumps(tasks, cls=DateEncoder)
         del request.session['TFIRST']
         del request.session['TLAST']
