@@ -433,8 +433,9 @@ def doRequest(request):
                 steptotd = {}
                 for typ, tval in ntaskd[r['reqid']].items():
                     for cloud, cval in tval.items():
-                        if typ not in steptotd: steptotd[typ] = 0
-                        steptotd[typ] += cloudtodo[cloud]['nfiles']         
+                        if cloud in cloudtodo:
+                            if typ not in steptotd: steptotd[typ] = 0
+                            steptotd[typ] += cloudtodo[cloud]['nfiles']         
                 ## build the table
                 r['clouddist'] = ntaskd[r['reqid']]
                 cdtxt = []
