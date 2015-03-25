@@ -699,6 +699,79 @@ def doRequest(request):
     showfields.remove('jeditaskid')
     jtasksuml = attSummaryDict(request, jeditasks, showfields)
 
+    runjobs = None
+    totjobs = None
+    totcpu = None
+    sumjobs = cpujobs = None
+    sumjobsl = cpujobsl = None
+    finalstates = [ 'finished', 'failed', 'cancelled' ]
+    cpupct = jobpct = {}
+    cpu_total = 0
+    job_total = 0
+    if mode in [ 'running', 'recent', 'queued' ]:
+        query = {}
+        query['reqid__gte'] = 920
+        reqinfo = TRequest.objects.using('deft_adcr').filter(**query).order_by('reqid').reverse().values()
+        reqinfod = {}
+        for r in reqinfo:
+            reqinfod[r['reqid']] = r
+        if mode == 'running':
+            totjobs = 0
+            totcpu = 0
+            ## job slot usage by request
+            runjobs = Jobsactive4.objects.filter(jobstatus='running',prodsourcelabel='managed').values('reqid').annotate(Count('reqid')).order_by('reqid')
+            for r in runjobs:
+                totjobs += r['reqid__count']
+            runjobs = sorted(runjobs, key=lambda x:x['reqid__count'], reverse=True)
+            for r in runjobs:
+                r['fraction'] = 100.*r['reqid__count']/totjobs
+                if r['reqid'] in reqinfod: r['reqdata'] = reqinfod[r['reqid']]
+        elif mode == 'recent':
+            sumjobs = {}
+            cpujobs = {}
+            totjobs = {}
+            totcpu = {}
+            ## recent jobs by count and walltime
+            runjobs = Jobsarchived4.objects.filter(prodsourcelabel='managed').values('reqid','jobstatus').annotate(Count('jobstatus')).annotate(Sum('cpuconsumptiontime')).order_by('reqid','jobstatus')
+            for r in runjobs:
+                if r['jobstatus'] not in sumjobs:
+                    sumjobs[r['jobstatus']] = []
+                    cpujobs[r['jobstatus']] = []
+                    totjobs[r['jobstatus']] = 0
+                    totcpu[r['jobstatus']] = 0
+                sumjobs[r['jobstatus']].append(r)
+                cpujobs[r['jobstatus']].append(r)
+                totjobs[r['jobstatus']] += r['jobstatus__count']
+                totcpu[r['jobstatus']] += r['cpuconsumptiontime__sum']
+            cpusum = {}
+            jobsum = {}
+            for s in sumjobs:
+                cpusum[s] = 0
+                jobsum[s] = 0
+                for r in sumjobs[s]:
+                    cpusum[s] += r['cpuconsumptiontime__sum']
+                    jobsum[s] += r['jobstatus__count']
+                    cpu_total += r['cpuconsumptiontime__sum']
+                    job_total += r['jobstatus__count']
+                    r['fraction'] = 100.*r['jobstatus__count']/totjobs[s]
+                    r['cpufraction'] = 100.*r['cpuconsumptiontime__sum']/totcpu[s]
+                    if r['reqid'] in reqinfod: r['reqdata'] = reqinfod[r['reqid']]
+            cpusum['all'] = 0
+            jobsum['all'] = 0
+            for s in sumjobs:
+                cpusum['all'] += cpusum[s]
+                jobsum['all'] += jobsum[s]
+            for s in sumjobs:
+                sumjobs[s] = sorted(sumjobs[s], key=lambda x:x['jobstatus__count'], reverse=True)
+                cpujobs[s] = sorted(cpujobs[s], key=lambda x:x['cpuconsumptiontime__sum'], reverse=True)
+                cpupct[s] = int(100.*cpusum[s]/cpu_total)
+                jobpct[s] = int(100.*jobsum[s]/job_total)
+            sumjobsl = []
+            cpujobsl = []
+            for s in finalstates:
+                sumjobsl.append({ 'status' : s, 'recs' : sumjobs[s][:10] })
+                cpujobsl.append({ 'status' : s, 'recs' : cpujobs[s][:10] })
+
     if events_processed:
         # Convert from dict to ordered list
         evkeys = events_processed.keys()
@@ -757,6 +830,16 @@ def doRequest(request):
         'tid' : tid,
         'tidnum' : tidnum,
         'totalfiles' : totalfiles,
+        'runjobs' : runjobs,
+        'totjobs' : totjobs,
+        'totcpu' : totcpu,
+        'sumjobs' : sumjobsl,
+        'cpujobs' : cpujobsl,
+        'cpupct' : cpupct,
+        'jobpct' : jobpct,
+        'finalstates' : finalstates,
+        'cpu_total' : cpu_total,
+        'job_total' : job_total,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
     patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
