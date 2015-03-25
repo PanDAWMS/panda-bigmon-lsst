@@ -31,6 +31,14 @@ def login(request):
         if len(userrec) > 0:
            request.session['username'] = userrec[0]['name']
            return True,None
+        else:
+             data = {
+                     'viewParams' : request.session['viewParams'],
+                     'requestParams' : request.session['requestParams'],
+                     "errormessage" : "Sorry, we could not find your DN '%s' in database" % request.session['userdn'],\
+                    }
+             return False, render_to_response('adError.html', data, RequestContext(request))
+
     else:
         try:
            url="https://"+request.META['SERVER_NAME']+request.META['REQUEST_URI']
