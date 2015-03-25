@@ -54,7 +54,7 @@
 		<td><font size=-1><a href="{% url 'fileInfo' %}?lfn={{ f.lfn }}&datasetname={{ f.datasetname }}">{{ f.datasetname }}</a></font></td>
 		<td>{% if f.jeditaskid %} <a href="{% url 'fileInfo' %}?lfn={{ f.lfn }}&jeditaskid={{ f.jeditaskid }}">{{ f.jeditaskid }}</a> {% endif %}</td>
 		<td>{{ f.type }}</td>
-		<td><a href="{% url 'fileInfo' %}?lfn={{ f.lfn }}&pandaid={{ f.pandaid }}">{{ f.pandaid }}</a></td>
+		<td><a href="{% url 'jobInfo' %}?pandaid={{ f.pandaid }}">{{ f.pandaid }}</a></td>
 		<td>{{ f.firstevent }}</td>
 		<td>{{ f.endevent }}</td>
 		<td class='{{frec.status}}'>{{ f.status }}</td>
