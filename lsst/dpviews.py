@@ -651,7 +651,7 @@ def doRequest(request):
 
         datasets = ProductionDataset.objects.using('deft_adcr').filter(name__startswith=dataset).values()
         if len(datasets) == 0:
-            messages.info(request, "No matching datasets found")
+            messages.info(request, "No matching prodsys datasets found")
         else:
             messages.info(request, "%s matching prodsys datasets found" % len(datasets))
 
@@ -682,7 +682,7 @@ def doRequest(request):
             messages.info(request, "%s slices found" % len(dsslices))
         jedidatasets = JediDatasets.objects.filter(datasetname__startswith=dataset).order_by('jeditaskid').values()
         if len(jedidatasets) == 0:
-            pass # messages.info(request, "No matching JEDI datasets found")
+            messages.info(request, "No matching JEDI datasets found")
         else:
             messages.info(request, "%s matching JEDI datasets found" % len(jedidatasets))
 

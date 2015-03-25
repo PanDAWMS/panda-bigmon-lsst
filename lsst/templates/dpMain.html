@@ -130,8 +130,16 @@ Torre at the <a href="https://indico.cern.ch/event/363422/">Feb 23 2015 ADC deve
 <p>
 <b>{{ dataset }}</b>
 {% if scope %} <br> Scope: {{ scope }} {% endif %}
-{% if tid %} <br> tid '{{ tid }}' trimmed for search. {% endif %}
-{% if tidnum %} tid dataset created by task <a href="{% url 'taskInfo' %}?jeditaskid={{ tidnum }}">{{ tidnum }}</a> {% endif %}
+{% if tid %} <br> tid suffix <em>"{{ tid }}"</em> trimmed for search. {% endif %}
+{% if tidnum %} The tid dataset was created by task <a href="{% url 'taskInfo' %}?jeditaskid={{ tidnum }}">{{ tidnum }}</a> {% endif %}
+<p>
+Rucio link:
+<br> <a href="https://rucio-ui.cern.ch/did?scope={{ scope }}&name={{ dataset }}">{{ dataset }}</a>
+{% if tid %}
+<br> <a href="https://rucio-ui.cern.ch/did?scope={{ scope }}&name={{ dataset }}{{ tid }}">{{ dataset }}{{ tid }}</a>
+
+{% endif %}
+</p>
 </p>
 </td></tr></table>
 {% endif %}
@@ -491,8 +499,8 @@ progress[role]:after {
 <tr>
 <td> <a href="{% url 'taskInfo' %}?jeditaskid={{ e.task_id }}">{{ e.task_id }}</a> </td>
 <td> <font size=-1>{{ e.name }} </font>
-<br><i>Request #Slice:</i> <a href="/dp/?reqid={{ e.ptask.request_id }}#slice_{{ e.ptask.step.slice.slice }}">{{ e.ptask.request_id }} #{{ e.ptask.step.slice.slice }}</a>
-&nbsp; <i>Step:</i> {{ e.ptask.step.step_template.step }} {{ e.ptask.step.step_template.ctag }}
+<br><i>Request:</i> <a href="/dp/?reqid={{ e.ptask.request_id }}{% if e.ptask.step.slice.slice %}#slice_{{ e.ptask.step.slice.slice }}{% endif %}">{{ e.ptask.request_id }}{% if e.ptask.step.slice.slice %} slice {{ e.ptask.step.slice.slice }}{% endif %}</a>
+{% if e.ptask.step.step_template.step %}&nbsp; <i>Step:</i> {{ e.ptask.step.step_template.step }} {{ e.ptask.step.step_template.ctag }}{% endif %}
 
 {% if e.parent_task_id and e.parent_task_id != e.task_id%}
 &nbsp; Parent task <a href="{% url 'taskInfo' %}?jeditaskid={{ e.parent_task_id }}">{{ e.parent_task_id }}</a>
@@ -527,7 +535,7 @@ progress[role]:after {
 {% if dsslices %}
 <table>
 <tr class='tablesection'><th colspan=20> {{ dsslices|length }} production slices </th></tr>
-<tr><th> Request #Slice </th> <th> Dataset </th> <th> Input evs </th> </tr>
+<tr><th> Request#Slice </th> <th> Dataset </th> <th> Input evs </th> </tr>
 {% for s in dsslices %}
 <tr> <td>
 <a href="/dp/?reqid={{ s.request_id }}#slice_{{ s.slice }}">{{ s.request_id }} #{{ s.slice }}</a>
