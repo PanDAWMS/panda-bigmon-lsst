@@ -3,6 +3,7 @@ import logging, re, json, commands, os, copy
 from datetime import datetime, timedelta
 import time
 import json
+import copy
 from django.http import HttpResponse
 from django.shortcuts import render_to_response, render, redirect
 from django.template import RequestContext, loader
@@ -1315,9 +1316,13 @@ def jobList(request, mode=None, param=None):
         jobs = stateNotUpdated(request, values=values, wildCardExtension=wildCardExtension)
         
     else:
-        jobs.extend(Jobsdefined4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
-        jobs.extend(Jobsactive4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
-        jobs.extend(Jobswaiting4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+        excludedTimeQury = copy.deepcopy(query)
+        if ('modificationtime__range' in excludedTimeQury):
+            del excludedTimeQury['modificationtime__range']
+        jobs.extend(Jobsdefined4.objects.filter(**excludedTimeQury).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+        jobs.extend(Jobsactive4.objects.filter(**excludedTimeQury).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+        jobs.extend(Jobswaiting4.objects.filter(**excludedTimeQury).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+        
         jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
 
         ##hard limit is set to 2K
