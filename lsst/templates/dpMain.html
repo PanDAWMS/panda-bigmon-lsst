@@ -7,6 +7,7 @@
 &nbsp; &nbsp; <a href="/dp/?mode=request">Requests</a>
 &nbsp; &nbsp; <a href="/dp/?mode=running">Running</a>
 &nbsp; &nbsp; <a href="/dp/?mode=recent">Recent</a>
+&nbsp; &nbsp; <a href="/dp/?mode=queued">Queued</a>
 {% endblock %}
 
 {% block body %}
@@ -876,6 +877,24 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
 </table>
 {% endif %}
 
+{% if mode == 'queued' %}
+<h3> Current queued production jobs, all pre-run states, shares by request </h3>
+<p>
+Total queued production jobs: {{ totqjobs }}
+</p>
+<table width=100%>
+<tr><th> Request </th> <th> Info </th> <th> Description </th> <th> Queued jobs </th> <th> Share of all queued production jobs </th> </tr>
+{% for r in queuejobs %}
+<tr><td> <a href="/dp/?reqid={{ r.reqid }}">{{ r.reqid }}</a> </td>
+<td><font size=-1> {{ r.reqdata.campaign }} {{ r.reqdata.phys_group }} {{ r.reqdata.project_id }} {{ r.reqdata.manager }} </font> </td>
+<td> <font size=-1> {{ r.reqdata.description }} </font> </td>
+<td> {{ r.reqid__count }} </td>
+<td> <progress max="100" style="width:400px" value="{{ r.fraction }}"></progress> </td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
 {% if mode == 'running' %}
 <h3> Current running production jobs, shares by request </h3>
 <p>
@@ -900,7 +919,7 @@ Total running production jobs: {{ totjobs }}
 <td rowspan=3> Job counts <br> total: {{ job_total }} </td>
 <td><span class='finished'> finished: {{ totjobs.finished }} </span></td>
 <td> <span class='finished'>{{ jobpct.finished }}%</span> </td>
-<td> <progress max="100" style="width:300px" value="{{ jobpct.finished }}"></progress> </td>
+<td> <progress max="100" style="width:200px" value="{{ jobpct.finished }}"></progress> </td>
 
 <td rowspan=3>CPU usage <br> total: {{ cpu_total }}</td>
 

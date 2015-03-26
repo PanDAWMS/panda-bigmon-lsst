@@ -699,8 +699,8 @@ def doRequest(request):
     showfields.remove('jeditaskid')
     jtasksuml = attSummaryDict(request, jeditasks, showfields)
 
-    runjobs = None
-    totjobs = None
+    runjobs = queuejobs = None
+    totjobs = totqjobs = None
     totcpu = None
     sumjobs = cpujobs = None
     sumjobsl = cpujobsl = None
@@ -771,6 +771,21 @@ def doRequest(request):
             for s in finalstates:
                 sumjobsl.append({ 'status' : s, 'recs' : sumjobs[s][:10] })
                 cpujobsl.append({ 'status' : s, 'recs' : cpujobs[s][:10] })
+        elif mode == 'queued':
+            totqjobs = 0
+            ## jobs queued, all pre-run stages
+            queuejobs = []
+            queuejobs.extend(Jobsdefined4.objects.filter(prodsourcelabel='managed').values('reqid').annotate(Count('reqid')).order_by('reqid'))
+            queuejobs.extend(Jobswaiting4.objects.filter(prodsourcelabel='managed').values('reqid').annotate(Count('reqid')).order_by('reqid'))
+            queuejobs.extend(Jobsactive4.objects.filter(prodsourcelabel='managed')\
+            .exclude(jobstatus__in=['running','transferring','holding','starting']).values('reqid').annotate(Count('reqid')).order_by('reqid'))
+
+            for r in queuejobs:
+                totqjobs += r['reqid__count']
+            queuejobs = sorted(queuejobs, key=lambda x:x['reqid__count'], reverse=True)
+            for r in queuejobs:
+                r['fraction'] = 100.*r['reqid__count']/totqjobs
+                if r['reqid'] in reqinfod: r['reqdata'] = reqinfod[r['reqid']]
 
     if events_processed:
         # Convert from dict to ordered list
@@ -840,6 +855,8 @@ def doRequest(request):
         'finalstates' : finalstates,
         'cpu_total' : cpu_total,
         'job_total' : job_total,
+        'queuejobs' : queuejobs,
+        'totqjobs' : totqjobs,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
     patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
