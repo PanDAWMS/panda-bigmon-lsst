@@ -54,7 +54,7 @@
         var data = google.visualization.arrayToDataTable([
           ['Time', 'Count'],
 
-{% for duration,count in drHist %}
+{% for duration,count in drHist|slice:":20" %}
           ['{{ duration }}', {{ count }}],
 {% endfor %}
 
