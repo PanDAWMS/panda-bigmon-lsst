@@ -54,6 +54,8 @@ Click on column titles to sort.
 </p>
 {% endif %}
 
+{% if mode == 'task' %}
+
 {% if cloudTaskSummary %}
 
 <table>
@@ -73,6 +75,7 @@ Click on column titles to sort.
 <th><div title="{{state.state}}"><font size=-1><span class="{{ state.state }}"> {{ state.short }} </span></font></div></th>
 {% endfor %}
 </tr>
+
 
 {% for fdict in cloudTaskSummary %}
 <tr><td> <b>{{ fdict.field }}</b> </td>
@@ -94,7 +97,15 @@ Click on column titles to sort.
 <p>
 {% endif %}
 
+{% else %}
+
+<p>The Production task summary by cloud table moved to the Dash/Production Tasks
+
 {% endif %}
+
+
+{% endif %}
+
 
 <table>
 
@@ -249,7 +260,7 @@ of all jobs
 <td> {{ site.pilots }} </td>
 {% endif %}
 {% for state in site.summary %}
-<td class='{{state.name}}{% if state.count > 0 %}_fill{% endif %}' align='right'><a href="{% url 'jobList' %}?cloud={{cloud.name}}&computingsite={{ site.name }}&jobstatus={{ state.name }}&hours={{hours}}&jobtype={{ view }}&display_limit=100"> <span class="{{ state.name }}{% if state.count > 0 %}_fill{% endif %}"> {{ state.count }} </span></a> </td>
+<td class='{{state.name}}{% if state.count > 0 %}_fill{% endif %}' align='right'><a href="{% url 'jobList' %}?computingsite={{ site.name }}&jobstatus={{ state.name }}&hours={{hours}}&jobtype={{ view }}&display_limit=100"> <span class="{{ state.name }}{% if state.count > 0 %}_fill{% endif %}"> {{ state.count }} </span></a> </td>
 {% endfor %}
 <td> <a href="{% url 'errorSummary' %}?jobtype={{view}}&sortby=count&computingsite={{site.name}}&hours={{hours}}"> {% if site.pctfail > errthreshold %} <font color=red>{{ site.pctfail  }}</font> {% else %} {{ site.pctfail  }} {% endif %} </a> </td>
 </tr>

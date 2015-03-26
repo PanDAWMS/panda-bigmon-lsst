@@ -418,6 +418,9 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         elif param == 'reqid_to':
             val = int(request.session['requestParams'][param])
             query['reqid__lte'] = val
+        elif param == 'processingtype':
+            val = request.session['requestParams'][param]
+            query['processingtype'] = val
 
 
         if querytype == 'task':
@@ -1105,6 +1108,10 @@ def wgTaskSummary(request, fieldname='workinggroup', view='production', taskdays
         query['tasktype'] = 'prod'
     elif view == 'analysis':
         query['tasktype'] = 'anal'
+        
+    if 'processingtype' in request.session['requestParams']:
+        query['processingtype'] = request.session['requestParams']['processingtype']
+
     summary = JediTasks.objects.filter(**query).values(fieldname,'status').annotate(Count('status')).order_by(fieldname,'status')
     totstates = {}
     tottasks = 0
@@ -2628,6 +2635,7 @@ def wnInfo(request,site,wnname='all'):
 def dashSummary(request, hours, limit=999999, view='all', cloudview='region', notime=True):
     pilots = getPilotCounts(view)
     query = setupView(request,hours=hours,limit=limit,opmode=view)
+    
     if VOMODE == 'atlas' and len(request.session['requestParams']) == 0:
         cloudinfol = Cloudconfig.objects.filter().exclude(name='CMS').exclude(name='OSG').values('name','status')
     else:
@@ -2640,8 +2648,9 @@ def dashSummary(request, hours, limit=999999, view='all', cloudview='region', no
     siteinfo = {}
     for s in siteinfol:
         siteinfo[s['siteid']] = s['status']    
-
+    
     sitesummarydata = siteSummary(query, notime)
+
     clouds = {}
     totstates = {}
     totjobs = 0
@@ -2751,6 +2760,9 @@ def dashSummary(request, hours, limit=999999, view='all', cloudview='region', no
     for cloud in cloudkeys:
         allclouds['pilots'] += clouds[cloud]['pilots']
     fullsummary.append(allclouds)
+    
+
+    
     for cloud in cloudkeys:
         for state in sitestatelist:
             clouds[cloud]['statelist'].append(clouds[cloud]['states'][state])
@@ -2786,6 +2798,7 @@ def dashSummary(request, hours, limit=999999, view='all', cloudview='region', no
             cloudsummary = sorted(cloudsummary, key=lambda x:x['pctfail'],reverse=True)
             for cloud in clouds:
                 clouds[cloud]['summary'] = sorted(clouds[cloud]['summary'], key=lambda x:x['pctfail'],reverse=True)
+
     return fullsummary
 
 def dashTaskSummary(request, hours, limit=999999, view='all'):
@@ -2989,7 +3002,7 @@ def dashboard(request, view='production'):
         cloudview = 'N/A'
 
     fullsummary = dashSummary(request, hours=hours, view=view, cloudview=cloudview)
-
+    
     cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view, taskdays=taskdays)
     jobsLeft = {}
     rw = {}
@@ -3000,10 +3013,10 @@ def dashboard(request, view='production'):
             if state['name'] in ['waiting', 'assigned', 'activated', 'starting', 'running', 'transferring', 'holding', 'defined', 'sent', 'throttled','merging']:
                 leftCount += state['count']
         jobsLeft[cloud['name']] = leftCount
-
         if cloud['name'] in rwData.keys():
             rw[cloud['name']] = rwData[cloud['name']]
-    
+            
+            
     request.session['max_age_minutes'] = 6
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
@@ -3025,7 +3038,7 @@ def dashboard(request, view='production'):
             'cloudview': cloudview,
             'hours' : LAST_N_HOURS_MAX,
             'errthreshold' : errthreshold,
-            'cloudTaskSummary' : cloudTaskSummary,
+            'cloudTaskSummary' : cloudTaskSummary ,
             'taskstates' : taskstatedict,
             'taskdays' : taskdays,
             'noldtransjobs' : noldtransjobs,
