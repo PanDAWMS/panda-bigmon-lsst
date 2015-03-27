@@ -197,6 +197,9 @@ Rucio link:
 
 {% if requests %}
 {% comment %} CStatus is the cstatus field in the TRequest record. Status is the status field in the RequestStatus record. {% endcomment %}
+<p>
+<a style="cursor:pointer;" onClick=toggle_class_details('req_details')>Show details</a>
+</p>
 <table width="100%">
 <tr class='tablesection'>
 <th> <a href="{{ nosorturl }}sortby=reqid">Request</a> </th>
@@ -228,17 +231,8 @@ Rucio link:
 {% if request.ref_link %}
 &nbsp; <a href="{{ request.ref_link }}">{{ request.ref_link_path }}</a>
 {% endif %}
-
-{% if totalfiles %}
-<table width='100%' border=0 padding=0 cellspacing=0 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; font-size:9pt">
-<tr><th colspan=20> Total file counts from files in input, output datasets. Progress at right is based on this. </th></tr>
-{% for tf in totalfiles %}
-<tr>
-<td> {{ tf.processingtype }} </td><td> total_in={{ tf.total_in }} </td><td> total_out={{ tf.total_out }} </td><td> finished={{ tf.finished }} </td><td> failed={{ tf.failed }} </td></tr>
-</tr>
-{% endfor %}
-</table>
-{% endif %}
+&nbsp; 
+<a style="cursor:pointer;" onClick=toggle_class_details('req_{{ request.reqid }}_details')>Show details</a>
 
 {% if request.ntasks %}
 <table width='100%' border=0 padding=0 cellspacing=0 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; font-size:9pt">
@@ -250,6 +244,19 @@ Rucio link:
 <span class='{{ istate.0 }}'><b>{{ istate.0 }}</b></span>:<a href="{% url 'taskList' %}?tasktype=prod&reqid={{ request.reqid }}&superstatus={{ istate.0 }}">{{ istate.1 }}</a> &nbsp; 
 {% endfor %}
 </td></tr>
+{% endfor %}
+</table>
+{% endif %}
+
+<span class="req_details req_{{ request.reqid }}_details" style="display: {% if not reqid %} none {% endif %}">
+
+{% if totalfiles %}
+<table width='100%' border=0 padding=0 cellspacing=0 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; font-size:9pt">
+<tr><th colspan=20> Total file counts from files in input, output datasets. Progress at right is based on this. </th></tr>
+{% for tf in totalfiles %}
+<tr>
+<td> {{ tf.processingtype }} </td><td> total_in={{ tf.total_in }} </td><td> total_out={{ tf.total_out }} </td><td> finished={{ tf.finished }} </td><td> failed={{ tf.failed }} </td></tr>
+</tr>
 {% endfor %}
 </table>
 {% endif %}
@@ -279,6 +286,8 @@ Rucio link:
 {% endfor %}
 </table>
 {% endif %}
+
+</span>
 
 {% if request.comment %} <br><font color='brown'>{{ request.comment }}</font> {% endif %}
 </td>
