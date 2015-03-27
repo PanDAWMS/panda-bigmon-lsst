@@ -91,7 +91,6 @@ td { text-align:left; border-style:solid; border-width:1px; border-color:lightgr
 .alarm { color:red }
 .error { color:red !important; background-color:white !important; font-size:12pt !important; font-style:normal !important;  }
 .info { color:black }
-.messageinfo { color:forestgreen }
 .debug { color:darkgrey }
 .finished { color:#248F24 }
 .completed { color:#248F24 }
@@ -104,12 +103,9 @@ td { text-align:left; border-style:solid; border-width:1px; border-color:lightgr
 .aborting { color:red }
 .broken { color:red }
 .tobroken { color:red }
-.deleted { color:red }
 .brokeroff { color:darkgrey }
 .test { color:darkgrey }
 .offline { color:darkgrey }
-.skipped { color:darkgrey }
-.notcheckedskipped { color:darkgrey }
 .holding { color:#FF9933 }
 .throttled { color:#FF9933 }
 .cancelled { color:#FF9933 }
@@ -118,7 +114,6 @@ td { text-align:left; border-style:solid; border-width:1px; border-color:lightgr
 .discarded { color:#FF9933 }
 .finishing { color:#FF9933 }
 .running { color:#47D147 }
-.approved { color:#47D147 }
 .merging { color:#47D147 }
 .topreprocess { color:#47D147 }
 .preprocessing { color:#47D147 }
@@ -149,7 +144,6 @@ td { text-align:left; border-style:solid; border-width:1px; border-color:lightgr
 .failed_fill { color:black;  background-color:#FFABA2 }
 .aborted_fill { color:black;  background-color:#FFABA2 }
 .aborting_fill { color:black;  background-color:#FFABA2 }
-.deleted_fill { color:black;  background-color:#FFABA2 }
 
 .info_fill { color:black;  color:black }
 .debug_fill { color:black;  color:darkgrey }
@@ -184,8 +178,6 @@ td { text-align:left; border-style:solid; border-width:1px; border-color:lightgr
 .defined_fill { color:black;  background-color:#EBF5E2 }
 .registered_fill { color:black;  background-color:#EBF5E2 }
 .submitting_fill { color:black;  background-color:#EBF5E2 }
-.approved_fill { color:black;  background-color:#EBF5E2 }
-.processed_fill { color:black;  background-color:#EBF5E2 }
 
 .warning_fill { color:#FFCB2F }
 
@@ -344,9 +336,6 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
             <li>
             <a href="{% url 'index' %}?mode=quicksearch">Search</a>
             </li>
-            <li>
-            <a href="{% url 'admin:adMain' %}">Admin</a>
-            </li>
 
         </ul>
 
@@ -428,13 +417,6 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
     <div class="left" id="div-subtitle"><font size=-1>{% block subtitle %}Subtitle goes here{% endblock %}</font></div>
     <!-- End sub-title -->
 
-    <!-- bread-crumbs -->
-    <div class="right">
-      {% block header-nav-chain %}
-      <span class="hide-for-small"><font size=-1> {% if request.session.hostname %}{{ request.session.hostname }}{% else %}Built {% endif %} @ {% now "H:i" %}{% if request.session.max_age_minutes %}, cache {{ request.session.max_age_minutes }}'{% endif %}</font></span>
-      {% endblock %}
-    </div>
-    <!-- End bread-crumbs -->
   </div>
   <!-- End sub-title and bread-crumbs -->
 
