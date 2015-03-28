@@ -193,6 +193,19 @@ Rucio link:
 {% endfor %}
 </table>
 
+<table>
+<tr class='tablesection'><th colspan=20> Production task attribute summary 
+</th></tr>
+{% for fdict in ptasksuml %}
+<tr><th> {{ fdict.field }} ({{ fdict.list|length }})</th><td>
+{% for item in fdict.list %}
+<span {% if fdict.field == 'status' or fdict.field == 'superstatus' %} class='{{item.kname}}' {% endif %}> {{ item.kname }} </span>
+({{ item.kvalue }}) &nbsp; 
+{% endfor %}
+</td></tr>
+{% endfor %}
+</table>
+
 {% endif %}
 
 {% if requests %}
@@ -236,7 +249,6 @@ Rucio link:
 
 {% if request.ntasks %}
 <table width='100%' border=0 padding=0 cellspacing=0 style="margin-left: 0em; margin-right: 0em; margin-top: 0em; margin-bottom: 0em; font-size:9pt">
-<tr><th colspan=20> Task status summary {% if reqid %} (details per slice/step are below).{% endif %} Click on count to see tasks.</th></tr>
 {% for istep in request.ntasks %}
 <tr><td width=100>  {{ istep.0 }} </td>
 <td>

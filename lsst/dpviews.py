@@ -48,6 +48,7 @@ viewParams = {}
 viewParams['MON_VO'] = ENV['MON_VO']
 
 req_fields = [ 'project_id', 'phys_group', 'campaign', 'manager', 'provenance', 'request_type', 'project', 'is_fast' ]
+prodtask_fields = [ 'campaign', 'simulation_type', 'status', 'phys_group', ]
 jeditask_fields = [ 'jeditaskid', 'cloud', 'processingtype', 'superstatus', 'status', 'ramcount', 'walltime', 'currentpriority', 'transhome', 'corecount', 'progress', 'failurerate', ]
 
 # entity types supported in searches
@@ -468,6 +469,37 @@ def doRequest(request):
             else:
                 r['ntasks'] = None
 
+        ## task event counts
+        tequery = {}
+        if reqid: tequery = { 'request' : reqid }
+        taskevs = ProductionTask.objects.using('deft_adcr').filter(**tequery).values(*prodtask_fields).annotate(Sum('total_events'))
+        print 'taskevs', len(taskevs), taskevs
+
+        ptasksuml = attSummaryDict(request, taskevs, prodtask_fields)
+
+        taskevd = {}
+        for t in taskevs:
+            if t['campaign'].lower().startswith('mc') and t['campaign'].lower().find('valid') < 0:
+                campaign = t['campaign'].lower()[:3]
+            else:
+                continue
+            if campaign not in taskevd: taskevd[campaign] = {}
+            if t['simulation_type'] not in taskevd[campaign]: taskevd[campaign]['simulation_type'] = 0
+            taskevd[campaign]['simulation_type'] += t['total_events__sum']
+        for r in reqs:
+            if r['reqid'] in ntaskd:
+                stepl = []
+                for istep in ntaskd[r['reqid']]:
+                    statel = []
+                    for istate in ntaskd[r['reqid']][istep]:
+                        statel.append([istate, ntaskd[r['reqid']][istep][istate]])
+                    statel.sort()
+                    stepl.append([istep, statel])
+                stepl.sort()
+                r['ntasks'] = stepl
+            else:
+                r['ntasks'] = None
+
         ## cloud and core count info from JEDI tasks
         tcquery = { 'prodsourcelabel' : 'managed' }
         if reqid: tcquery['reqid'] = reqid
@@ -826,6 +858,7 @@ def doRequest(request):
         'requests' : reqs,
         'reqsuml' : reqsuml,
         'jtasksuml' : jtasksuml,
+        'ptasksuml' : ptasksuml,
         'datasets' : datasets,
         'jedidatasets' : jedidatasets,
         'jeditasks' : jeditasks,
