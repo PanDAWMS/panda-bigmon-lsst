@@ -385,7 +385,8 @@ def doRequest(request):
             ## add tasks to steps
             st['tasks'] = []
             for t in tasks:
-                t['jedistatus'] = jeditaskstatus[t['id']]
+                if t['id'] in jeditaskstatus:
+                    t['jedistatus'] = jeditaskstatus[t['id']]
                 if t['id'] in taskjobd: t['jobstats'] = taskjobd[t['id']]
                 if t['step_id'] == st['id']:
                     st['tasks'].append(t)
@@ -486,19 +487,6 @@ def doRequest(request):
             if campaign not in taskevd: taskevd[campaign] = {}
             if t['simulation_type'] not in taskevd[campaign]: taskevd[campaign]['simulation_type'] = 0
             taskevd[campaign]['simulation_type'] += t['total_events__sum']
-        for r in reqs:
-            if r['reqid'] in ntaskd:
-                stepl = []
-                for istep in ntaskd[r['reqid']]:
-                    statel = []
-                    for istate in ntaskd[r['reqid']][istep]:
-                        statel.append([istate, ntaskd[r['reqid']][istep][istate]])
-                    statel.sort()
-                    stepl.append([istep, statel])
-                stepl.sort()
-                r['ntasks'] = stepl
-            else:
-                r['ntasks'] = None
 
         ## cloud and core count info from JEDI tasks
         tcquery = { 'prodsourcelabel' : 'managed' }
