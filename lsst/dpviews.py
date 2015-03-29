@@ -41,7 +41,7 @@ from core.common.models import JediDatasets
 from core.common.settings.config import ENV
 from core.common.settings import STATIC_URL, FILTER_UI_ENV, defaultDatetimeFormat
 
-import views
+import views as coreviews
 
 ENV['MON_VO'] = 'ATLAS'
 viewParams = {}
@@ -419,6 +419,7 @@ def doRequest(request):
                 reqd = {}
 
     ## gather summary info for request listings
+    ptasksuml = 0
     if reqid or (mode == 'request'):
         query = {}
         if reqid: query = { 'request' : reqid }
@@ -637,12 +638,17 @@ def doRequest(request):
             mat = re.match('_tid[0]*([0-9]+)', tid)
             if mat: tidnum = int(mat.group(1))
 
-        fields = dataset.split('.')
-        if len(fields) == 6:
-            # try to interpret
-            format = fields[5]
-            taskname = '%s.%s.%s.%s.%s' % ( fields[0], fields[1], fields[2], fields[3], fields[5] )
-            jeditasks = JediTasks.objects.filter(taskname=taskname,tasktype='prod').order_by('jeditaskid').values()
+        wildcard = False
+        if dataset.find('*') >= 0: wildcard = True
+
+        jeditasks = []
+        if wildcard == False:
+            fields = dataset.split('.')
+            if len(fields) == 6:
+                # try to interpret
+                format = fields[5]
+                taskname = '%s.%s.%s.%s.%s' % ( fields[0], fields[1], fields[2], fields[3], fields[5] )
+                jeditasks = JediTasks.objects.filter(taskname=taskname,tasktype='prod').order_by('jeditaskid').values()
 
         if len(jeditasks) > 0:
             # get associated datasets
@@ -669,7 +675,14 @@ def doRequest(request):
                         njeditasks += 1
                 t['has_dataset'] = has_dataset
 
-        datasets = ProductionDataset.objects.using('deft_adcr').filter(name__startswith=dataset).values()
+
+        if wildcard:
+            extraCondition = "( %s )" % coreviews.preprocessWildCardString(dataset, 'name')
+            dsquery = {}
+            print 'extra ds conditions', extraCondition
+            datasets = ProductionDataset.objects.using('deft_adcr').filter(**dsquery).extra(where=[extraCondition]).values()
+        else:
+            datasets = ProductionDataset.objects.using('deft_adcr').filter(name__startswith=dataset).values()
         if len(datasets) == 0:
             messages.info(request, "No matching prodsys datasets found")
         else:
@@ -830,8 +843,8 @@ def doRequest(request):
         req = reqs[0]
     else:
         req = None
-    xurl = views.extensibleURL(request)
-    nosorturl = views.removeParam(xurl, 'sortby',mode='extensible')
+    xurl = coreviews.extensibleURL(request)
+    nosorturl = coreviews.removeParam(xurl, 'sortby',mode='extensible')
     data = {
         'viewParams' : viewParams,
         'xurl' : xurl,
