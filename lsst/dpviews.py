@@ -475,7 +475,6 @@ def doRequest(request):
         tequery = {}
         if reqid: tequery = { 'request' : reqid }
         taskevs = ProductionTask.objects.using('deft_adcr').filter(**tequery).values(*prodtask_fields).annotate(Sum('total_events'))
-        print 'taskevs', len(taskevs), taskevs
 
         ptasksuml = attSummaryDict(request, taskevs, prodtask_fields)
 
@@ -677,12 +676,17 @@ def doRequest(request):
 
 
         if wildcard:
-            extraCondition = "( %s )" % coreviews.preprocessWildCardString(dataset, 'name')
+            extraCondition = "( %s )" % preprocessWildCardStringV2(dataset, 'name', ProductionDataset._meta.db_table)
             dsquery = {}
             print 'extra ds conditions', extraCondition
-            datasets = ProductionDataset.objects.using('deft_adcr').filter(**dsquery).extra(where=[extraCondition]).values()
+            q = ProductionDataset.objects.using('deft_adcr').extra(where=[extraCondition])
+            print 'query', q.query
+            datasets = q.values()
+            print datasets
         else:
-            datasets = ProductionDataset.objects.using('deft_adcr').filter(name__startswith=dataset).values()
+            q = ProductionDataset.objects.using('deft_adcr').filter(name__startswith=dataset)
+            print 'query', q.query
+            datasets = q.values()
         if len(datasets) == 0:
             messages.info(request, "No matching prodsys datasets found")
         else:
@@ -703,17 +707,34 @@ def doRequest(request):
             for ds in datasets:
                 if ds['task_id'] in taskd: ds['ptask'] = taskd[ds['task_id']]
 
-        containers = ProductionContainer.objects.using('deft_adcr').filter(name__startswith=dataset).values()        
+        if wildcard:
+            extraCondition = "( %s )" % preprocessWildCardStringV2(dataset, 'name', ProductionContainer._meta.db_table)
+            containers = ProductionContainer.objects.using('deft_adcr').extra(where=[extraCondition]).values()        
+        else:
+            containers = ProductionContainer.objects.using('deft_adcr').filter(name__startswith=dataset).values()        
         if len(containers) == 0:
             messages.info(request, "No matching containers found")
         else:
             messages.info(request, "%s matching containers found" % len(containers))
+
         dsslices = InputRequestList.objects.using('deft_adcr').filter(dataset__name__startswith=dataset).values()
         if len(dsslices) == 0:
             pass # messages.info(request, "No slices using this dataset found")
         else:
             messages.info(request, "%s slices found" % len(dsslices))
-        jedidatasets = JediDatasets.objects.filter(datasetname__startswith=dataset).order_by('jeditaskid').values()
+
+
+        if wildcard:
+            extraCondition = "( %s )" % preprocessWildCardStringV2(dataset, 'datasetname', JediDatasets._meta.db_table)
+            dsquery = {}
+            print 'extra jedi ds conditions', extraCondition
+            q = JediDatasets.objects.extra(where=[extraCondition])
+            print 'query', q.query
+            jedidatasets = q.order_by('jeditaskid').values()
+        else:
+            q = JediDatasets.objects.filter(datasetname__startswith=dataset)
+            print 'query', q.query
+            jedidatasets = q.order_by('jeditaskid').values()
         if len(jedidatasets) == 0:
             messages.info(request, "No matching JEDI datasets found")
         else:
@@ -941,3 +962,55 @@ class DatasetForm(forms.Form):
 
     dataset = forms.CharField(label='Dataset', max_length=250, \
             help_text="Enter dataset or container name")
+
+def preprocessWildCardStringV2(strToProcess, fieldToLookAt, tablename):
+    if (len(strToProcess)==0):
+        return '(1=1)'
+    #strToProcess = strToProcess.replace('_','\_')
+    cardParametersRaw = strToProcess.split('*')
+    cardRealParameters = [s for s in cardParametersRaw if len(s) > 1]
+    countRealParameters = len(cardRealParameters)
+    countParameters = len(cardParametersRaw)
+
+    if (countParameters==0):
+        return '(1=1)'
+    currentRealParCount = 0
+    currentParCount = 0
+    extraQueryString = '('
+    
+    for parameter in cardParametersRaw:
+        leadStar = False
+        trailStar = False
+        if len(parameter) > 0:
+            
+            if (currentParCount-1 >= 0):
+#                if len(cardParametersRaw[currentParCount-1]) == 0:
+                leadStar = True
+
+            if (currentParCount+1 < countParameters):
+#                if len(cardParametersRaw[currentParCount+1]) == 0:
+                trailStar = True
+
+            if fieldToLookAt.lower() == 'PRODUSERID':
+                leadStar = True
+                trailStar = True
+
+
+            if (leadStar and trailStar):
+                extraQueryString += '( "'+tablename.upper()+'"."'+fieldToLookAt.upper()+'"  LIKE TRANSLATE(\'%%' + parameter +'%%\' USING NCHAR_CS)   )'
+
+            elif ( not leadStar and not trailStar):
+                extraQueryString += '( "'+tablename.upper()+'"."'+fieldToLookAt.upper()+'"  LIKE TRANSLATE(\'' + parameter +'%%\' USING NCHAR_CS) )'
+
+            elif (leadStar and not trailStar):
+                extraQueryString += '( "'+tablename.upper()+'"."'+fieldToLookAt.upper()+'"  LIKE TRANSLATE(\'%%' + parameter +'%%\' USING NCHAR_CS) )'
+                
+            elif (not leadStar and trailStar):
+                extraQueryString += '( "'+tablename.upper()+'"."'+fieldToLookAt.upper()+'"  LIKE TRANSLATE(\'' + parameter +'%%\' USING NCHAR_CS) )'
+
+            currentRealParCount+=1
+            if currentRealParCount < countRealParameters:
+                extraQueryString += ' AND '
+        currentParCount+=1
+    extraQueryString += ")"
+    return extraQueryString
