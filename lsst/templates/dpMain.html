@@ -76,16 +76,12 @@ Request-based resource usage summaries: <a href="/dp/?mode=running"><b>running</
 
 {% if mode == 'dataset' %}
 
+{% if show_form %}
 <table width=600> 
-
-
 <tr><td>
 <p><b>Dataset search</b></p>
-
 <form action="/dp/" method="post">
-
 {{ dataset_form.non_field_errors }}
-
 <table width=900 class='formtable'>
     {% csrf_token %}
 
@@ -129,6 +125,7 @@ Request-based resource usage summaries: <a href="/dp/?mode=running"><b>running</
 
 </table>
 </form>
+{% endif %}
 
 </td></tr>
 
@@ -526,12 +523,12 @@ progress[role]:after {
 
 {% if datasets and not reqid %}
 <table>
-<tr class='tablesection'><th colspan=20> Production system tasks: {{ datasets|length }} </th></tr>
+<tr class='tablesection'><th colspan=20> Production system task datasets: {{ datasets|length }} </th></tr>
 <tr> <th> Task ID</th> <th> Dataset </th> <th> Events </th> <th> Files </th> <th> Status </th> <th> Group </th> <th> Timestamp </th> </tr>
 {% for e in datasets %}
 <tr>
 <td> <a href="{% url 'taskInfo' %}?jeditaskid={{ e.task_id }}">{{ e.task_id }}</a> </td>
-<td> <font size=-1>{{ e.name }} </font>
+<td> <font size=-1><a href="/dp/?dataset={{ e.name }}">{{ e.name }}</a> </font>
 <br><i>Request:</i> <a href="/dp/?reqid={{ e.ptask.request_id }}{% if e.ptask.step.slice.slice %}#slice_{{ e.ptask.step.slice.slice }}{% endif %}">{{ e.ptask.request_id }}{% if e.ptask.step.slice.slice %} slice {{ e.ptask.step.slice.slice }}{% endif %}</a>
 {% if e.ptask.step.step_template.step %}&nbsp; <i>Step:</i> {{ e.ptask.step.step_template.step }} {{ e.ptask.step.step_template.ctag }}{% endif %}
 
@@ -556,8 +553,8 @@ progress[role]:after {
 {% for e in containers %}
 <tr>
 <td> <a href="{% url 'taskInfo' %}?jeditaskid={{ e.parent_task_id }}">{{ e.parent_task_id }}</a> </td>
-<td> {{ e.name }} </td>
-<td> {{ e.status }} </td>
+<td> <a href="/dp/?dataset={{ e.name }}">{{ e.name }}</a> </td>
+<td class='{{ e.status|lower }}_fill'>{{ e.status }}</td>
 <td> {{ e.rid }} </td>
 <td>{{ e.phys_group }} </td>
 </tr>
@@ -619,7 +616,7 @@ progress[role]:after {
 		<td>{{ dsrec.nevents }}</td>
 		<td>{{ dsrec.creationtime|date:"Y-m-d H:i" }}</td>
 		<td>{{ dsrec.modificationtime|date:"m-d H:i" }}</td>
-		<td>{{ dsrec.status }}</td>
+		<td class='{{ dsrec.status|lower }}_fill'>{{ dsrec.status }}</td>
 		<td>{{ dsrec.streamname }}</td>
 		<td>{{ dsrec.storagetoken }}</td>
 		<td>{{ dsrec.datasetid }}</td>

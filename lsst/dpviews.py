@@ -78,6 +78,7 @@ def doRequest(request):
     reqid = None
     dataset_form = DatasetForm()
 
+    show_form = True
     if request.method == 'POST':
 
         ## if POST, we have a form input to process
@@ -88,22 +89,28 @@ def doRequest(request):
         if request.user.is_authenticated():
             formdata['requester'] = request.user.get_full_name()
 
-        if formdata['type'] == 'dataset':
-            dataset_form = DatasetForm(data=request.POST)
+        if formdata['type'] in ('dataset', ''):
+            formdata['type'] = 'dataset'
+            dataset_form = DatasetForm(formdata)
             ## proceed with the dataset search
-            form = DatasetForm(formdata)
-            if form.is_valid():
-                formdata = form.cleaned_data.copy()
+            if dataset_form.is_valid():
+                formdata = dataset_form.cleaned_data.copy()
                 mode = 'dataset'
-                dataset = formdata['dataset']
+                dataset = formdata['dataset'].strip()
             else:
                 messages.warning(request, "The requested dataset search is not valid")
+                print 'POST', request.POST
         else:
-            messages.warning(request, "Unrecognized form submitted")
+            messages.warning(request, "Unrecognized form %s" % request.POST['type'])
 
     else:
         ## GET
-        request.session['requestParams'] = request.GET.copy()
+        formdata = request.GET.copy()
+        request.session['requestParams'] = formdata
+
+        if request.user.is_authenticated():
+            formdata['requester'] = request.user.get_full_name()
+
         for f in req_fields:
             if f in request.GET:
                 query[f] = request.GET[f]
@@ -113,8 +120,11 @@ def doRequest(request):
             mode = 'reqid'
         elif 'dataset' in request.GET:
             dataset = request.GET['dataset']
+            formdata = request.GET.copy()
+            formdata['type'] = 'dataset'
+            dataset_form = DatasetForm(formdata)
             mode = 'dataset'
-            dataset_form = DatasetForm(data=request.GET)
+            show_form = True
         else:
             query['reqid__gte'] = 920
 
@@ -641,13 +651,17 @@ def doRequest(request):
         if dataset.find('*') >= 0: wildcard = True
 
         jeditasks = []
-        if wildcard == False:
+        if not wildcard:
             fields = dataset.split('.')
             if len(fields) == 6:
                 # try to interpret
                 format = fields[5]
                 taskname = '%s.%s.%s.%s.%s' % ( fields[0], fields[1], fields[2], fields[3], fields[5] )
                 jeditasks = JediTasks.objects.filter(taskname=taskname,tasktype='prod').order_by('jeditaskid').values()
+        else:
+            extraCondition = "( %s )" % preprocessWildCardStringV2(dataset, 'taskname', JediTasks._meta.db_table)
+            q = JediTasks.objects.extra(where=[extraCondition])
+            jeditasks = q.values()
 
         if len(jeditasks) > 0:
             # get associated datasets
@@ -667,25 +681,23 @@ def doRequest(request):
                     t['datasets'] = dsetd[t['jeditaskid']]
             # mark the tasks that have the exact dataset (modulo tid)
             for t in jeditasks:
-                has_dataset = False
-                for ds in t['datasets']:
-                    if ds['datasetname'].startswith(dataset):
-                        has_dataset = True
-                        njeditasks += 1
+                if not wildcard:
+                    has_dataset = False
+                    for ds in t['datasets']:
+                        if ds['datasetname'].startswith(dataset):
+                            has_dataset = True
+                            njeditasks += 1
+                else:
+                    has_dataset = True
+                    njeditasks += 1
                 t['has_dataset'] = has_dataset
-
 
         if wildcard:
             extraCondition = "( %s )" % preprocessWildCardStringV2(dataset, 'name', ProductionDataset._meta.db_table)
-            dsquery = {}
-            print 'extra ds conditions', extraCondition
             q = ProductionDataset.objects.using('deft_adcr').extra(where=[extraCondition])
-            print 'query', q.query
             datasets = q.values()
-            print datasets
         else:
             q = ProductionDataset.objects.using('deft_adcr').filter(name__startswith=dataset)
-            print 'query', q.query
             datasets = q.values()
         if len(datasets) == 0:
             messages.info(request, "No matching prodsys datasets found")
@@ -727,13 +739,10 @@ def doRequest(request):
         if wildcard:
             extraCondition = "( %s )" % preprocessWildCardStringV2(dataset, 'datasetname', JediDatasets._meta.db_table)
             dsquery = {}
-            print 'extra jedi ds conditions', extraCondition
             q = JediDatasets.objects.extra(where=[extraCondition])
-            print 'query', q.query
             jedidatasets = q.order_by('jeditaskid').values()
         else:
             q = JediDatasets.objects.filter(datasetname__startswith=dataset)
-            print 'query', q.query
             jedidatasets = q.order_by('jeditaskid').values()
         if len(jedidatasets) == 0:
             messages.info(request, "No matching JEDI datasets found")
@@ -912,6 +921,7 @@ def doRequest(request):
         'job_total' : job_total,
         'queuejobs' : queuejobs,
         'totqjobs' : totqjobs,
+        'show_form' : show_form,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
     patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
