@@ -769,8 +769,8 @@ def doRequest(request):
     sumjobsl = cpujobsl = None
     finalstates = [ 'finished', 'failed', 'cancelled' ]
     cpupct = jobpct = {}
-    cpu_total = 0
-    job_total = 0
+    cpu_total = job_total = totrunjobs = 0
+    recentjobs = []
     if mode == 'processing':
         query = {}
         query['reqid__gte'] = 920
@@ -796,7 +796,6 @@ def doRequest(request):
             if r['reqid'] in reqinfod: r['reqdata'] = reqinfod[r['reqid']]
 
         ## running jobs
-        totrunjobs = 0
         ## job slot usage by request
         runjobs = Jobsactive4.objects.filter(jobstatus='running',prodsourcelabel='managed').values('reqid').annotate(Count('reqid')).order_by('reqid')
         for r in runjobs:
@@ -975,7 +974,7 @@ class DatasetForm(forms.Form):
     type = forms.ChoiceField(label='Entry type', widget=forms.HiddenInput(), choices=entitytypes, initial='dataset' )
 
     dataset = forms.CharField(label='Dataset', max_length=250, \
-            help_text="Enter dataset or container name")
+            help_text="Enter dataset or container name. Use * for wildcard")
 
 def preprocessWildCardStringV2(strToProcess, fieldToLookAt, tablename):
     if (len(strToProcess)==0):
