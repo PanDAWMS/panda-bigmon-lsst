@@ -526,7 +526,7 @@ progress[role]:after {
 
 {% if datasets and not reqid %}
 <table>
-<tr class='tablesection'><th colspan=20> {{ datasets|length }} production system tasks </th></tr>
+<tr class='tablesection'><th colspan=20> Production system tasks: {{ datasets|length }} </th></tr>
 <tr> <th> Task ID</th> <th> Dataset </th> <th> Events </th> <th> Files </th> <th> Status </th> <th> Group </th> <th> Timestamp </th> </tr>
 {% for e in datasets %}
 <tr>
@@ -551,7 +551,7 @@ progress[role]:after {
 
 {% if containers %}
 <table>
-<tr class='tablesection'><th colspan=20> {{ containers|length }} containers </th></tr>
+<tr class='tablesection'><th colspan=20> Containers: {{ containers|length }} </th></tr>
 <tr> <th> Parent task </th> <th> Container </th> <th> Status </th> <th> Request </th> <th> Group </th> </tr>
 {% for e in containers %}
 <tr>
@@ -567,7 +567,7 @@ progress[role]:after {
 
 {% if dsslices %}
 <table>
-<tr class='tablesection'><th colspan=20> {{ dsslices|length }} production slices </th></tr>
+<tr class='tablesection'><th colspan=20> Production slices: {{ dsslices|length }}  </th></tr>
 <tr><th> Request#Slice </th> <th> Dataset </th> <th> Input evs </th> </tr>
 {% for s in dsslices %}
 <tr> <td>
@@ -588,7 +588,7 @@ progress[role]:after {
 
 {% if jedidatasets %}
 <table>
-<tr class='tablesection'><th colspan=20> {{ jedidatasets|length }} JEDI datasets </th></tr>
+<tr class='tablesection'><th colspan=20> JEDI datasets: {{ jedidatasets|length }} </th></tr>
 <tr>
  <th rowspan=2>Task</th>
  <th colspan=20> Dataset </th> </tr> 
@@ -601,7 +601,7 @@ progress[role]:after {
     <th>Nevents</th>
 	<th>Created</th>
 	<th>Modified</th>
-	<th>State</th>
+	<th>Status</th>
 	<th>Stream</th>
 	<th>Token</th>
 	<th>ID</th>
@@ -619,7 +619,7 @@ progress[role]:after {
 		<td>{{ dsrec.nevents }}</td>
 		<td>{{ dsrec.creationtime|date:"Y-m-d H:i" }}</td>
 		<td>{{ dsrec.modificationtime|date:"m-d H:i" }}</td>
-		<td>{{ dsrec.state }}</td>
+		<td>{{ dsrec.status }}</td>
 		<td>{{ dsrec.streamname }}</td>
 		<td>{{ dsrec.storagetoken }}</td>
 		<td>{{ dsrec.datasetid }}</td>
@@ -634,7 +634,7 @@ progress[role]:after {
 
 {% if njeditasks > 0 %}
 <table>
-<tr class='tablesection'><th colspan=20> {{ njeditasks }} JEDI tasks </th></tr>
+<tr class='tablesection'><th colspan=20> JEDI tasks: {{ njeditasks }} </th></tr>
 <tr> <th rowspan=2> Task ID</th> <th> Task info </th> <th> Status </th> <th> Group </th> <th> Cloud </th> <th> Cores </th> <th> RAM </th> <th> Modified </th> <th> Info </th> </tr>
 <tr> <th colspan=20> Datasets </th> </tr>
 {% for e in jeditasks %}
