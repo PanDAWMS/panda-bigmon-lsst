@@ -765,12 +765,13 @@ def doRequest(request):
     runjobs = queuejobs = None
     totjobs = totqjobs = None
     totcpu = None
-    sumjobs = cpujobs = None
-    sumjobsl = cpujobsl = None
+    sumjobs = cpujobs = sumevents = projevents = None
+    sumjobsl = cpujobsl = sumeventsl = projeventsl = None
     finalstates = [ 'finished', 'failed', 'cancelled' ]
     cpupct = jobpct = {}
     cpu_total = job_total = totrunjobs = 0
     recentjobs = []
+    totevents = 0
     if mode == 'processing':
         query = {}
         query['reqid__gte'] = 920
@@ -810,9 +811,17 @@ def doRequest(request):
         cpujobs = {}
         totjobs = {}
         totcpu = {}
+        sumevents = {}
+        projevents = {}
         ## recent jobs by count and walltime
-        recentjobs = Jobsarchived4.objects.filter(prodsourcelabel='managed').values('reqid','jobstatus').annotate(Count('jobstatus')).annotate(Sum('cpuconsumptiontime')).order_by('reqid','jobstatus')
+        recentjobs = Jobsarchived4.objects.filter(prodsourcelabel='managed').values('reqid','jobstatus').annotate(Count('jobstatus')).annotate(Sum('cpuconsumptiontime')).annotate(Sum('nevents')).order_by('reqid','jobstatus')
         for r in recentjobs:
+            if r['jobstatus'] == 'finished':
+                if r['reqid'] not in sumevents:
+                    sumevents[r['reqid']] = {}
+                    sumevents[r['reqid']]['nevents'] = 0
+                sumevents[r['reqid']]['nevents'] += r['nevents__sum']
+                totevents += r['nevents__sum']
             if r['jobstatus'] not in sumjobs:
                 sumjobs[r['jobstatus']] = []
                 cpujobs[r['jobstatus']] = []
@@ -822,6 +831,30 @@ def doRequest(request):
             cpujobs[r['jobstatus']].append(r)
             totjobs[r['jobstatus']] += r['jobstatus__count']
             totcpu[r['jobstatus']] += r['cpuconsumptiontime__sum']
+
+        projeventstot = 0
+        for r in sumevents:
+            sumevents[r]['reqid'] = r
+            sumevents[r]['fraction'] = int(100.*sumevents[r]['nevents']/totevents)
+            sumevents[r]['nevents'] = int(sumevents[r]['nevents']/1000)
+            if r in reqinfod:
+                sumevents[r]['reqdata'] = reqinfod[r]
+                project = reqinfod[r]['project_id']
+                if project not in projevents:
+                    projevents[project] = {}
+                    projevents[project]['nevents'] = 0
+                projevents[project]['nevents'] += sumevents[r]['nevents']
+                projeventstot += sumevents[r]['nevents']
+
+        for p in projevents:
+            projevents[p]['project'] = p
+            projevents[p]['fraction'] = int(100.*projevents[p]['nevents']/projeventstot)
+
+        projeventsl = []
+        for p in projevents:
+            projeventsl.append(projevents[p])
+        projeventsl = sorted(projeventsl, key=lambda x:x['nevents'], reverse=True)
+
         cpusum = {}
         jobsum = {}
         for s in sumjobs:
@@ -850,6 +883,10 @@ def doRequest(request):
         for s in finalstates:
             sumjobsl.append({ 'status' : s, 'recs' : sumjobs[s] })
             cpujobsl.append({ 'status' : s, 'recs' : cpujobs[s] })
+        sumeventsl = []
+        for s in sumevents:
+            sumeventsl.append(sumevents[s])
+        sumeventsl = sorted(sumeventsl, key=lambda x:x['nevents'], reverse=True)
 
     if events_processed:
         # Convert from dict to ordered list
@@ -925,6 +962,8 @@ def doRequest(request):
         'queuejobs' : queuejobs,
         'totqjobs' : totqjobs,
         'show_form' : show_form,
+        'sumeventsl' : sumeventsl,
+        'projeventsl' : projeventsl,
     }
     response = render_to_response('dpMain.html', data, RequestContext(request))
     patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)

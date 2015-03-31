@@ -895,7 +895,7 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
 {% endif %}
 
 {% if mode == 'processing' %}
-<h3> Current queued production jobs, all pre-run states, shares by request </h3>
+<h3> Current queued production jobs, all pre-run states</h3>
 <p>
 Total queued production jobs: {{ totqjobs }} &nbsp; requests: {{ queuejobs|length }}
 </p>
@@ -913,7 +913,7 @@ Total queued production jobs: {{ totqjobs }} &nbsp; requests: {{ queuejobs|lengt
 {% endfor %}
 </table>
 
-<h3> Current running production jobs, shares by request </h3>
+<h3> Current running production jobs </h3>
 <p>
 Total running production jobs: {{ totrunjobs }} &nbsp; requests: {{ runjobs|length }}
 </p>
@@ -931,7 +931,35 @@ Total running production jobs: {{ totrunjobs }} &nbsp; requests: {{ runjobs|leng
 {% endfor %}
 </table>
 
-<h3> Completed production jobs, last 3 days, shares by request </h3>
+<h4> Events produced, last 3 days</h4>
+
+<table width=100%>
+<tr><th> Project
+<br><a style="cursor:pointer;" onClick=toggle_class_details('full_project_event_counts')>Show&nbsp;all</a>
+</th> <th> Events (k)</th> <th> Fraction of events </th> </tr>
+{% for r in projeventsl %}
+<tr {% if forloop.counter > 10 %} class="full_project_event_counts" style="display: none"{% endif %}><td> {{ r.project }} </td>
+<td> {{ r.nevents }} </td>
+<td> <progress max="100" style="width:400px" value="{{ r.fraction }}"></progress> </td>
+</tr>
+{% endfor %}
+</table>
+
+<table width=100%>
+<tr><th> Request 
+<br><a style="cursor:pointer;" onClick=toggle_class_details('full_event_counts')>Show&nbsp;all</a>
+</th> <th> Info </th> <th> Description </th> <th> Events (k)</th> <th> Fraction of events </th> </tr>
+{% for r in sumeventsl %}
+<tr {% if forloop.counter > 10 %} class="full_event_counts" style="display: none"{% endif %}><td> <a href="/dp/?reqid={{ r.reqid }}">{{ r.reqid }}</a> </td>
+<td><font size=-1> {{ r.reqdata.campaign }} {{ r.reqdata.phys_group }} {{ r.reqdata.project_id }} {{ r.reqdata.manager }} </font> </td>
+<td> <font size=-1> {{ r.reqdata.description }} </font> </td>
+<td> {{ r.nevents }} </td>
+<td> <progress max="100" style="width:400px" value="{{ r.fraction }}"></progress> </td>
+</tr>
+{% endfor %}
+</table>
+
+<h3> Completed production jobs, last 3 days </h3>
 <table><tr>
 <td rowspan=3> Job counts <br> total: {{ job_total }} </td>
 <td><span class='finished'> finished: {{ totjobs.finished }} </span></td>
