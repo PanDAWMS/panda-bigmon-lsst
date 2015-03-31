@@ -592,7 +592,7 @@ progress[role]:after {
 <tr>
 	<th>Type</th>
 	{% if dsrec.scope %} <th>Scope</th> {% endif %}
-	<th>Status</th>
+	<th>Files</th>
 	<th>Nfiles <br> <span class='finished'>finished</span></th>
 	<th>Nfiles <br> <span class='failed'>failed</span></th>
     <th>Nevents</th>
@@ -610,7 +610,7 @@ progress[role]:after {
     <tr>
 		<td>{{ dsrec.type }}</td>
 		{% if dsrec.scope %} <td>{{ dsrec.scope }}</td> {% endif %}
-		<td class='{{dsrec.status}}'>{{ dsrec.status }}</td>
+        <td><a href="{% url 'fileList' %}?datasetname={{ dsrec.datasetname }}&jeditaskid={{ dsrec.jeditaskid }}">{{ dsrec.nfiles }}</a></td>
 		<td><span class='finished'>{{ dsrec.nfilesfinished }}</span></td>
 		<td><span class='failed'>{{ dsrec.nfilesfailed }}</span></td>
 		<td>{{ dsrec.nevents }}</td>
@@ -620,6 +620,7 @@ progress[role]:after {
 		<td>{{ dsrec.streamname }}</td>
 		<td>{{ dsrec.storagetoken }}</td>
 		<td>{{ dsrec.datasetid }}</td>
+</td>
 	</tr>
 
 <tr>
