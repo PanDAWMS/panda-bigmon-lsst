@@ -5,9 +5,7 @@
 &nbsp; &nbsp; <a href="/dp/">Main</a>
 &nbsp; &nbsp; <a href="/dp/?mode=dataset">Datasets</a>
 &nbsp; &nbsp; <a href="/dp/?mode=request">Requests</a>
-&nbsp; &nbsp; <a href="/dp/?mode=running">Running</a>
-&nbsp; &nbsp; <a href="/dp/?mode=recent">Recent</a>
-&nbsp; &nbsp; <a href="/dp/?mode=queued">Queued</a>
+&nbsp; &nbsp; <a href="/dp/?mode=processing">Processing</a>
 {% endblock %}
 
 {% block body %}
@@ -896,15 +894,17 @@ created {{ step.ctag.def_time|date:"Y-m-d H:i" }}
 </table>
 {% endif %}
 
-{% if mode == 'queued' %}
+{% if mode == 'processing' %}
 <h3> Current queued production jobs, all pre-run states, shares by request </h3>
 <p>
-Total queued production jobs: {{ totqjobs }}
+Total queued production jobs: {{ totqjobs }} &nbsp; requests: {{ queuejobs|length }}
 </p>
 <table width=100%>
-<tr><th> Request </th> <th> Info </th> <th> Description </th> <th> Queued jobs </th> <th> Share of all queued production jobs </th> </tr>
+<tr><th> Request 
+<br><a style="cursor:pointer;" onClick=toggle_class_details('full_queued_list')>Show&nbsp;all</a>
+</th> <th> Info </th> <th> Description </th> <th> Queued jobs </th> <th> Share of all queued production jobs </th> </tr>
 {% for r in queuejobs %}
-<tr><td> <a href="/dp/?reqid={{ r.reqid }}">{{ r.reqid }}</a> </td>
+<tr {% if forloop.counter > 10 %} class="full_queued_list" style="display: none"{% endif %} ><td> <a href="/dp/?reqid={{ r.reqid }}">{{ r.reqid }}</a> </td>
 <td><font size=-1> {{ r.reqdata.campaign }} {{ r.reqdata.phys_group }} {{ r.reqdata.project_id }} {{ r.reqdata.manager }} </font> </td>
 <td> <font size=-1> {{ r.reqdata.description }} </font> </td>
 <td> {{ r.reqid__count }} </td>
@@ -912,17 +912,17 @@ Total queued production jobs: {{ totqjobs }}
 </tr>
 {% endfor %}
 </table>
-{% endif %}
 
-{% if mode == 'running' %}
 <h3> Current running production jobs, shares by request </h3>
 <p>
-Total running production jobs: {{ totjobs }}
+Total running production jobs: {{ totrunjobs }} &nbsp; requests: {{ runjobs|length }}
 </p>
 <table width=100%>
-<tr><th> Request </th> <th> Info </th> <th> Description </th> <th> Running jobs </th> <th> Share of all running production jobs </th> </tr>
+<tr><th> Request 
+<br><a style="cursor:pointer;" onClick=toggle_class_details('full_running_list')>Show&nbsp;all</a>
+</th> <th> Info </th> <th> Description </th> <th> Running jobs </th> <th> Share of all running production jobs </th> </tr>
 {% for r in runjobs %}
-<tr><td> <a href="/dp/?reqid={{ r.reqid }}">{{ r.reqid }}</a> </td>
+<tr {% if forloop.counter > 10 %} class="full_running_list" style="display: none"{% endif %}><td> <a href="/dp/?reqid={{ r.reqid }}">{{ r.reqid }}</a> </td>
 <td><font size=-1> {{ r.reqdata.campaign }} {{ r.reqdata.phys_group }} {{ r.reqdata.project_id }} {{ r.reqdata.manager }} </font> </td>
 <td> <font size=-1> {{ r.reqdata.description }} </font> </td>
 <td> {{ r.reqid__count }} </td>
@@ -930,9 +930,7 @@ Total running production jobs: {{ totjobs }}
 </tr>
 {% endfor %}
 </table>
-{% endif %}
 
-{% if mode == 'recent' %}
 <h3> Completed production jobs, last 3 days, shares by request </h3>
 <table><tr>
 <td rowspan=3> Job counts <br> total: {{ job_total }} </td>
@@ -972,9 +970,11 @@ Total running production jobs: {{ totjobs }}
 {% for s in sumjobs %}
 <h4> <span class='{{s.status}}'>{{s.status}} job counts</span></h4>
 <table width=100%>
-<tr><th> Request </th> <th> Info </th> <th> Description </th> <th> Jobs </th> <th> Fraction of {{s.status}} jobs </th> </tr>
+<tr><th> Request 
+<br><a style="cursor:pointer;" onClick=toggle_class_details('full_{{ s.status}}_job_counts')>Show&nbsp;all</a>
+</th> <th> Info </th> <th> Description </th> <th> Jobs </th> <th> Fraction of {{s.status}} jobs </th> </tr>
 {% for r in s.recs %}
-<tr><td> <a href="/dp/?reqid={{ r.reqid }}">{{ r.reqid }}</a> </td>
+<tr {% if forloop.counter > 10 %} class="full_{{ s.status}}_job_counts" style="display: none"{% endif %}><td> <a href="/dp/?reqid={{ r.reqid }}">{{ r.reqid }}</a> </td>
 <td><font size=-1> {{ r.reqdata.campaign }} {{ r.reqdata.phys_group }} {{ r.reqdata.project_id }} {{ r.reqdata.manager }} </font> </td>
 <td> <font size=-1> {{ r.reqdata.description }} </font> </td>
 <td> {{ r.jobstatus__count }} </td>
@@ -987,9 +987,11 @@ Total running production jobs: {{ totjobs }}
 {% for s in cpujobs %}
 <h4> <span class='{{s.status}}'>{{s.status}} job walltime</span></h4>
 <table width=100%>
-<tr><th> Request </th> <th> Info </th> <th> Description </th> <th> Walltime </th> <th> Fraction of {{s.status}} walltime </th> </tr>
+<tr><th> Request 
+<br><a style="cursor:pointer;" onClick=toggle_class_details('full_{{ s.status}}_cpu_counts')>Show&nbsp;all</a>
+</th> <th> Info </th> <th> Description </th> <th> Walltime </th> <th> Fraction of {{s.status}} walltime </th> </tr>
 {% for r in s.recs %}
-<tr><td> <a href="/dp/?reqid={{ r.reqid }}">{{ r.reqid }}</a> </td>
+<tr {% if forloop.counter > 10 %} class="full_{{ s.status}}_cpu_counts" style="display: none"{% endif %}><td> <a href="/dp/?reqid={{ r.reqid }}">{{ r.reqid }}</a> </td>
 <td><font size=-1> {{ r.reqdata.campaign }} {{ r.reqdata.phys_group }} {{ r.reqdata.project_id }} {{ r.reqdata.manager }} </font> </td>
 <td> <font size=-1> {{ r.reqdata.description }} </font> </td>
 <td> {{ r.cpuconsumptiontime__sum }} </td>

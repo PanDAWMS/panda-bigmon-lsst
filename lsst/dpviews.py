@@ -771,84 +771,86 @@ def doRequest(request):
     cpupct = jobpct = {}
     cpu_total = 0
     job_total = 0
-    if mode in [ 'running', 'recent', 'queued' ]:
+    if mode == 'processing':
         query = {}
         query['reqid__gte'] = 920
         reqinfo = TRequest.objects.using('deft_adcr').filter(**query).order_by('reqid').reverse().values()
         reqinfod = {}
         for r in reqinfo:
             reqinfod[r['reqid']] = r
-        if mode == 'running':
-            totjobs = 0
-            totcpu = 0
-            ## job slot usage by request
-            runjobs = Jobsactive4.objects.filter(jobstatus='running',prodsourcelabel='managed').values('reqid').annotate(Count('reqid')).order_by('reqid')
-            for r in runjobs:
-                totjobs += r['reqid__count']
-            runjobs = sorted(runjobs, key=lambda x:x['reqid__count'], reverse=True)
-            for r in runjobs:
-                r['fraction'] = 100.*r['reqid__count']/totjobs
-                if r['reqid'] in reqinfod: r['reqdata'] = reqinfod[r['reqid']]
-        elif mode == 'recent':
-            sumjobs = {}
-            cpujobs = {}
-            totjobs = {}
-            totcpu = {}
-            ## recent jobs by count and walltime
-            runjobs = Jobsarchived4.objects.filter(prodsourcelabel='managed').values('reqid','jobstatus').annotate(Count('jobstatus')).annotate(Sum('cpuconsumptiontime')).order_by('reqid','jobstatus')
-            for r in runjobs:
-                if r['jobstatus'] not in sumjobs:
-                    sumjobs[r['jobstatus']] = []
-                    cpujobs[r['jobstatus']] = []
-                    totjobs[r['jobstatus']] = 0
-                    totcpu[r['jobstatus']] = 0
-                sumjobs[r['jobstatus']].append(r)
-                cpujobs[r['jobstatus']].append(r)
-                totjobs[r['jobstatus']] += r['jobstatus__count']
-                totcpu[r['jobstatus']] += r['cpuconsumptiontime__sum']
-            cpusum = {}
-            jobsum = {}
-            for s in sumjobs:
-                cpusum[s] = 0
-                jobsum[s] = 0
-                for r in sumjobs[s]:
-                    cpusum[s] += r['cpuconsumptiontime__sum']
-                    jobsum[s] += r['jobstatus__count']
-                    cpu_total += r['cpuconsumptiontime__sum']
-                    job_total += r['jobstatus__count']
-                    r['fraction'] = 100.*r['jobstatus__count']/totjobs[s]
-                    r['cpufraction'] = 100.*r['cpuconsumptiontime__sum']/totcpu[s]
-                    if r['reqid'] in reqinfod: r['reqdata'] = reqinfod[r['reqid']]
-            cpusum['all'] = 0
-            jobsum['all'] = 0
-            for s in sumjobs:
-                cpusum['all'] += cpusum[s]
-                jobsum['all'] += jobsum[s]
-            for s in sumjobs:
-                sumjobs[s] = sorted(sumjobs[s], key=lambda x:x['jobstatus__count'], reverse=True)
-                cpujobs[s] = sorted(cpujobs[s], key=lambda x:x['cpuconsumptiontime__sum'], reverse=True)
-                cpupct[s] = int(100.*cpusum[s]/cpu_total)
-                jobpct[s] = int(100.*jobsum[s]/job_total)
-            sumjobsl = []
-            cpujobsl = []
-            for s in finalstates:
-                sumjobsl.append({ 'status' : s, 'recs' : sumjobs[s][:10] })
-                cpujobsl.append({ 'status' : s, 'recs' : cpujobs[s][:10] })
-        elif mode == 'queued':
-            totqjobs = 0
-            ## jobs queued, all pre-run stages
-            queuejobs = []
-            queuejobs.extend(Jobsdefined4.objects.filter(prodsourcelabel='managed').values('reqid').annotate(Count('reqid')).order_by('reqid'))
-            queuejobs.extend(Jobswaiting4.objects.filter(prodsourcelabel='managed').values('reqid').annotate(Count('reqid')).order_by('reqid'))
-            queuejobs.extend(Jobsactive4.objects.filter(prodsourcelabel='managed')\
-            .exclude(jobstatus__in=['running','transferring','holding','starting']).values('reqid').annotate(Count('reqid')).order_by('reqid'))
 
-            for r in queuejobs:
-                totqjobs += r['reqid__count']
-            queuejobs = sorted(queuejobs, key=lambda x:x['reqid__count'], reverse=True)
-            for r in queuejobs:
-                r['fraction'] = 100.*r['reqid__count']/totqjobs
+        ## queued jobs
+        totqjobs = 0
+        ## jobs queued, all pre-run stages
+        queuejobs = []
+        queuejobs.extend(Jobsdefined4.objects.filter(prodsourcelabel='managed').values('reqid').annotate(Count('reqid')).order_by('reqid'))
+        queuejobs.extend(Jobswaiting4.objects.filter(prodsourcelabel='managed').values('reqid').annotate(Count('reqid')).order_by('reqid'))
+        queuejobs.extend(Jobsactive4.objects.filter(prodsourcelabel='managed')\
+        .exclude(jobstatus__in=['running','transferring','holding','starting']).values('reqid').annotate(Count('reqid')).order_by('reqid'))
+
+        for r in queuejobs:
+            totqjobs += r['reqid__count']
+        queuejobs = sorted(queuejobs, key=lambda x:x['reqid__count'], reverse=True)
+        for r in queuejobs:
+            r['fraction'] = 100.*r['reqid__count']/totqjobs
+            if r['reqid'] in reqinfod: r['reqdata'] = reqinfod[r['reqid']]
+
+        ## running jobs
+        totrunjobs = 0
+        ## job slot usage by request
+        runjobs = Jobsactive4.objects.filter(jobstatus='running',prodsourcelabel='managed').values('reqid').annotate(Count('reqid')).order_by('reqid')
+        for r in runjobs:
+            totrunjobs += r['reqid__count']
+        runjobs = sorted(runjobs, key=lambda x:x['reqid__count'], reverse=True)
+        for r in runjobs:
+            r['fraction'] = 100.*r['reqid__count']/totrunjobs
+            if r['reqid'] in reqinfod: r['reqdata'] = reqinfod[r['reqid']]
+
+        ## recent jobs
+        sumjobs = {}
+        cpujobs = {}
+        totjobs = {}
+        totcpu = {}
+        ## recent jobs by count and walltime
+        recentjobs = Jobsarchived4.objects.filter(prodsourcelabel='managed').values('reqid','jobstatus').annotate(Count('jobstatus')).annotate(Sum('cpuconsumptiontime')).order_by('reqid','jobstatus')
+        for r in recentjobs:
+            if r['jobstatus'] not in sumjobs:
+                sumjobs[r['jobstatus']] = []
+                cpujobs[r['jobstatus']] = []
+                totjobs[r['jobstatus']] = 0
+                totcpu[r['jobstatus']] = 0
+            sumjobs[r['jobstatus']].append(r)
+            cpujobs[r['jobstatus']].append(r)
+            totjobs[r['jobstatus']] += r['jobstatus__count']
+            totcpu[r['jobstatus']] += r['cpuconsumptiontime__sum']
+        cpusum = {}
+        jobsum = {}
+        for s in sumjobs:
+            cpusum[s] = 0
+            jobsum[s] = 0
+            for r in sumjobs[s]:
+                cpusum[s] += r['cpuconsumptiontime__sum']
+                jobsum[s] += r['jobstatus__count']
+                cpu_total += r['cpuconsumptiontime__sum']
+                job_total += r['jobstatus__count']
+                r['fraction'] = 100.*r['jobstatus__count']/totjobs[s]
+                r['cpufraction'] = 100.*r['cpuconsumptiontime__sum']/totcpu[s]
                 if r['reqid'] in reqinfod: r['reqdata'] = reqinfod[r['reqid']]
+        cpusum['all'] = 0
+        jobsum['all'] = 0
+        for s in sumjobs:
+            cpusum['all'] += cpusum[s]
+            jobsum['all'] += jobsum[s]
+        for s in sumjobs:
+            sumjobs[s] = sorted(sumjobs[s], key=lambda x:x['jobstatus__count'], reverse=True)
+            cpujobs[s] = sorted(cpujobs[s], key=lambda x:x['cpuconsumptiontime__sum'], reverse=True)
+            cpupct[s] = int(100.*cpusum[s]/cpu_total)
+            jobpct[s] = int(100.*jobsum[s]/job_total)
+        sumjobsl = []
+        cpujobsl = []
+        for s in finalstates:
+            sumjobsl.append({ 'status' : s, 'recs' : sumjobs[s] })
+            cpujobsl.append({ 'status' : s, 'recs' : cpujobs[s] })
 
     if events_processed:
         # Convert from dict to ordered list
@@ -910,6 +912,8 @@ def doRequest(request):
         'tidnum' : tidnum,
         'totalfiles' : totalfiles,
         'runjobs' : runjobs,
+        'totrunjobs' : totrunjobs,
+        'recentjobs' : recentjobs,
         'totjobs' : totjobs,
         'totcpu' : totcpu,
         'sumjobs' : sumjobsl,
