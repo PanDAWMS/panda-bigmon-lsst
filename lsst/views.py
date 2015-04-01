@@ -43,6 +43,9 @@ from core.common.models import RequestStat
 from core.common.settings.config import ENV
 from time import gmtime, strftime
 
+#redis
+from django.views.decorators.cache import cache_page
+
 from settings.local import dbaccess
 import ErrorCodes
 errorFields = []
@@ -1285,7 +1288,7 @@ def jobParamList(request):
     else:
         return HttpResponse('not supported', mimetype='text/html')
     
-
+@cache_page(60*5)
 def jobList(request, mode=None, param=None):
     valid, response = initRequest(request)
     if not valid: return response
@@ -2456,6 +2459,7 @@ def wnSummary(query):
     summary.extend(Jobsarchived4.objects.filter(**query).values('modificationhost', 'jobstatus').annotate(Count('jobstatus')).order_by('modificationhost', 'jobstatus'))
     return summary
 
+@cache_page(60*5)
 def wnInfo(request,site,wnname='all'):
     """ Give worker node level breakdown of site activity. Spot hot nodes, error prone nodes. """
     valid, response = initRequest(request)
@@ -2917,7 +2921,7 @@ def calculateRWwithPrio_JEDI():
     return retMap
         
         
-        
+@cache_page(60*10)   
 def dashboard(request, view='production'):
     valid, response = initRequest(request)
     if not valid: return response
@@ -3992,6 +3996,7 @@ def removeParam(urlquery, parname, mode='complete'):
             if urlquery.endswith('?') or urlquery.endswith('&'): urlquery = urlquery[:len(urlquery)-1]
     return urlquery
 
+@cache_page(60*5)
 def incidentList(request):
     valid, response = initRequest(request)
     if not valid: return response
