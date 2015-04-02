@@ -5,6 +5,7 @@ import time
 import json
 import copy
 from django.http import HttpResponse
+from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response, render, redirect
 from django.template import RequestContext, loader
 from django.db.models import Count
@@ -42,11 +43,10 @@ from core.common.models import JediWorkQueue
 from core.common.models import RequestStat
 from core.common.settings.config import ENV
 from time import gmtime, strftime
-
-#redis
+from settings.local import dbaccess
+import re
 from django.views.decorators.cache import cache_page
 
-from settings.local import dbaccess
 import ErrorCodes
 errorFields = []
 errorCodes = {}
@@ -108,6 +108,12 @@ VOLIST = [ 'atlas', 'bigpanda', 'htcondor', 'lsst', ]
 VONAME = { 'atlas' : 'ATLAS', 'bigpanda' : 'BigPanDA', 'htcondor' : 'HTCondor', 'lsst' : 'LSST', '' : '' }
 VOMODE = ' '
 
+
+def escapeInput(strToEscape):
+   # !@#$%^&*()[]{};:,./<>?\|`~-=_+
+        return re.sub(r'[?|$|!|%|^|;|]',r'',strToEscape)
+
+
 def setupSiteInfo(request):
     
     requestParams = {}
@@ -134,6 +140,9 @@ def setupSiteInfo(request):
                 if fpath != "" and fpath.startswith('http'): objectStores[site['siteid']] = fpath
             except:
                 pass
+
+
+
 
 def initRequest(request):
     global VOMODE, ENV, hostname
@@ -556,7 +565,7 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         jobParCurrentCardCount = 1
         extraJobParCondition = '('
         for card in jobParWildCards:
-            extraJobParCondition += preprocessWildCardString(card, 'JOBPARAMETERS')
+            extraJobParCondition += preprocessWildCardString( escapeInput(card) , 'JOBPARAMETERS')
             if (jobParCurrentCardCount < jobParCountCards): extraJobParCondition +=' OR '
             jobParCurrentCardCount += 1
         extraJobParCondition += ')'
@@ -2921,7 +2930,7 @@ def calculateRWwithPrio_JEDI():
     return retMap
         
         
-@cache_page(60*10)   
+@cache_page(60*10) 
 def dashboard(request, view='production'):
     valid, response = initRequest(request)
     if not valid: return response

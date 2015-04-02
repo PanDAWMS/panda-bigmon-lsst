@@ -41,6 +41,11 @@ INSTALLED_APPS_BIGPANDAMON_LSST = (
 )
 INSTALLED_APPS = COMMON_INSTALLED_APPS + INSTALLED_APPS_BIGPANDAMON_LSST
 
+MIDDLEWARE_CLASSES = (
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'lsst.userauthorization.processAuth',
+    )
 
 ROOT_URLCONF = 'lsst.urls'
 
