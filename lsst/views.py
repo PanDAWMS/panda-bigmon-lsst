@@ -2910,24 +2910,32 @@ def getEffectiveFileSize(fsize,startEvent,endEvent,nEvents):
 
 def calculateRWwithPrio_JEDI():
     query = {}
-    retMap = {}
+    retRWMap = {}
+    retNREMJMap = {}
     values = [ 'jeditaskid', 'datasetid', 'modificationtime', 'cloud', 'nrem', 'walltime', 'fsize', 'startevent', 'endevent', 'nevents' ]
     progressEntries = []
     progressEntries.extend(GetRWWithPrioJedi3DAYS.objects.filter(**query).values(*values))
     allCloudsRW = 0;
+    allCloudsNREMJ = 0;
+    
     if len(progressEntries) > 0:
         for progrEntry in progressEntries:
             if progrEntry['fsize'] != None:
                 effectiveFsize = getEffectiveFileSize(progrEntry['fsize'], progrEntry['startevent'], progrEntry['endevent'], progrEntry['nevents'])
                 tmpRW = progrEntry['nrem'] * effectiveFsize * progrEntry['walltime']
-                if not progrEntry['cloud'] in retMap:
-                    retMap[progrEntry['cloud']] = 0
-                retMap[progrEntry['cloud']] += tmpRW
+                if not progrEntry['cloud'] in retRWMap:
+                    retRWMap[progrEntry['cloud']] = 0
+                retRWMap[progrEntry['cloud']] += tmpRW
                 allCloudsRW += tmpRW
-    retMap['All'] = allCloudsRW
-    for cloudName,rwValue in retMap.iteritems():
-        retMap[cloudName] = int(rwValue/24/3600)
-    return retMap
+                if not progrEntry['cloud'] in retNREMJMap:
+                    retNREMJMap[progrEntry['cloud']] = 0
+                retNREMJMap[progrEntry['cloud']] += progrEntry['nrem']
+                allCloudsNREMJ += progrEntry['nrem']
+    retRWMap['All'] = allCloudsRW
+    retNREMJMap['All'] = allCloudsNREMJ
+    for cloudName, rwValue in retRWMap.iteritems():
+        retRWMap[cloudName] = int(rwValue/24/3600)
+    return retRWMap, retNREMJMap
         
         
 @cache_page(60*10) 
@@ -3019,13 +3027,10 @@ def dashboard(request, view='production'):
     cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view, taskdays=taskdays)
     jobsLeft = {}
     rw = {}
-    rwData = calculateRWwithPrio_JEDI()
+    rwData, nRemJobs  = calculateRWwithPrio_JEDI()
     for cloud in fullsummary:
-        leftCount = 0
-        for state in cloud['statelist']:
-            if state['name'] in ['waiting', 'assigned', 'activated', 'starting', 'running', 'transferring', 'holding', 'defined', 'sent', 'throttled','merging']:
-                leftCount += state['count']
-        jobsLeft[cloud['name']] = leftCount
+        if cloud['name'] in nRemJobs.keys():
+            jobsLeft[cloud['name']] = nRemJobs[cloud['name']]
         if cloud['name'] in rwData.keys():
             rw[cloud['name']] = rwData[cloud['name']]
             
@@ -3112,6 +3117,26 @@ def dashTasks(request, hours, view='production'):
             display_limit = 300
     else:
         display_limit = 300
+
+    cloudview = 'cloud'
+    if 'cloudview' in request.session['requestParams']:
+        cloudview = request.session['requestParams']['cloudview']
+    if view == 'analysis':
+        cloudview = 'region'
+    elif view != 'production':
+        cloudview = 'N/A'
+        
+    fullsummary = dashSummary(request, hours=hours, view=view, cloudview=cloudview)
+    jobsLeft = {}
+    rw = {}
+    rwData, nRemJobs = calculateRWwithPrio_JEDI()
+    for cloud in fullsummary:
+        leftCount = 0
+        if cloud['name'] in nRemJobs.keys():
+            jobsLeft[cloud['name']] = nRemJobs[cloud['name']]
+        if cloud['name'] in rwData.keys():
+            rw[cloud['name']] = rwData[cloud['name']]
+
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         xurl = extensibleURL(request)
         nosorturl = removeParam(xurl, 'sortby',mode='extensible')
@@ -3134,6 +3159,8 @@ def dashTasks(request, hours, view='production'):
             'taskdays' : taskdays,
             'taskJobSummary' : taskJobSummary[:display_limit],
             'display_limit' : display_limit,
+            'jobsLeft' : jobsLeft,
+            'rw': rw
         }
         ##self monitor
         endSelfMonitor(request)

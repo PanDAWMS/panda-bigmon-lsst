@@ -428,6 +428,15 @@ li.news{padding:0px; margin-left: 0em; text-indent: -.4em;}
     <div class="left" id="div-subtitle"><font size=-1>{% block subtitle %}Subtitle goes here{% endblock %}</font></div>
     <!-- End sub-title -->
 
+    <!-- bread-crumbs -->
+    <div class="right">
+      {% block header-nav-chain %}
+      <span class="hide-for-small"><font size=-1>Built {% now "H:i" %}{% if request.session.max_age_minutes %}, cache {{ request.session.max_age_minutes }}'{% endif %}</font></span>
+      {% endblock %}
+    </div>
+    <!-- End bread-crumbs -->
+    
+    
   </div>
   <!-- End sub-title and bread-crumbs -->
 
