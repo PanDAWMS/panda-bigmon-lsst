@@ -7,6 +7,7 @@ from core.pandajob.models import MonitorUsers
 from django.core.cache import cache
 import logging
 import subprocess
+import datetime
 
 userToRunVoms = 'atlpan'
 
@@ -14,7 +15,7 @@ class processAuth(object):
     
     def process_request(self, request):
         #logging.error('Something went wrong!')
-        data = {'hi':'hi1'}
+        data = {'debug':'no'}
 
         if 'SSL_CLIENT_S_DN' in request.META or 'HTTP_X_SSL_CLIENT_S_DN' in request.META:
             if 'SSL_CLIENT_S_DN' in request.META:
@@ -34,14 +35,12 @@ class processAuth(object):
                         logging.error('Error of getting list of users (voms-admin). stderr:' + theListOfVMUsers +" "+ stderr)
                         return render_to_response('errorAuth.html', data, RequestContext(request))
                     cache.set('voms-users-list', theListOfVMUsers, 1800)
-                    if theListOfVMUsers.find(userdn) > 0:
-                        newUser = MonitorUsers(dname=userdn, isactive=1)
-                        newUser.save()
-                        return None
-                    else:
-                        return render_to_response('errorAuth.html', data, RequestContext(request))
-                
-                
+                if theListOfVMUsers.find(userdn) > 0:
+                    newUser = MonitorUsers(dname=userdn, isactive=1, firstdate=datetime.datetime.utcnow().strftime("%Y-%m-%d"))
+                    newUser.save()
+                    return None
+                else:
+                    return render_to_response('errorAuth.html', data, RequestContext(request))
                 return render_to_response('errorAuth.html', data, RequestContext(request))
 #        else:
 #            return render_to_response('errorAuth.html', RequestContext(request))
