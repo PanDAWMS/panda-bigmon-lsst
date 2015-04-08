@@ -36,6 +36,7 @@ tests = [
         {'url' :'/logger/', 'isJSON': False}, 
         {'url' :'/?mode=quicksearch', 'isJSON': False}, 
         {'url' :'/wns/ANALY_SFU/', 'isJSON': False}   
+        {'url' :'/dp/', 'isJSON': False}   
 ]
 
 extendedtests = [
