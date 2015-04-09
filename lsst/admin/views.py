@@ -178,7 +178,10 @@ def listReqPlot(request):
     }
 
     return render_to_response('req_plot.html', data, RequestContext(request))
-nechart(request):
+
+
+def drLinechart(request):
+
     valid, response = initRequest(request)
     if not valid: return response
 
