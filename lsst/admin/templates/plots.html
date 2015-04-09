@@ -25,10 +25,15 @@
              ['{{ im.qtime }}', {{im.duration}}],         
           {% endfor %}       
         ]);
+        var options = {
+          title: 'Query Duration',
+          legend: 'right',
+          min: 0
+        };
 
         var chart = new google.visualization.ImageLineChart(document.getElementById('chart_div{{ forloop.counter }}'));
 
-        chart.draw(data, {width: 1000, height: 440, min: 0});
+        chart.draw(data, options);
       }
     </script>
 
