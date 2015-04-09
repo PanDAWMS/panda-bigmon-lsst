@@ -1,0 +1,41 @@
+{% extends "_base_lsst.html" %}
+{% load url from future %}
+
+{% block page_title %} {{ viewParams.MON_VO }} PanDA self monitor {% endblock %}
+{% block subtitle %}view summary{{ viewParams.selection|safe }} {% if nmax %}<b> display limit:{{nmax}}</b> {% endif %}
+{% if user %} &nbsp; user={{ user }} {% endif %}
+{% if site %} &nbsp; site={{ site }} {% endif %}
+{% if vo %} &nbsp; VO={{ vo }} {% endif %}
+{% endblock %}
+{% block body %}
+
+{{ viewParams.header }}
+<script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+{% if itm %}
+{% for ims in itm%}
+{% if ims %}
+    <script type="text/javascript">
+      google.load("visualization", "1", {packages:["imagelinechart"]});
+      google.setOnLoadCallback(drawChart);
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable([
+          ['Time', '{{ims.0.url}}'],
+          {% for im in ims|slice:":20" %}
+             ['{{ im.qtime }}', {{im.duration}}],         
+          {% endfor %}       
+        ]);
+
+        var chart = new google.visualization.ImageLineChart(document.getElementById('chart_div{{ forloop.counter }}'));
+
+        chart.draw(data, {width: 1000, height: 440, min: 0});
+      }
+    </script>
+
+    <div id="chart_div{{ forloop.counter }}" style="width: 1000px; height: 440px;margin-left: auto; margin-right:auto;"></div>
+{% endif %}
+{% endfor %}
+{% endif %}
+
+
+{% endblock %}

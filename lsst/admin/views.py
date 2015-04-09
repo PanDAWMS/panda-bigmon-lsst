@@ -164,8 +164,11 @@ def listReqPlot(request):
        url += '?'
 
     data = {\
+       'request' : request,
+       'viewParams' : request.session['viewParams'],
+       'requestParams' : request.session['requestParams'],
        'mons': mons[:nmax],
-       'nmax': nmax,
+       #'nmax': nmax,
        'request': request,
        'user': request.session['username'],
        'reqPages': reqPages,
@@ -175,4 +178,62 @@ def listReqPlot(request):
     }
 
     return render_to_response('req_plot.html', data, RequestContext(request))
+nechart(request):
+    valid, response = initRequest(request)
+    if not valid: return response
+
+    LAST_N_HOURS_MAX=7*24
+    if 'hours' in request.session['requestParams']:
+        LAST_N_HOURS_MAX = int(request.session['requestParams']['hours'])
+    if 'days' in request.session['requestParams']:
+        LAST_N_HOURS_MAX = int(request.session['requestParams']['days'])*24
+
+    startdate = None
+    if not startdate:
+        startdate = timezone.now() - timedelta(hours=LAST_N_HOURS_MAX)
+    enddate = None
+    if enddate == None:
+        enddate = timezone.now()#.strftime(defaultDatetimeFormat)
+
+    #query = { 'qtime__range' : [startdate.strftime(defaultDatetimeFormat), enddate.strftime(defaultDatetimeFormat)] }
+
+    ##top queries
+    tquery=['home','task/','user/','job/','tasks/','wns/','dash/','sites/','errors/','incidents/']
+
+    i=0
+    itms=[0]*10
+    for tq in tquery:
+        query = { 'qtime__range' : [startdate.strftime(defaultDatetimeFormat), enddate.strftime(defaultDatetimeFormat)] }
+        pls=plots(query,tq)
+        if len(pls)==0: continue
+        itms[i]=plots(query,tq)
+        i +=1
+    data = {\
+       'request' : request,
+       'viewParams' : request.session['viewParams'],
+       'requestParams' : request.session['requestParams'],
+       'itm':      itms,\
+    }
+
+    return render_to_response('plots.html', data, RequestContext(request))
+   
+def plots(query,tq):
+    if tq=='home':
+       query['urls__iendswith'] = 'ch/'
+    else:
+       query['urls__icontains'] = tq
+
+    values = 'qtime','duration'
+    reqs=[]
+    reqs = RequestStat.objects.filter(**query).order_by('qtime').values(*values)
+
+    mons=[]
+    for req in reqs:
+        mon={}
+        mon['duration'] = req['duration']
+        mon['url']      = tq.replace("/","")
+        mon['qtime']    = req['qtime'].strftime('%H:%M')
+        mons.append(mon)
+
+    return mons
 
