@@ -5,6 +5,7 @@ from django.shortcuts import render_to_response
 from django.template import RequestContext
 from core.pandajob.models import MonitorUsers
 from django.core.cache import cache
+from django.db.models import Q
 import logging
 import subprocess
 import datetime
@@ -14,7 +15,7 @@ userToRunVoms = 'atlpan'
 class processAuth(object):
     
     def process_request(self, request):
-        #logging.error('Something went wrong!')
+        
         data = {'debug':'no'}
 
         if 'SSL_CLIENT_S_DN' in request.META or 'HTTP_X_SSL_CLIENT_S_DN' in request.META:
@@ -22,7 +23,12 @@ class processAuth(object):
                userdn = request.META['SSL_CLIENT_S_DN']
             else:
                userdn = request.META['HTTP_X_SSL_CLIENT_S_DN']
-            userrec = MonitorUsers.objects.filter(dname__startswith=userdn, isactive=1).values()
+            proc = subprocess.Popen(['/usr/bin/openssl', 'x509', '-email', '-noout'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            certificate_email, stderr = proc.communicate(input=request.META['SSL_CLIENT_CERT'])
+            if ( (len(userdn) > 5) and (len(certificate_email) > 5)):
+                userrec = MonitorUsers.objects.filter( Q(dname__startswith=userdn) | Q(email=certificate_email), isactive=1).values()
+            else:
+                render_to_response('errorAuth.html', data, RequestContext(request))
             if len(userrec) > 0:
                 logging.error(userrec)
                 return None
@@ -35,12 +41,13 @@ class processAuth(object):
                         logging.error('Error of getting list of users (voms-admin). stderr:' + theListOfVMUsers +" "+ stderr)
                         return render_to_response('errorAuth.html', data, RequestContext(request))
                     cache.set('voms-users-list', theListOfVMUsers, 1800)
-                if theListOfVMUsers.find(userdn) > 0:
-                    newUser = MonitorUsers(dname=userdn, isactive=1, firstdate=datetime.datetime.utcnow().strftime("%Y-%m-%d"))
-                    newUser.save()
-                    return None
-                else:
-                    return render_to_response('errorAuth.html', data, RequestContext(request))
+                if ( (len(userdn) > 5) and (len(certificate_email) > 5)):                    
+                    if ((theListOfVMUsers.find(userdn) > 0) or (theListOfVMUsers.find(certificate_email) > 0)):
+                        newUser = MonitorUsers(dname=userdn, isactive=1, firstdate=datetime.datetime.utcnow().strftime("%Y-%m-%d"), email=certificate_email)
+                        newUser.save()
+                        return None
+                    else:
+                        return render_to_response('errorAuth.html', data, RequestContext(request))
                 return render_to_response('errorAuth.html', data, RequestContext(request))
 #        else:
 #            return render_to_response('errorAuth.html', RequestContext(request))
