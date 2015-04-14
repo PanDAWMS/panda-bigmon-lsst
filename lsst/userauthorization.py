@@ -26,11 +26,10 @@ class processAuth(object):
             proc = subprocess.Popen(['/usr/bin/openssl', 'x509', '-email', '-noout'], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             certificate_email, stderr = proc.communicate(input=request.META['SSL_CLIENT_CERT'])
             if ( (len(userdn) > 5) and (len(certificate_email) > 5)):
-                userrec = MonitorUsers.objects.filter( Q(dname__startswith=userdn) | Q(email=certificate_email), isactive=1).values()
+                userrec = MonitorUsers.objects.filter( Q(dname__startswith=userdn) | Q(email=certificate_email.lower()), isactive=1).values()
             else:
                 render_to_response('errorAuth.html', data, RequestContext(request))
             if len(userrec) > 0:
-                logging.error(userrec)
                 return None
             else:
                 theListOfVMUsers = cache.get('voms-users-list')
@@ -41,9 +40,10 @@ class processAuth(object):
                         logging.error('Error of getting list of users (voms-admin). stderr:' + theListOfVMUsers +" "+ stderr)
                         return render_to_response('errorAuth.html', data, RequestContext(request))
                     cache.set('voms-users-list', theListOfVMUsers, 1800)
-                if ( (len(userdn) > 5) and (len(certificate_email) > 5)):                    
-                    if ((theListOfVMUsers.find(userdn) > 0) or (theListOfVMUsers.find(certificate_email) > 0)):
-                        newUser = MonitorUsers(dname=userdn, isactive=1, firstdate=datetime.datetime.utcnow().strftime("%Y-%m-%d"), email=certificate_email)
+                if ( (len(userdn) > 5) and (len(certificate_email) > 5)):
+                    logging.error('authorization info: Started Compare, theListOfVMUsers.find(userdn):' + str(theListOfVMUsers.find(userdn)) + ' (theListOfVMUsers.find(certificate_email)' + str(theListOfVMUsers.find(certificate_email)))
+                    if ((theListOfVMUsers.find(userdn) > 0) or (theListOfVMUsers.lower().find(certificate_email.lower()) > 0)):
+                        newUser = MonitorUsers(dname=userdn, isactive=1, firstdate=datetime.datetime.utcnow().strftime("%Y-%m-%d"), email=certificate_email.lower())
                         newUser.save()
                         return None
                     else:
