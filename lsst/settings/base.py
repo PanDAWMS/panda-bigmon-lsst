@@ -36,6 +36,7 @@ INSTALLED_APPS_BIGPANDAMON_LSST = (
 #    'core.htcondor', #NOT-NEEDED-IN-LSST
 #    'core.task', #NOT-IMPLEMENTED
     'filebrowser',
+    'corsheaders',
     'pbm',
     'pbm.templatetags',
 )
@@ -45,6 +46,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'lsst.userauthorization.processAuth',
     'django.middleware.common.CommonMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     )
 
