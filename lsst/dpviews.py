@@ -965,9 +965,13 @@ def doRequest(request):
         'sumeventsl' : sumeventsl,
         'projeventsl' : projeventsl,
     }
-    response = render_to_response('dpMain.html', data, RequestContext(request))
-    patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
-    return response
+    if 'json' in request.session['requestParams']  or request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        jsondump = json.dumps(data, cls=coreviews.DateEncoder)
+        return  HttpResponse(jsondump, content_type='application/json')
+    else:
+        response = render_to_response('dpMain.html', data, RequestContext(request))
+        patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
+        return response
 
 def attSummaryDict(request, reqs, flist):
     """ Return a dictionary summarizing the field values for the chosen most interesting fields """

@@ -1677,19 +1677,20 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     else:
         logextract = None
 
-    ## Get job files. First look in JEDI datasetcontents
     files = []
-    files.extend(JediDatasetContents.objects.filter(pandaid=pandaid).order_by('type').values())
-    ninput = 0
-    if len(files) > 0:
-        for f in files:
-            if f['type'] == 'input': ninput += 1
-            f['fsizemb'] = "%0.2f" % (f['fsize']/1000000.)
-            dsets = JediDatasets.objects.filter(datasetid=f['datasetid']).values()
-            if len(dsets) > 0:
-                f['datasetname'] = dsets[0]['datasetname']
-    if True:
-    #if ninput == 0:
+    if 'nofiles' not in request.session['requestParams']:
+        ## Get job files. First look in JEDI datasetcontents
+        print "Pulling file info"
+        files.extend(JediDatasetContents.objects.filter(pandaid=pandaid).order_by('type').values())
+        ninput = 0
+        if len(files) > 0:
+            for f in files:
+                if f['type'] == 'input': ninput += 1
+                f['fsizemb'] = "%0.2f" % (f['fsize']/1000000.)
+                dsets = JediDatasets.objects.filter(datasetid=f['datasetid']).values()
+                if len(dsets) > 0:
+                    f['datasetname'] = dsets[0]['datasetname']
+
         files.extend(Filestable4.objects.filter(pandaid=pandaid).order_by('type').values())
         if len(files) == 0:
             files.extend(FilestableArch.objects.filter(pandaid=pandaid).order_by('type').values())
@@ -1701,7 +1702,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
                 if 'modificationtime' in f: f['oldfiletable'] = 1
                 if 'destinationdblock' in f and f['destinationdblock'] is not None:
                     f['destinationdblock_vis'] = f['destinationdblock'].split('_')[-1]
-    files = sorted(files, key=lambda x:x['type'])
+        files = sorted(files, key=lambda x:x['type'])
     nfiles = len(files) 
     logfile = {} 
     for file in files:
@@ -1757,6 +1758,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         job['metadata'] = json.dumps(job['metastruct'], sort_keys=True, indent=4, separators=(',', ': '))
 
     ## Get job parameters
+    print "getting job parameters"
     jobparamrec = Jobparamstable.objects.filter(pandaid=pandaid)
     jobparams = None
     if len(jobparamrec) > 0:
@@ -1769,6 +1771,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     dsfiles = []
     ## If this is a JEDI job, look for job retries
     if 'jeditaskid' in job and job['jeditaskid'] > 0:
+        print "looking for retries"
         ## Look for retries of this job
         retryquery = {}
         retryquery['jeditaskid'] = job['jeditaskid']
@@ -1786,7 +1789,8 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     libjob = None
     runjobs = []
     mergejobs = []
-    if 'jobsetid' in job and job['jobsetid'] > 0:
+    if 'jobset' in request.session['requestParams'] and 'jobsetid' in job and job['jobsetid'] > 0:
+        print "jobset info"
         jsquery = {}
         jsquery['jobsetid'] = job['jobsetid']
         jsquery['produsername'] = job['produsername']
