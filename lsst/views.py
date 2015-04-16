@@ -1423,8 +1423,8 @@ def jobList(request, mode=None, param=None):
         elif sortby == 'PandaID':
             jobs = sorted(jobs, key=lambda x:x['PandaID'], reverse=True)
     else:
-        sortby = "time-descending"
-        jobs = sorted(jobs, key=lambda x:x['modificationtime'], reverse=True)
+        sortby = "duration-ascending"
+        jobs = sorted(jobs, key=lambda x:x['durationsec'])
 
 
     taskname = ''
