@@ -966,7 +966,15 @@ def doRequest(request):
         'projeventsl' : projeventsl,
     }
     if 'json' in request.session['requestParams']  or request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        data['requests'] = list(data['requests'])
         jsondump = json.dumps(data, cls=coreviews.DateEncoder)
+        try:
+            fh = open('dpc.json','w')
+            fh.write(jsondump)
+            fh.close()
+            print "wrote json to dpc.json"
+        except:
+            pass
         return  HttpResponse(jsondump, content_type='application/json')
     else:
         response = render_to_response('dpMain.html', data, RequestContext(request))
