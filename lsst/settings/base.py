@@ -45,8 +45,8 @@ INSTALLED_APPS = COMMON_INSTALLED_APPS + INSTALLED_APPS_BIGPANDAMON_LSST
 MIDDLEWARE_CLASSES = (    
     'django.contrib.sessions.middleware.SessionMiddleware',
     'lsst.userauthorization.processAuth',
-    'django.middleware.common.CommonMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     )
 
@@ -57,4 +57,5 @@ SITE_ID = 2
 # email
 EMAIL_SUBJECT_PREFIX = 'bigpandamon-lsst: '
 
-
+#cors
+CORS_ORIGIN_ALLOW_ALL = True
