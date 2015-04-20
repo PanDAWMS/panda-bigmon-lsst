@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 import time
 import json
 import copy
+import itertools
+
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 from django.shortcuts import render_to_response, render, redirect
@@ -13,6 +15,10 @@ from django import forms
 from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.utils.cache import patch_cache_control, patch_response_headers
+from django.db.models import Q
+from django.core.cache import cache
+
+
 
 from core.common.utils import getPrefix, getContextVariables, QuerySetChain
 from core.common.settings import STATIC_URL, FILTER_UI_ENV, defaultDatetimeFormat
@@ -433,7 +439,17 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
         elif param == 'processingtype':
             val = request.session['requestParams'][param]
             query['processingtype'] = val
-
+        elif param == 'mismatchedcloudsite' and request.session['requestParams'][param] == 'true':
+            listOfCloudSitesMismatched = cache.get('mismatched-cloud-sites-list')
+            if (listOfCloudSitesMismatched is None) or (len(listOfCloudSitesMismatched) == 0):
+                request.session['viewParams']['selection'] += "  &nbsp; <b>The query can not be processed because list of mismatches is not found. Please visit %s/dash/production/?cloudview=region page and then try again</b>" % request.session['hostname']
+            else:
+                extraQueryString = '('
+                for count, cloudSitePair in enumerate(listOfCloudSitesMismatched):
+                    extraQueryString += ' ( (cloud=\'%s\') and (computingsite=\'%s\') ) ' % (cloudSitePair[1], cloudSitePair[0])
+                    if (count < (len(listOfCloudSitesMismatched)-1)):
+                        extraQueryString += ' OR '
+                extraQueryString += ')'
 
         if querytype == 'task':
             for field in JediTasks._meta.get_all_field_names():
@@ -539,7 +555,11 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
     if (wildCardExt == False):
         return query
 
-    extraQueryString = ''
+    try:
+        extraQueryString += ' AND '
+    except NameError:
+        extraQueryString = ''
+
     wildSearchFields = (set(wildSearchFields) & set(request.session['requestParams'].keys()))
 
     lenWildSearchFields = len(wildSearchFields)
@@ -581,7 +601,6 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
     if (len(extraQueryString) < 2):
         extraQueryString = '1=1'        
     
-   
     return (query,extraQueryString)
 
 def cleanJobList(request, jobl, mode='nodrop'):
@@ -2420,6 +2439,37 @@ def siteInfo(request, site=''):
             resp.append({ 'pandaid': job.pandaid, 'status': job.jobstatus, 'prodsourcelabel': job.prodsourcelabel, 'produserid' : job.produserid})
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
+def updateCacheWithListOfMismatchedCloudSites(mismatchedSites):
+    listOfCloudSitesMismatched = cache.get('mismatched-cloud-sites-list')
+    if (listOfCloudSitesMismatched is None) or (len(listOfCloudSitesMismatched) == 0):
+        cache.set('mismatched-cloud-sites-list', mismatchedSites, 31536000)
+    else:
+        listOfCloudSitesMismatched.extend(mismatchedSites)        
+        listOfCloudSitesMismatched.sort()
+        cache.set('mismatched-cloud-sites-list', list(listOfCloudSitesMismatched for listOfCloudSitesMismatched,_ in itertools.groupby(listOfCloudSitesMismatched)), 31536000)
+
+
+def getListOfFailedBeforeSiteAssignedJobs(query, mismatchedSites, notime=True):
+    jobs = []
+    querynotime = copy.deepcopy(query)
+    if notime: del querynotime['modificationtime__range']
+    siteCondition = ''
+    for site in mismatchedSites:
+        siteQuery = Q(computingsite=site[0]) & Q(cloud=site[1])
+        siteCondition = siteQuery if (siteCondition == '') else (siteCondition | siteQuery)
+    jobs.extend(Jobsactive4.objects.filter(siteCondition).filter(**querynotime).values('pandaid'))     
+    jobs.extend(Jobsdefined4.objects.filter(siteCondition).filter(**querynotime).values('pandaid'))
+    jobs.extend(Jobswaiting4.objects.filter(siteCondition).filter(**querynotime).values('pandaid'))
+    jobs.extend(Jobsarchived4.objects.filter(siteCondition).filter(**query).values('pandaid'))
+    jobsString=''
+    if (len(jobs) > 0):
+        jobsString = '&pandaid='
+        for job in jobs:
+            jobsString += str(job['pandaid'])+','
+    jobsString = jobsString[:-1]
+    return jobsString
+    
+
 def siteSummary(query, notime=True):
     summary = []
     querynotime = copy.deepcopy(query)
@@ -2667,7 +2717,7 @@ def dashSummary(request, hours, limit=999999, view='all', cloudview='region', no
         siteinfo[s['siteid']] = s['status']    
     
     sitesummarydata = siteSummary(query, notime)
-
+    mismatchedSites = []
     clouds = {}
     totstates = {}
     totjobs = 0
@@ -2679,6 +2729,7 @@ def dashSummary(request, hours, limit=999999, view='all', cloudview='region', no
                 cloud = homeCloud[rec['computingsite']]
             else:
                 print "ERROR cloud not known", rec
+                mismatchedSites.append( [rec['computingsite'], rec['cloud']])
                 cloud = ''
         else:
             cloud = rec['cloud']
@@ -2692,6 +2743,7 @@ def dashSummary(request, hours, limit=999999, view='all', cloudview='region', no
         totjobs += count
         totstates[jobstatus] += count
         if cloud not in clouds:
+            print "Cloud:" + cloud
             clouds[cloud] = {}
             clouds[cloud]['name'] = cloud
             if cloud in cloudinfo: clouds[cloud]['status'] = cloudinfo[cloud]
@@ -2724,6 +2776,8 @@ def dashSummary(request, hours, limit=999999, view='all', cloudview='region', no
         clouds[cloud]['sites'][site]['count'] += count
         clouds[cloud]['sites'][site]['states'][jobstatus]['count'] += count
 
+    updateCacheWithListOfMismatchedCloudSites(mismatchedSites)
+    
     ## Go through the sites, add any that are missing (because they have no jobs in the interval)
     if cloudview != 'cloud':
         for site in pandaSites:
@@ -2912,8 +2966,8 @@ def getEffectiveFileSize(fsize,startEvent,endEvent,nEvents):
     return effectiveFsize
 
 
-def calculateRWwithPrio_JEDI():
-    query = {}
+def calculateRWwithPrio_JEDI(query):
+    #query = {}
     retRWMap = {}
     retNREMJMap = {}
     values = [ 'jeditaskid', 'datasetid', 'modificationtime', 'cloud', 'nrem', 'walltime', 'fsize', 'startevent', 'endevent', 'nevents' ]
@@ -2942,7 +2996,7 @@ def calculateRWwithPrio_JEDI():
     return retRWMap, retNREMJMap
         
         
-@cache_page(60*10) 
+#@cache_page(60*10) 
 def dashboard(request, view='production'):
     valid, response = initRequest(request)
     if not valid: return response
@@ -2969,7 +3023,7 @@ def dashboard(request, view='production'):
     errthreshold = 10
 
     query = setupView(request,hours=hours,limit=999999,opmode=view)
-
+    print query
     if 'mode' in request.session['requestParams'] and request.session['requestParams']['mode'] == 'task':
         return dashTasks(request, hours, view)
 
@@ -3031,7 +3085,7 @@ def dashboard(request, view='production'):
     cloudTaskSummary = wgTaskSummary(request,fieldname='cloud', view=view, taskdays=taskdays)
     jobsLeft = {}
     rw = {}
-    rwData, nRemJobs  = calculateRWwithPrio_JEDI()
+    rwData, nRemJobs  = calculateRWwithPrio_JEDI(query)
     for cloud in fullsummary:
         if cloud['name'] in nRemJobs.keys():
             jobsLeft[cloud['name']] = nRemJobs[cloud['name']]
@@ -3133,7 +3187,7 @@ def dashTasks(request, hours, view='production'):
     fullsummary = dashSummary(request, hours=hours, view=view, cloudview=cloudview)
     jobsLeft = {}
     rw = {}
-    rwData, nRemJobs = calculateRWwithPrio_JEDI()
+    rwData, nRemJobs = calculateRWwithPrio_JEDI(query)
     for cloud in fullsummary:
         leftCount = 0
         if cloud['name'] in nRemJobs.keys():
