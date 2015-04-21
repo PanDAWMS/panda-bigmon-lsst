@@ -1316,7 +1316,7 @@ def jobParamList(request):
     else:
         return HttpResponse('not supported', mimetype='text/html')
     
-@cache_page(60*5)
+#@cache_page(60*5)
 def jobList(request, mode=None, param=None):
     valid, response = initRequest(request)
     if not valid: return response
@@ -1337,9 +1337,9 @@ def jobList(request, mode=None, param=None):
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         values = Jobsactive4._meta.get_all_field_names()
     elif eventservice:
-        values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'proddblock', 'destinationdblock', 'jobmetrics', 'reqid', 'minramcount'
+        values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'proddblock', 'destinationdblock', 'jobmetrics', 'reqid', 'minramcount', 'statechangetime'
     else:
-        values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'computingelement', 'proddblock', 'destinationdblock', 'reqid', 'minramcount'
+        values = 'produsername', 'cloud', 'computingsite', 'cpuconsumptiontime', 'jobstatus', 'transformation', 'prodsourcelabel', 'specialhandling', 'vo', 'modificationtime', 'pandaid', 'atlasrelease', 'jobsetid', 'processingtype', 'workinggroup', 'jeditaskid', 'taskid', 'currentpriority', 'creationtime', 'starttime', 'endtime', 'brokerageerrorcode', 'brokerageerrordiag', 'ddmerrorcode', 'ddmerrordiag', 'exeerrorcode', 'exeerrordiag', 'jobdispatchererrorcode', 'jobdispatchererrordiag', 'piloterrorcode', 'piloterrordiag', 'superrorcode', 'superrordiag', 'taskbuffererrorcode', 'taskbuffererrordiag', 'transexitcode', 'destinationse', 'homepackage', 'inputfileproject', 'inputfiletype', 'attemptnr', 'jobname', 'computingelement', 'proddblock', 'destinationdblock', 'reqid', 'minramcount', 'statechangetime'
     
     JOB_LIMITS=request.session['JOB_LIMIT']
     totalJobs = 0
@@ -1428,8 +1428,8 @@ def jobList(request, mode=None, param=None):
             jobs = sorted(jobs, key=lambda x:x['modificationtime'])
         if sortby == 'time-descending':
             jobs = sorted(jobs, key=lambda x:x['modificationtime'], reverse=True)
-        if sortby == 'statetime-descending':
-            jobs = sorted(jobs, key=lambda x:x['statechangetime'], reverse=True)
+        if sortby == 'statetime':
+            jobs = sorted(jobs, key=lambda x:x['statechangetime'])
         elif sortby == 'priority':
             jobs = sorted(jobs, key=lambda x:x['currentpriority'], reverse=True)
         elif sortby == 'attemptnr':
@@ -1439,12 +1439,12 @@ def jobList(request, mode=None, param=None):
         elif sortby == 'duration-descending':
             jobs = sorted(jobs, key=lambda x:x['durationsec'], reverse=True)
         elif sortby == 'duration':
-            jobs = sorted(jobs, key=lambda x:x['durationsec'], reverse=True)
+            jobs = sorted(jobs, key=lambda x:x['durationsec'])
         elif sortby == 'PandaID':
-            jobs = sorted(jobs, key=lambda x:x['PandaID'], reverse=True)
+            jobs = sorted(jobs, key=lambda x:x['pandaid'], reverse=True)
     else:
-        sortby = "duration-ascending"
-        jobs = sorted(jobs, key=lambda x:x['durationsec'])
+        sortby = "statetime"
+        jobs = sorted(jobs, key=lambda x:x['statechangetime'])
 
 
     taskname = ''

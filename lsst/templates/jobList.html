@@ -115,31 +115,38 @@ function toggleDetailDisplay(className) {
 <tr class='tablesection'><th colspan=20>
 <a name="joblist"></a> Job list &nbsp; &nbsp; 
 {% if display_limit  and display_limit < njobs %}
-<font size=-1>Only the most recent {{ display_limit }} jobs (sorted by PandaID) are shown. Remove the limit and sort by 
-<a href="{{nosorturl}}">PandaID</a>, 
+<font size=-1>Only the most recent {{ display_limit }} jobs are shown. Remove the limit and sort by
+{% if sortby == "PandaID" %}
+<b>PandaID</b>,
+{% else %}
+<a href="{{nosorturl}}sortby=PandaID">PandaID</a>, 
+{% endif %}
 {% else %}
 Sort by 
 {% if sortby == "PandaID" %}
 <b>PandaID</b>,
 {% else %}
-<a href="{{nosorturl}}">PandaID</a>, 
+<a href="{{nosorturl}}sortby=PandaID">PandaID</a>, 
 {% endif %}
 {% endif %}
 
-{% if sortby == "time-ascending" %}
-<b>ascending mod time</b>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
+
+{% if sortby == "statetime" %}
+time since last state change, <a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
+{% elif sortby == "time-ascending" %}
+<a href="{{nosorturl}}sortby=statetime">time since last state change</a>, <b>ascending mod time</b>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
 {% elif sortby == "time-descending" %}
-<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <b>descending mod time</b>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
+<a href="{{nosorturl}}sortby=statetime">time since last state change</a>, <a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <b>descending mod time</b>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
 {% elif sortby == "priority" %}
-<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <b>priority</b>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
+<a href="{{nosorturl}}sortby=statetime">time since last state change</a>, <a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <b>priority</b>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
 {% elif sortby == "attemptnr" %}
-<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <b>attemptnr</b>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
+<a href="{{nosorturl}}sortby=statetime">time since last state change</a>, <a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <b>attemptnr</b>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
 {% elif sortby == "duration-ascending" %}
-<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <b>ascending duration</b>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
+<a href="{{nosorturl}}sortby=statetime">time since last state change</a>, <a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
 {% elif sortby == "duration-descending" %}
-<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <b>descending duration</b>
+<a href="{{nosorturl}}sortby=statetime">time since last state change</a>, <a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>
 {% else %}
-<a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
+<a href="{{nosorturl}}sortby=statetime">time since last state change</a>, <a href="{{nosorturl}}sortby=time-ascending">ascending mod time</a>, <a href="{{nosorturl}}sortby=time-descending">descending mod time</a>, <a href="{{nosorturl}}sortby=priority">priority</a>, <a href="{{nosorturl}}sortby=attemptnr">attemptnr</a>, <a href="{{nosorturl}}sortby=duration-ascending">ascending duration</a>, <a href="{{nosorturl}}sortby=duration-descending">descending duration</a>
 {% endif %}
 </font>
 </th></tr>
