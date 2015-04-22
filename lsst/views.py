@@ -1429,7 +1429,7 @@ def jobList(request, mode=None, param=None):
         if sortby == 'time-descending':
             jobs = sorted(jobs, key=lambda x:x['modificationtime'], reverse=True)
         if sortby == 'statetime':
-            jobs = sorted(jobs, key=lambda x:x['statechangetime'])
+            jobs = sorted(jobs, key=lambda x:x['statechangetime'], reverse=True)
         elif sortby == 'priority':
             jobs = sorted(jobs, key=lambda x:x['currentpriority'], reverse=True)
         elif sortby == 'attemptnr':
@@ -1444,7 +1444,7 @@ def jobList(request, mode=None, param=None):
             jobs = sorted(jobs, key=lambda x:x['pandaid'], reverse=True)
     else:
         sortby = "statetime"
-        jobs = sorted(jobs, key=lambda x:x['statechangetime'])
+        jobs = sorted(jobs, key=lambda x:x['statechangetime'], reverse=True)
 
 
     taskname = ''
