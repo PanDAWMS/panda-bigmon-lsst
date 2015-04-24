@@ -1700,6 +1700,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     files = []
     typeFiles = {}
     fileSummary = ''
+    inputFilesSize = 0
     if 'nofiles' not in request.session['requestParams']:
         ## Get job files. First look in JEDI datasetcontents
         print "Pulling file info"
@@ -1709,7 +1710,9 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         npseudo_input = 0
         if len(files) > 0:
             for f in files:
-                if f['type'] == 'input': ninput += 1
+                if f['type'] == 'input':
+                    ninput += 1
+                    inputFilesSize += f['fsize']/1048576.
                 if f['type'] in typeFiles:
                     typeFiles[f['type']] += 1
                 else:
@@ -1721,8 +1724,11 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
                 if len(dsets) > 0:
                     f['datasetname'] = dsets[0]['datasetname']
         if len(typeFiles) > 0:
+            inputFilesSize =  "%0.2f" % inputFilesSize
             for i in typeFiles:
-                fileSummary += str(i) +': ' + str(typeFiles[i]) + ', '
+                fileSummary += str(i) +': ' + str(typeFiles[i])
+                if (i == 'input'): fileSummary += ', size: '+inputFilesSize+'(MB)'
+                fileSummary += '; '
             fileSummary = fileSummary[:-2]
         files.extend(Filestable4.objects.filter(pandaid=pandaid).order_by('type').values())
         if len(files) == 0:
