@@ -48,6 +48,11 @@
 <tr> 
 	<td colspan="20" class='highlightcell'> <b>Datasets:</b> &nbsp; {% if job.proddblock %} <b>In:</b> <a href="{% url 'datasetInfo' %}?datasetname={{ job.proddblock }}"> {{ job.proddblock }} </a> {% endif %} {% if job.destinationdblock %} {% if job.proddblock %}<br> &nbsp;{% endif %} <b>Out:</b> <a href="{% url 'datasetInfo' %}?datasetname={{ job.destinationdblock }}"> {{ job.destinationdblock }} </a> {% endif %} </td>
 </tr>
+{%if not fileSummary == '' %}
+<tr>
+	<td colspan="20"> <b> Files summary:</b> &nbsp; {{ fileSummary }} </td>
+</tr>
+{% endif %}
 </table>
 <font size=-1>
 <p>
@@ -305,7 +310,7 @@ But if you want, you can check.
 <td> {% if file.attemptnr %} {{ file.attemptnr }} ({{ file.maxattempt }}){% endif %} </td>
 <td><font size=-1><a href="{% url 'datasetInfo' %}?datasetname={{file.datasetname}}"> {{ file.datasetname }}</a>
 {% if file.dispatchdblock %}
-<br />(dispatch block: {{ file.dispatchdblock }} <a href="http://panda.cern.ch/server/pandamon/query?dataset={{ file.dispatchdblock }}">pinkpanda</a> <a href="https://rucio-ui.cern.ch/did?scope=panda&name={{ file.dispatchdblock }}">rucio</a>)
+<br />(dispatch block: {{ file.dispatchdblock }} <a href="http://panda.cern.ch/server/pandamon/query?dataset={{ file.dispatchdblock }}">pinkpanda</a> <a href="https://rucio-ui.cern.ch/did?scope={{ file.scope }}&name={{ file.dispatchdblock }}">rucio</a>)
 {% endif %}
 {% if file.destinationdblock %}
 <br />(destination block: {% if file.destinationdblock_vis %}{{ file.destinationdblock_vis }}{% else %}{{ file.destinationdblock }}{% endif %} <a href="http://panda.cern.ch/server/pandamon/query?dataset={{ file.destinationdblock }}">

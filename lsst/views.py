@@ -1316,7 +1316,7 @@ def jobParamList(request):
     else:
         return HttpResponse('not supported', mimetype='text/html')
     
-#@cache_page(60*5)
+@cache_page(60*5)
 def jobList(request, mode=None, param=None):
     valid, response = initRequest(request)
     if not valid: return response
@@ -1698,19 +1698,32 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         logextract = None
 
     files = []
+    typeFiles = {}
+    fileSummary = ''
     if 'nofiles' not in request.session['requestParams']:
         ## Get job files. First look in JEDI datasetcontents
         print "Pulling file info"
         files.extend(JediDatasetContents.objects.filter(pandaid=pandaid).order_by('type').values())
         ninput = 0
+        noutput = 0
+        npseudo_input = 0
         if len(files) > 0:
             for f in files:
                 if f['type'] == 'input': ninput += 1
+                if f['type'] in typeFiles:
+                    typeFiles[f['type']] += 1
+                else:
+                    typeFiles[f['type']] = 1                       
+                if f['type'] == 'output': noutput += 1
+                if f['type'] == 'pseudo_input': npseudo_input += 1
                 f['fsizemb'] = "%0.2f" % (f['fsize']/1000000.)
                 dsets = JediDatasets.objects.filter(datasetid=f['datasetid']).values()
                 if len(dsets) > 0:
                     f['datasetname'] = dsets[0]['datasetname']
-
+        if len(typeFiles) > 0:
+            for i in typeFiles:
+                fileSummary += str(i) +': ' + str(typeFiles[i]) + ', '
+            fileSummary = fileSummary[:-2]
         files.extend(Filestable4.objects.filter(pandaid=pandaid).order_by('type').values())
         if len(files) == 0:
             files.extend(FilestableArch.objects.filter(pandaid=pandaid).order_by('type').values())
@@ -1917,6 +1930,7 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
             'runjobs' : runjobs,
             'mergejobs' : mergejobs,
             'esjobstr': esjobstr,
+            'fileSummary':fileSummary,
         }
         data.update(getContextVariables(request))
         ##self monitor
