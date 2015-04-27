@@ -966,6 +966,11 @@ def doRequest(request):
         'projeventsl' : projeventsl,
     }
     if 'json' in request.session['requestParams']  or request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
+        print data['slices'][0]
+        print data['requests'][0]
+        print data['tasks'][0]
+        print data['jeditasks'][0]
+        print data['datasets'][0]
         data['requests'] = list(data['requests'])
         data['slices'] = list(data['slices'])
         data['tasks'] = list(data['tasks'])
