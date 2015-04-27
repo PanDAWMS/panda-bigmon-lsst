@@ -967,6 +967,10 @@ def doRequest(request):
     }
     if 'json' in request.session['requestParams']  or request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         data['requests'] = list(data['requests'])
+        data['slices'] = list(data['slices'])
+        data['tasks'] = list(data['tasks'])
+        data['jeditasks'] = list(data['jeditasks'])
+        data['datasets'] = list(data['datasets'])
         jsondump = json.dumps(data, cls=coreviews.DateEncoder)
         try:
             fh = open('dpc.json','w')
