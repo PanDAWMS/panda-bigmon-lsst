@@ -976,6 +976,9 @@ def doRequest(request):
         data['tasks'] = list(data['tasks'])
         data['jeditasks'] = list(data['jeditasks'])
         data['datasets'] = list(data['datasets'])
+        data['containers'] = list(data['containers'])
+        data['steps'] = list(data['steps'])
+        data['jobsum'] = list(data['jobsum'])
         jsondump = json.dumps(data, cls=coreviews.DateEncoder)
         try:
             fh = open('dpc.json','w')
