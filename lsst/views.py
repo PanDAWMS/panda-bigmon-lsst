@@ -603,9 +603,12 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
     
     return (query,extraQueryString)
 
-def cleanJobList(request, jobl, mode='nodrop'):
+def cleanJobList(request, jobl, mode='nodrop', doAddMeta = True):
     if 'mode' in request.session['requestParams'] and request.session['requestParams']['mode'] == 'drop': mode='drop'
-    jobs = addJobMetadata(jobl)
+    if doAddMeta:
+        jobs = addJobMetadata(jobl)
+    else:
+        jobs = jobl
     for job in jobs:
         if isEventService(job):
             if 'taskbuffererrorcode' in job and job['taskbuffererrorcode'] == 111:
@@ -714,7 +717,6 @@ def cleanJobList(request, jobl, mode='nodrop'):
             plo = int(job['jobsetid'])-int(job['jobsetid'])%100
             phi = plo+99
             job['jobsetrange'] = "%d:%d" % ( plo, phi )
-
 
     ## drop duplicate jobs
     droplist = []
@@ -3992,7 +3994,7 @@ def errorSummary(request):
     jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
     jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
     
-    jobs = cleanJobList(request, jobs, mode='nodrop')
+    jobs = cleanJobList(request, jobs, mode='nodrop', doAddMeta = False)
     njobs = len(jobs)
     tasknamedict = taskNameDict(jobs)
     ## Build the error summary.
@@ -5168,17 +5170,15 @@ def addJobMetadata(jobs):
         if job['jobstatus'] == 'failed': pids.append(job['pandaid'])
     query = {}
     query['pandaid__in'] = pids
-
     mdict = {}
     ## Get job metadata
     mrecs = Metatable.objects.filter(**query).values()
-    print 'got metadata'
+    print 'got metadata', ' ',mrecs
     for m in mrecs:
         try:
             mdict[m['pandaid']] = m['metadata']
         except:
             pass
-
     for job in jobs:
         if job['pandaid'] in mdict:
             try:
@@ -5187,7 +5187,6 @@ def addJobMetadata(jobs):
                 pass
                 #job['metadata'] = mdict[job['pandaid']]
     print 'added metadata'
-
     return jobs
 
 ##self monitor
