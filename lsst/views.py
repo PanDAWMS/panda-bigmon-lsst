@@ -1198,6 +1198,7 @@ def extensibleURL(request, xurl = ''):
     #    xurl += "jobtype=%s&" % requestParams['jobtype']
     return xurl
 
+@cache_page(60*6)
 def mainPage(request):
     valid, response = initRequest(request)
     if not valid: return response
@@ -1606,6 +1607,7 @@ def isEventService(job):
         return False
 
 @csrf_exempt
+@cache_page(60*6)
 def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
     valid, response = initRequest(request)
     if not valid: return response
@@ -2094,6 +2096,7 @@ def userList(request):
         resp = sumd
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
+@cache_page(60*6)
 def userInfo(request, user=''):
     valid, response = initRequest(request)
     if not valid: return response
@@ -2256,6 +2259,7 @@ def userInfo(request, user=''):
         resp = sumd
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
+@cache_page(60*6)
 def siteList(request):
     valid, response = initRequest(request)
     if not valid: return response
@@ -3255,6 +3259,7 @@ def dashTasks(request, hours, view='production'):
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
 @csrf_exempt
+@cache_page(60*6)
 def taskList(request):
     valid, response = initRequest(request)
     if 'limit' in request.session['requestParams']:            
@@ -3375,6 +3380,7 @@ def taskList(request):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
 
+@cache_page(60*6)
 def taskInfo(request, jeditaskid=0):
     jeditaskid = int(jeditaskid)
     valid, response = initRequest(request)
@@ -4223,6 +4229,7 @@ def incidentList(request):
         resp = incidents
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
+@cache_page(60*6)
 def pandaLogger(request):
     valid, response = initRequest(request)
     if not valid: return response
@@ -4353,6 +4360,7 @@ def pandaLogger(request):
         resp = incidents
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
+@cache_page(60*6)
 def workingGroups(request):
     valid, response = initRequest(request)
     if not valid: return response
@@ -4672,6 +4680,7 @@ def fileList(request):
     elif request.META.get('CONTENT_TYPE', 'text/plain') == 'application/json':
         return  HttpResponse(json.dumps(files), mimetype='text/html')
 
+@cache_page(60*6)
 def workQueues(request):
     valid, response = initRequest(request)
     if not valid: return response
