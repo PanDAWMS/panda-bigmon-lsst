@@ -1318,7 +1318,7 @@ def jobParamList(request):
     else:
         return HttpResponse('not supported', mimetype='text/html')
     
-@cache_page(60*5)
+@cache_page(60*6)
 def jobList(request, mode=None, param=None):
     valid, response = initRequest(request)
     if not valid: return response
@@ -2545,7 +2545,7 @@ def wnSummary(query):
     summary.extend(Jobsarchived4.objects.filter(**query).values('modificationhost', 'jobstatus').annotate(Count('jobstatus')).order_by('modificationhost', 'jobstatus'))
     return summary
 
-@cache_page(60*5)
+@cache_page(60*6)
 def wnInfo(request,site,wnname='all'):
     """ Give worker node level breakdown of site activity. Spot hot nodes, error prone nodes. """
     valid, response = initRequest(request)
@@ -3019,7 +3019,7 @@ def calculateRWwithPrio_JEDI(query):
     return retRWMap, retNREMJMap
         
         
-#@cache_page(60*10) 
+@cache_page(60*6) 
 def dashboard(request, view='production'):
     valid, response = initRequest(request)
     if not valid: return response
@@ -3950,6 +3950,7 @@ def getTaskName(tasktype,taskid):
             taskname = tasks[0]['taskname']
     return taskname
 
+@cache_page(60*6)
 def errorSummary(request):
     valid, response = initRequest(request)
     if not valid: return response
@@ -4113,7 +4114,7 @@ def removeParam(urlquery, parname, mode='complete'):
             if urlquery.endswith('?') or urlquery.endswith('&'): urlquery = urlquery[:len(urlquery)-1]
     return urlquery
 
-@cache_page(60*5)
+@cache_page(60*6)
 def incidentList(request):
     valid, response = initRequest(request)
     if not valid: return response
