@@ -1369,9 +1369,9 @@ def jobList(request, mode=None, param=None):
         ##hard limit is set to 2K
         if ('jobstatus' not in request.session['requestParams'] or request.session['requestParams']['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
             
-            totalJobs = Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM<6002']).count()
-            if ('limit' not in request.session['requestParams']) & (int(totalJobs)>6000):
-               request.session['JOB_LIMIT'] = 6000
+            totalJobs = Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM<2001']).count()
+            if ('limit' not in request.session['requestParams']) & (int(totalJobs)>2000):
+               request.session['JOB_LIMIT'] = 2000
                showTop = 1
             jobs.extend(Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
              
