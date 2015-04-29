@@ -50,7 +50,7 @@ from core.common.models import RequestStat
 from core.common.settings.config import ENV
 from time import gmtime, strftime
 from settings.local import dbaccess
-import re
+import string as strm
 from django.views.decorators.cache import cache_page
 
 import ErrorCodes
@@ -115,10 +115,14 @@ VONAME = { 'atlas' : 'ATLAS', 'bigpanda' : 'BigPanDA', 'htcondor' : 'HTCondor', 
 VOMODE = ' '
 
 
-def escapeInput(strToEscape):
-   # !@#$%^&*()[]{};:,./<>?\|`~-=_+
-        return re.sub(r'[?|$|!|%|^|;|]',r'',strToEscape)
 
+
+def escapeInput(strToEscape):
+    not_letters_or_digits = u'!$%^&()[]{};,<>?\`~+%\'\"'
+    translate_table = dict((ord(char), u'_') for char in not_letters_or_digits)
+    print translate_table
+    print strToEscape.translate(translate_table)
+    return strToEscape.translate(translate_table)        
 
 def setupSiteInfo(request):
     
@@ -1369,7 +1373,7 @@ def jobList(request, mode=None, param=None):
         ##hard limit is set to 2K
         if ('jobstatus' not in request.session['requestParams'] or request.session['requestParams']['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
             
-            totalJobs = Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM<2001']).count()
+            totalJobs = Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM<2002']).count()
             if ('limit' not in request.session['requestParams']) & (int(totalJobs)>2000):
                request.session['JOB_LIMIT'] = 2000
                showTop = 1
@@ -1637,9 +1641,12 @@ def jobInfo(request, pandaid=None, batchid=None, p2=None, p3=None, p4=None):
         jobid = batchid
         query['batchid'] = batchid
     if 'pandaid' in request.session['requestParams']:
-        pandaid = request.session['requestParams']['pandaid']
+        try: 
+            pandaid = int(request.session['requestParams']['pandaid'])
+        except ValueError:
+            pandaid = 0
         jobid = pandaid
-        query['pandaid'] = int(pandaid)
+        query['pandaid'] = pandaid
     elif 'batchid' in request.session['requestParams']:
         batchid = request.session['requestParams']['batchid']
         jobid = "'"+batchid+"'"
@@ -2263,6 +2270,8 @@ def userInfo(request, user=''):
 def siteList(request):
     valid, response = initRequest(request)
     if not valid: return response
+    for param in request.session['requestParams']:
+        request.session['requestParams'][param]= escapeInput(request.session['requestParams'][param])
     setupView(request, opmode='notime')
     query = {}
     ### Add any extensions to the query determined from the URL  
@@ -2279,8 +2288,8 @@ def siteList(request):
             prod = True
         for field in Schedconfig._meta.get_all_field_names():
             if param == field:
-                query[param] = request.session['requestParams'][param]
-
+                query[param] = escapeInput(request.session['requestParams'][param])
+    
     siteres = Schedconfig.objects.filter(**query).exclude(cloud='CMS').values()
     mcpres = Schedconfig.objects.filter(status='online').exclude(cloud='CMS').exclude(siteid__icontains='test').values('siteid','multicloud','cloud').order_by('siteid')
     sites = []
