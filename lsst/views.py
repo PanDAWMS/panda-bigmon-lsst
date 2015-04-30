@@ -5,6 +5,7 @@ import time
 import json
 import copy
 import itertools
+import string as strm
 
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
@@ -17,6 +18,7 @@ from django.utils import timezone
 from django.utils.cache import patch_cache_control, patch_response_headers
 from django.db.models import Q
 from django.core.cache import cache
+from django.utils import encoding
 
 
 
@@ -118,19 +120,17 @@ VOMODE = ' '
 
 
 def escapeInput(strToEscape):
-    not_letters_or_digits = u'!$%^&()[]{};,<>?\`~+%\'\"'
-    translate_table = dict((ord(char), u'_') for char in not_letters_or_digits)
-    print translate_table
-    print strToEscape.translate(translate_table)
-    return strToEscape.translate(translate_table)        
+    charsToEscape = '!$%^&()[]{};,<>?\`~+%\'\"'
+    charsToReplace = '_'*len(charsToEscape)
+    tbl = strm.maketrans(charsToEscape, charsToReplace)
+    strToEscape = encoding.smart_str(strToEscape, encoding='ascii', errors='ignore')
+    strToEscape = strToEscape.translate(tbl)
+    return strToEscape        
 
 def setupSiteInfo(request):
-    
     requestParams = {}
     if not 'requestParams' in request.session:
         request.session['requestParams'] = requestParams
-
-    
     global homeCloud, objectStores, pandaSites, callCount
     callCount += 1
     if len(homeCloud) > 0 and callCount%100 != 1 and 'refresh' not in request.session['requestParams']: return
@@ -3389,6 +3389,30 @@ def taskList(request):
         patch_response_headers(response, cache_timeout=request.session['max_age_minutes']*60)
         return response
 
+def getBrokerageLog(request):
+    iquery = {}
+    iquery['type']='prod_brokerage'
+    iquery['name']='panda.mon.jedi'
+    if 'taskid' in request.session['requestParams']:
+        iquery['message__startswith'] = request.session['requestParams']['taskid']
+    if 'jeditaskid' in request.session['requestParams']:
+        iquery['message__icontains'] = "jeditaskid=%s" % request.session['requestParams']['jeditaskid']
+    if 'hours' not in request.session['requestParams']:
+            hours = 72
+    else:
+        hours = int(request.session['requestParams']['hours'])
+    startdate = timezone.now() - timedelta(hours=hours)
+    startdate = startdate.strftime(defaultDatetimeFormat)
+    enddate = timezone.now().strftime(defaultDatetimeFormat)
+    iquery['bintime__range'] = [startdate, enddate]
+    records = Pandalog.objects.filter(**iquery).order_by('bintime').reverse()[:request.session['JOB_LIMIT']].values()
+    sites = {}
+    for record in records:
+        message = records['message']
+        print message
+    
+
+
 @cache_page(60*6)
 def taskInfo(request, jeditaskid=0):
     jeditaskid = int(jeditaskid)
@@ -3541,6 +3565,8 @@ def taskInfo(request, jeditaskid=0):
     outctrs = JediDatasets.objects.filter(**cquery).values_list('containername',flat=True).distinct()
     if len(outctrs) == 0 or outctrs[0] == '':
         outctrs = None
+
+    #getBrokerageLog(request)
 
     ## For event service, pull the jobs and event ranges
     if eventservice:
@@ -4260,7 +4286,7 @@ def pandaLogger(request):
         iquery['message__icontains'] = "jeditaskid=%s" % request.session['requestParams']['jeditaskid']
         getrecs = True
     if 'site' in request.session['requestParams']:
-        iquery['message__startswith'] = request.session['requestParams']['site']
+        iquery['message__icontains'] = "site=%s " %request.session['requestParams']['site']
         getrecs = True
     if 'pandaid' in request.session['requestParams']:
         iquery['pid'] = request.session['requestParams']['pandaid']
@@ -4277,6 +4303,7 @@ def pandaLogger(request):
     startdate = startdate.strftime(defaultDatetimeFormat)
     enddate = timezone.now().strftime(defaultDatetimeFormat)
     iquery['bintime__range'] = [startdate, enddate]
+    print iquery
     counts = Pandalog.objects.filter(**iquery).values('name','type','levelname').annotate(Count('levelname')).order_by('name','type','levelname')
     if getrecs:
         records = Pandalog.objects.filter(**iquery).order_by('bintime').reverse()[:request.session['JOB_LIMIT']].values()
