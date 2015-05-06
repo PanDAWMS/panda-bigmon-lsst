@@ -496,6 +496,10 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
                                 if ttype.startswith('anal'): ttype='anal'
                                 elif ttype.startswith('prod'): ttype='prod'
                                 query[param] = ttype
+                            elif param == 'superstatus':
+                                val = escapeInput(request.session['requestParams'][param])
+                                values = val.split('|')
+                                query['superstatus__in'] = values
                             else:
                                 query[param] = request.session['requestParams'][param]
                         if param == 'eventservice':
@@ -1323,8 +1327,9 @@ def jobParamList(request):
     else:
         return HttpResponse('not supported', mimetype='text/html')
     
-@cache_page(60*6)
+#@cache_page(60*6)
 def jobList(request, mode=None, param=None):
+    
     valid, response = initRequest(request)
     if not valid: return response
     if 'dump' in request.session['requestParams'] and request.session['requestParams']['dump'] == 'parameters':
@@ -1337,7 +1342,7 @@ def jobList(request, mode=None, param=None):
         eventservice = True
         
     query,wildCardExtension = setupView(request, wildCardExt=True)
-    
+
     if 'batchid' in request.session['requestParams']:
         query['batchid'] = request.session['requestParams']['batchid']
     jobs = []
@@ -1361,6 +1366,7 @@ def jobList(request, mode=None, param=None):
         jobs = stateNotUpdated(request, values=values, wildCardExtension=wildCardExtension)
         
     else:
+
         excludedTimeQury = copy.deepcopy(query)
         if ('modificationtime__range' in excludedTimeQury):
             del excludedTimeQury['modificationtime__range']
@@ -1381,7 +1387,7 @@ def jobList(request, mode=None, param=None):
              
     ## If the list is for a particular JEDI task, filter out the jobs superseded by retries
     taskids = {}
-    
+
     for job in jobs:
         if 'jeditaskid' in job: taskids[job['jeditaskid']] = 1
     dropmode = False
@@ -1410,8 +1416,8 @@ def jobList(request, mode=None, param=None):
                     droplist.append( { 'pandaid' : pandaid, 'newpandaid' : dropJob } )
         droplist = sorted(droplist, key=lambda x:-x['pandaid'])
         jobs = newjobs
-    
     jobs = cleanJobList(request, jobs)
+
     njobs = len(jobs)
     jobtype = ''
     if 'jobtype' in request.session['requestParams']:
@@ -1452,7 +1458,6 @@ def jobList(request, mode=None, param=None):
     else:
         sortby = "statetime"
         jobs = sorted(jobs, key=lambda x:x['statechangetime'], reverse=True)
-
 
     taskname = ''
     if 'jeditaskid' in request.session['requestParams']:
@@ -3268,7 +3273,7 @@ def dashTasks(request, hours, view='production'):
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
 @csrf_exempt
-@cache_page(60*6)
+#@cache_page(60*6)
 def taskList(request):
     valid, response = initRequest(request)
     if 'limit' in request.session['requestParams']:            
@@ -3289,7 +3294,6 @@ def taskList(request):
         tasks = taskNotUpdated(request, query)
     else:
         tasks = JediTasks.objects.filter(**query)[:limit].values()
-            
     tasks = cleanTaskList(request, tasks)
     ntasks = len(tasks)
     nmax = ntasks
