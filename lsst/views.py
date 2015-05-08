@@ -2401,13 +2401,14 @@ def siteInfo(request, site=''):
     except IndexError:
         siterec = None
     
+    HPC = False
+    njobhours = 12
     try:
         if siterec.catchall.find('HPC') >= 0:
             HPC = True
             njobhours = 48
     except AttributeError:
-        HPC = False
-        njobhours = 12
+        pass
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         attrs = []
