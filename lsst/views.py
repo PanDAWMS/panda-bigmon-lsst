@@ -2400,20 +2400,23 @@ def siteInfo(request, site=''):
         colnames = siterec.get_all_fields()
     except IndexError:
         siterec = None
-    HPC = False
-    njobhours = 12
-    if siterec.catchall.find('HPC') >= 0:
-        HPC = True
-        njobhours = 48
+    
+    try:
+        if siterec.catchall.find('HPC') >= 0:
+            HPC = True
+            njobhours = 48
+    except AttributeError:
+        HPC = False
+        njobhours = 12
 
     if request.META.get('CONTENT_TYPE', 'text/plain') == 'text/plain':
         attrs = []
         if siterec:
             attrs.append({'name' : 'GOC name', 'value' : siterec.gocname })
             if HPC: attrs.append({'name' : 'HPC', 'value' : 'This is a High Performance Computing (HPC) supercomputer queue' })
-            if siterec.catchall.find('log_to_objectstore') >= 0:
+            if siterec.catchall and siterec.catchall.find('log_to_objectstore') >= 0:
                 attrs.append({'name' : 'Object store logs', 'value' : 'Logging to object store is enabled' })
-            if len(siterec.objectstore) > 0:
+            if siterec.objectstore and len(siterec.objectstore) > 0:
                 fields = siterec.objectstore.split('|')
                 nfields = len(fields)
                 for nf in range (0, len(fields)):
@@ -2431,10 +2434,10 @@ def siteInfo(request, site=''):
             if len(sites) > 1:
                 attrs.append({'name' : 'Total queues for this site', 'value' : len(sites) })
             attrs.append({'name' : 'Status', 'value' : siterec.status })
-            if len(siterec.comment_field) > 0:
+            if siterec.comment_field and len(siterec.comment_field) > 0:
                 attrs.append({'name' : 'Comment', 'value' : siterec.comment_field })
             attrs.append({'name' : 'Cloud', 'value' : siterec.cloud })
-            if len(siterec.multicloud) > 0:
+            if siterec.multicloud and len(siterec.multicloud) > 0:
                 attrs.append({'name' : 'Multicloud', 'value' : siterec.multicloud })
             attrs.append({'name' : 'Tier', 'value' : siterec.tier })
             attrs.append({'name' : 'DDM endpoint', 'value' : siterec.ddm })
