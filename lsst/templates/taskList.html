@@ -1,4 +1,10 @@
 {% extends "_base_lsst.html" %}
+
+<script type="text/javascript"
+           src="/lsst/static/js/progressbartaskpage.js">
+</script>
+
+
 {% load url from future %}
 
 {% block page_title %} {{ viewParams.MON_VO }} PanDA tasks{% endblock %}
@@ -20,7 +26,6 @@
 
 {% if requestParams.reqid_from %}<br><b>From request ID: {{ requestParams.reqid_from }}</b> {% endif %}
 {% if requestParams.reqid_to %}<br><b>To request ID: {{ requestParams.reqid_to }}</b> {% endif %}
-{% if requestParams.reqid %}<br><b>Request ID: {{ requestParams.reqid }}</b> {% endif %}
 
 {% if requestParams.transpath %}<br><b>Transformation: {{ requestParams.transpath }}</b> {% endif %}
 {% if requestParams.transuses %}<br><b>Release: {{ requestParams.transuses }}</b> {% endif %}
@@ -80,6 +85,7 @@ Too many to list
 	<th>Input files <br><a href="{{nosorturl}}sortby=pctfinished"><span class='finished'>finish%</span></a> <a href="{{nosorturl}}sortby=pctfailed"><span class='failed'>fail%</span></a>
 <br>	<a href="{{nosorturl}}sortby=pctfinished"><span class='finished'>Nfinish</span></a> <a href="{{nosorturl}}sortby=pctfailed"><span class='failed'>Nfail</span></a>
 	</th>
+	<th>Total/Remaining Events</th>	
 	<th><a href="{{nosorturl}}sortby=time-descending">Modified</a></th>
 	<th><a href="{{nosorturl}}sortby=statetime-descending">State changed</a></th>
 	<th><a href="{{nosorturl}}sortby=priority">Priority</a></th>
@@ -99,6 +105,7 @@ Too many to list
         <td>{% if task.dsinfo.nfilesfinished > 0 %}<span  class='finished'>{{task.dsinfo.pctfinished}}%</span>{% endif %} {% if task.dsinfo.nfilesfailed > 0 %}<a href="{% url 'errorSummary' %}?jeditaskid={{task.jeditaskid}}"><span class='failed'> {{task.dsinfo.pctfailed}}%</span>{% endif %}</a>
         <br> {% if task.dsinfo.nfilesfinished > 0 %} <span  class='finished'>{{ task.dsinfo.nfilesfinished }}</span> {% endif %} &nbsp; {% if task.dsinfo.nfilesfailed > 0 %} <a href="{% url 'errorSummary' %}?jeditaskid={{task.jeditaskid}}"><span  class='failed'>{{ task.dsinfo.nfilesfailed }}</span></a> {% endif %}
 		</td>
+		<td><font size=-1>{% if task.totev > 0 %} {{ task.totev }} / {{task.totevrem}} {%endif%}</font></td>	
 		<td><font size=-1>{{ task.modificationtime|date:"Y-m-d H:i" }}</font></td>
 		<td><font size=-1>{{ task.statechangetime|date:"m-d H:i" }}</font></td>
 		<td>{{ task.taskpriority }}</td>

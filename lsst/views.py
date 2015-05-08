@@ -42,6 +42,7 @@ from core.common.models import Incidents
 from core.common.models import Pandalog
 from core.common.models import JediJobRetryHistory
 from core.common.models import JediTasks
+from core.common.models import GetEventsForTask
 from core.common.models import Etask
 from core.common.models import JediTaskparams
 from core.common.models import JediEvents
@@ -3277,7 +3278,7 @@ def dashTasks(request, hours, view='production'):
         return  HttpResponse(json.dumps(resp), mimetype='text/html')
 
 @csrf_exempt
-#@cache_page(60*6)
+@cache_page(60*6)
 def taskList(request):
     valid, response = initRequest(request)
     if 'limit' in request.session['requestParams']:            
@@ -3313,7 +3314,22 @@ def taskList(request):
 
     #from django.db import connection
     #print 'SQL query:', connection.queries
+
+    taskslToBeDisplayed = tasks[:nmax]
+    tasksIdToBeDisplayed = [task['jeditaskid'] for task in taskslToBeDisplayed]
+    tquery = {}
+    tquery['jeditaskid__in'] = tasksIdToBeDisplayed
+    tasksEventInfo = GetEventsForTask.objects.filter(**tquery).values('jeditaskid','totevrem', 'totev')
     
+    for task in taskslToBeDisplayed:
+        correspondendEventInfo = filter(lambda n: n.get('jeditaskid') == task['jeditaskid'], tasksEventInfo)
+        if len(correspondendEventInfo) > 0:
+            task['totevrem'] = int(correspondendEventInfo[0]['totevrem'])
+            task['totev'] = correspondendEventInfo[0]['totev']
+        else:
+            task['totevrem'] = 0
+            task['totev'] = 0
+
     ## For event service, pull the jobs and event ranges
     if eventservice:        
         taskl = []
