@@ -19,7 +19,7 @@ from django.utils.cache import patch_cache_control, patch_response_headers
 from django.db.models import Q
 from django.core.cache import cache
 from django.utils import encoding
-
+from django.conf import settings as djangosettings
 
 
 from core.common.utils import getPrefix, getContextVariables, QuerySetChain
@@ -167,8 +167,10 @@ def initRequest(request):
         request.session['debug'] = True
     elif 'debug' in request.GET and request.GET['debug'] == 'insider':
         request.session['debug'] = True
+        djangosettings.DEBUG = True
     else:
         request.session['debug'] = False
+        djangosettings.DEBUG = False
 
     if len(hostname) > 0: request.session['hostname'] = hostname
     ##self monitor
