@@ -40,7 +40,7 @@
 	<td>{{ job.currentpriority }}</td>
 </tr>
 <tr>
-	<td colspan="20"><b>Job name:</b> <a href="{% url 'jobList' %}?jobname={{ job.jobname }}&taskid={{ job.taskid }}&jeditaskid={{ job.jeditaskid }}&sortby=attemptnr">{{ job.jobname }}</a> 
+	<td colspan="20"><b>Job name:</b> <a href="{% url 'jobList' %}?jobname={{ job.jobname }}&taskid={{ job.taskid }}{% if job.jeditaskid > 0 %}&jeditaskid={{ job.jeditaskid }}{% endif %}&sortby=attemptnr">{{ job.jobname }}</a> 
 	{% if job.processingtype %} &nbsp; <b>type:</b> {{ job.processingtype }} {% endif %}
     {% if job.transformation %} &nbsp; <b>transformation:</b> {{ job.transformation|safe }} {% endif %}
 	</td>
