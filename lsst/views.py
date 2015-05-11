@@ -3322,7 +3322,8 @@ def taskList(request):
     tquery = {}
     tquery['jeditaskid__in'] = tasksIdToBeDisplayed
     tasksEventInfo = GetEventsForTask.objects.filter(**tquery).values('jeditaskid','totevrem', 'totev')
-    
+    failedInScouting = JediDatasets.objects.filter(**tquery).extra(where=['nFiles > nFilesTobeUsed']).values('jeditaskid')
+    failedInScouting = [ item['jeditaskid'] for item in failedInScouting]
     for task in taskslToBeDisplayed:
         correspondendEventInfo = filter(lambda n: n.get('jeditaskid') == task['jeditaskid'], tasksEventInfo)
         if len(correspondendEventInfo) > 0:
@@ -3331,6 +3332,10 @@ def taskList(request):
         else:
             task['totevrem'] = 0
             task['totev'] = 0
+        if (task['jeditaskid'] in failedInScouting):
+                task['failedscouting'] = True
+        else:
+            task['failedscouting'] = False
 
     ## For event service, pull the jobs and event ranges
     if eventservice:        
