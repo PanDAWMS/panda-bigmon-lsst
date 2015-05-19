@@ -4199,6 +4199,7 @@ def incidentList(request):
             hours = int(request.session['requestParams']['hours'])
     setupView(request, hours=hours, limit=9999999)
     iquery = {}
+    cloudQuery = Q()
     startdate = timezone.now() - timedelta(hours=hours)
     startdate = startdate.strftime(defaultDatetimeFormat)
     enddate = timezone.now().strftime(defaultDatetimeFormat)
@@ -4211,7 +4212,11 @@ def incidentList(request):
         iquery['description__contains'] = '%s' % request.session['requestParams']['comment']
     if 'notifier' in request.session['requestParams']:
         iquery['description__contains'] = 'DN=%s' % request.session['requestParams']['notifier']
-    incidents = Incidents.objects.filter(**iquery).order_by('at_time').reverse().values()
+    if 'cloud' in request.session['requestParams']:
+        sites = [site for site, cloud in homeCloud.items() if cloud == request.session['requestParams']['cloud']]
+        for site in sites:
+            cloudQuery = cloudQuery | Q(description__contains='queue=%s' % site)
+    incidents = Incidents.objects.filter(**iquery).filter(cloudQuery).order_by('at_time').reverse().values()
     sumd = {}
     pars = {}
     incHist = {}
@@ -4228,6 +4233,8 @@ def incidentList(request):
             pars['site'] = parsmat.group(2)
             pars['notifier'] = parsmat.group(3)
             pars['type'] = inc['typekey']
+            if homeCloud.has_key(pars['site']):
+                pars['cloud'] = homeCloud[pars['site']]
             if parsmat.group(4): pars['comment'] = parsmat.group(4)
         else:
             parsmat = re.match('^([A-Za-z\s]+):.*$',desc)
@@ -4262,7 +4269,6 @@ def incidentList(request):
         itemd['list'] = iteml
         suml.append(itemd)
     suml = sorted(suml, key=lambda x:x['param'].lower())
-
     kys = incHist.keys()
     kys.sort()
     incHistL = []
