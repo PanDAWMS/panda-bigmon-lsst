@@ -98,6 +98,15 @@ This is an event service task<p>
 <td>
 <a href="{% url 'jobList' %}?jeditaskid={{jeditaskid}}&display_limit=100">job list (access to job details and logs)</a>
 </td>
+
+<td>
+<a href="{% url 'jobList' %}?jeditaskid={{jeditaskid}}&jobstatus=finished|failed|cancelled">Show ended jobs</a>
+</td>
+
+<td>
+<a href="{% url 'jobList' %}?jeditaskid={{jeditaskid}}&jobstatus=defined|waiting|pending|assigned|throttled|activated|sent|starting|running|holding|transferring">Show active jobs</a>
+</td>
+
 {% endif %}
 
 {% if task.parent_tid != task.jeditaskid and task.parent_tid != None %}
@@ -127,6 +136,8 @@ parent task<a href="{% url 'taskInfo' task.parent_tid %}"> {{ task.parent_tid }}
 <td>
 <a href="{% url 'errorSummary' %}?jeditaskid={{jeditaskid}}">error summary</a>
 </td>
+
+
 
 </tr></table>
 
