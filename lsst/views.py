@@ -544,6 +544,10 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
                             query['jobname'] = request.session['requestParams']['pandaid']
                     elif param == 'jobstatus' and request.session['requestParams'][param] == 'finished' and  ( ('mode' in request.session['requestParams'] and request.session['requestParams']['mode'] == 'eventservice') or ('jobtype' in request.session['requestParams'] and request.session['requestParams']['jobtype'] == 'eventservice') ):
                         query['jobstatus__in'] = ( 'finished', 'cancelled' )
+                    elif param == 'jobstatus':
+                        val = escapeInput(request.session['requestParams'][param])
+                        values = val.split('|')
+                        query['jobstatus__in'] = values
                     else:
                         if (param not in wildSearchFields):
                             query[param] = request.session['requestParams'][param]
