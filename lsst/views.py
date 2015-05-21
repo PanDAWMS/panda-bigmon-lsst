@@ -298,7 +298,8 @@ def setupView(request, opmode='', hours=0, limit=-99, querytype='job', wildCardE
     wildSearchFields = []
     for field in Jobsactive4._meta.get_all_field_names():
         if (Jobsactive4._meta.get_field(field).get_internal_type() == 'CharField'):
-            wildSearchFields.append(field)
+            if not field == 'jobstatus':
+                wildSearchFields.append(field)
     
     deepquery = False
     fields = standard_fields
@@ -818,8 +819,12 @@ def cleanTaskList(request, tasks):
             dsinfo[taskid].append(ds)
             
     for task in tasks:
-        if len(task['errordialog']) > 100: task['errordialog'] = task['errordialog'][:90]+'...'
-        if 'reqid' in task and task['reqid'] < 100000 and task['reqid'] > 100 and task['reqid'] != 300 and not task['tasktype'].startswith('anal'):
+        if 'totevrem' not in task:
+            task['totevrem'] = None
+        
+        if 'errordialog' in task:
+            if len(task['errordialog']) > 100: task['errordialog'] = task['errordialog'][:90]+'...'
+        if 'reqid' in task and task['reqid'] < 100000 and task['reqid'] > 100 and task['reqid'] != 300 and ( ('tasktype' in task) and (not task['tasktype'].startswith('anal'))):
             task['deftreqid'] = task['reqid']
         #if task['status'] == 'running' and task['jeditaskid'] in dsinfo:
         dstotals = {}
@@ -1379,8 +1384,9 @@ def jobList(request, mode=None, param=None):
         
         jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
 
+        queryFrozenStates =  filter(set(request.session['requestParams']['jobstatus'].split('|')).__contains__, [ 'finished', 'failed', 'cancelled' ])
         ##hard limit is set to 2K
-        if ('jobstatus' not in request.session['requestParams'] or request.session['requestParams']['jobstatus'] in ( 'finished', 'failed', 'cancelled' )):
+        if ('jobstatus' not in request.session['requestParams'] or len(queryFrozenStates) > 0):
             
             totalJobs = Jobsarchived.objects.filter(**query).extra(where=[wildCardExtension, 'ROWNUM<2002']).count()
             if ('limit' not in request.session['requestParams']) & (int(totalJobs)>2000):
