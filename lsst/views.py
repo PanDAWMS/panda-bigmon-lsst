@@ -1379,16 +1379,18 @@ def jobList(request, mode=None, param=None):
         
     else:
 
-        excludedTimeQury = copy.deepcopy(query)
-        if ('modificationtime__range' in excludedTimeQury):
-            del excludedTimeQury['modificationtime__range']
-        jobs.extend(Jobsdefined4.objects.filter(**excludedTimeQury).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
-        jobs.extend(Jobsactive4.objects.filter(**excludedTimeQury).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
-        jobs.extend(Jobswaiting4.objects.filter(**excludedTimeQury).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+        excludedTimeQuery = copy.deepcopy(query)
+        if ('modificationtime__range' in excludedTimeQuery):
+            del excludedTimeQuery['modificationtime__range']
+        jobs.extend(Jobsdefined4.objects.filter(**excludedTimeQuery).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+        jobs.extend(Jobsactive4.objects.filter(**excludedTimeQuery).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
+        jobs.extend(Jobswaiting4.objects.filter(**excludedTimeQuery).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
         
         jobs.extend(Jobsarchived4.objects.filter(**query).extra(where=[wildCardExtension])[:request.session['JOB_LIMIT']].values(*values))
 
-        queryFrozenStates =  filter(set(request.session['requestParams']['jobstatus'].split('|')).__contains__, [ 'finished', 'failed', 'cancelled' ])
+        queryFrozenStates = []
+        if 'jobstatus' in request.session['requestParams']:
+            queryFrozenStates =  filter(set(request.session['requestParams']['jobstatus'].split('|')).__contains__, [ 'finished', 'failed', 'cancelled' ])
         ##hard limit is set to 2K
         if ('jobstatus' not in request.session['requestParams'] or len(queryFrozenStates) > 0):
             
